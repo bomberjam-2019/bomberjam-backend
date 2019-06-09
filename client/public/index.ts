@@ -25,6 +25,8 @@ const app = new Application({
 });
 
 const tilePixelSize = 32;
+const pixiContainer = document.getElementById('pixi');
+const debugContainer = document.getElementById('debug');
 
 app.loader.add(Object.values(Sprites)).load(() => {
   room.onJoin.add(() => console.log(`successfully joined room ${room.id}`));
@@ -40,9 +42,11 @@ app.loader.add(Object.values(Sprites)).load(() => {
 
   let initialized = false;
   room.onStateChange.add((state: IGameState) => {
+    debugContainer!.innerHTML = JSON.stringify(state, null, 2);
+
     if (!initialized) {
       app.renderer.resize(state.width * tilePixelSize, state.height * tilePixelSize);
-      document.getElementById('pixi')!.appendChild(app.view);
+      pixiContainer!.appendChild(app.view);
 
       const wallTilingSprite = new TilingSprite(app.loader.resources[Sprites.Floor].texture, app.screen.width, app.screen.height);
       wallTilingSprite.tileScale.set(textureScaleRatio, textureScaleRatio);

@@ -126,6 +126,9 @@ export class GameState extends Schema implements IGameState {
   @type('number')
   height: number = GameState.DefaultHeight;
 
+  @type('number')
+  tickDuration: number = 0;
+
   public isWaitingForPlayers(): boolean {
     return this.state === -1;
   }

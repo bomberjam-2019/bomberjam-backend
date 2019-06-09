@@ -1,12 +1,3 @@
-export interface IHasTick {
-  tick: number;
-}
-
-export interface IHasPos {
-  x: number;
-  y: number;
-}
-
 export interface IJoinRoomOpts {
   name?: string;
   roomId?: string;
@@ -14,6 +5,15 @@ export interface IJoinRoomOpts {
   serverName?: string;
   serverPort?: number;
   training?: boolean;
+}
+
+export interface IHasTick {
+  tick: number;
+}
+
+export interface IHasPos {
+  x: number;
+  y: number;
 }
 
 export interface IClientMessage extends IHasTick {
@@ -50,4 +50,5 @@ export interface IGameState extends IHasTick {
   explosions: string;
   width: number;
   height: number;
+  tickDuration: number;
 }

@@ -4,7 +4,7 @@ import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } f
 import { IClientMessage, IHasTick, IJoinRoomOpts, IPlayer } from '../common/interfaces';
 import { Client, Room } from 'colyseus';
 import { GameState } from './State';
-import { ClientMessage } from './types';
+import { IBombermanClientMessage } from './types';
 
 export abstract class TickBasedRoom<TState extends IHasTick, TClientMessage extends IClientMessage> extends Room<TState> {
   protected abstract readonly tickDurationMs: number;
@@ -80,7 +80,7 @@ export abstract class TickBasedRoom<TState extends IHasTick, TClientMessage exte
   }
 }
 
-export class BombermanRoom extends TickBasedRoom<GameState, ClientMessage> {
+export class BombermanRoom extends TickBasedRoom<GameState, IBombermanClientMessage> {
   protected readonly tickDurationMs: number = TICK_DURATION_MS;
   protected readonly maxResponseTimeMs: number = MAX_RESPONSE_TIME_MS;
   protected readonly maxPlayerCount: number = MAX_PLAYERS;
@@ -90,7 +90,7 @@ export class BombermanRoom extends TickBasedRoom<GameState, ClientMessage> {
     this.maxClients = MAX_PLAYERS + MAX_SPECTATORS;
 
     this.setState(new GameState());
-    this.log(JSON.stringify(this.state));
+    this.computeState([]);
   }
 
   public requestJoin(options: IJoinRoomOpts, isNew?: boolean): number | boolean {
@@ -141,7 +141,7 @@ export class BombermanRoom extends TickBasedRoom<GameState, ClientMessage> {
     this.state.killPlayer(player);
   }
 
-  protected isValidMessage(message: ClientMessage): boolean {
+  protected isValidMessage(message: IBombermanClientMessage): boolean {
     if (this.state.isPlaying()) {
       const player: IPlayer = this.state.players[message.playerId];
       return player && player.alive && player.connected;
@@ -150,7 +150,8 @@ export class BombermanRoom extends TickBasedRoom<GameState, ClientMessage> {
     return false;
   }
 
-  protected computeState(queuedMessages: ClientMessage[]) {
+  protected computeState(queuedMessages: IBombermanClientMessage[]) {
+    this.state.tickDuration = this.tickDurationMs;
     this.state.refresh();
 
     if (this.state.isPlaying()) {

@@ -1,7 +1,6 @@
 import { IClientMessage } from '../common/interfaces';
 
-export interface ClientMessage extends IClientMessage {
-  elapsed: number;
+export interface IBombermanClientMessage extends IClientMessage {
   movement: string;
   action: Action;
 }
