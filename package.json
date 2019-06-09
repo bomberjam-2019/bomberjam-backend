@@ -18,8 +18,9 @@
     "@colyseus/monitor": "^0.10.0",
     "colyseus": "^0.10.7",
     "colyseus.js": "^0.10.5",
-    "lodash": "^4.17.4",
     "express": "^4.16.4",
+    "lodash": "^4.17.4",
+    "open": "^6.3.0",
     "ws": "^7.0.0"
   },
   "devDependencies": {

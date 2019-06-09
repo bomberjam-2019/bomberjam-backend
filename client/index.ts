@@ -1,8 +1,17 @@
+import express from 'express';
+import path from 'path';
+import http from 'http';
+
+import { DEFAULT_CLIENT_PORT } from '../common/constants';
 import { Client, Room } from 'colyseus.js';
 import { IGameState } from '../common/interfaces';
 import { loop } from './bot';
-import { getJoinOptions } from './utils';
+import { getJoinOptions, onApplicationExit } from './utils';
 
+// so the program will not close instantly
+process.stdin.resume();
+
+const open = require('open');
 const colyseus = require('colyseus.js');
 const joinOpts = getJoinOptions();
 const serverUrl = `ws://${joinOpts.serverName}:${joinOpts.serverPort}`;
@@ -12,6 +21,7 @@ class GameClient {
   private readonly client: Client;
 
   private room?: Room<any>;
+  private expressAppOpened: boolean = false;
 
   public constructor(silent: boolean) {
     this.silent = silent;
@@ -21,6 +31,22 @@ class GameClient {
       this.log('connection established, trying to join room...');
       this.room = this.client.join('bomberman', joinOpts);
       const roomId = this.room.id;
+
+      if (!silent && !this.expressAppOpened) {
+        const expressApp: express.Express = express();
+        expressApp.set('port', DEFAULT_CLIENT_PORT);
+        expressApp.use(express.static(path.resolve(__dirname, './public')));
+
+        const expressServer: http.Server = expressApp.listen(DEFAULT_CLIENT_PORT, async () => {
+          this.expressAppOpened = true;
+          await open(`http://localhost:${DEFAULT_CLIENT_PORT}`);
+        });
+
+        onApplicationExit((forceExit: boolean) => {
+          expressServer.close();
+          if (forceExit) process.exit();
+        });
+      }
 
       this.room.onJoin.add(() => this.log(`successfully joined room ${roomId}`));
       this.room.onLeave.add(() => this.log(`leaved room ${roomId}`));

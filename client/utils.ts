@@ -35,3 +35,15 @@ export function getJoinOptions(): IJoinRoomOpts {
 
   return joinOpts;
 }
+
+export function onApplicationExit(callback: (forceExit: boolean) => void) {
+  function exitHandler(forceExit: boolean) {
+    callback(forceExit);
+  }
+
+  process.on('exit', exitHandler.bind(null, false));
+  process.on('SIGINT', exitHandler.bind(null, true));
+  process.on('SIGUSR1', exitHandler.bind(null, true));
+  process.on('SIGUSR2', exitHandler.bind(null, true));
+  process.on('uncaughtException', exitHandler.bind(null, true));
+}
