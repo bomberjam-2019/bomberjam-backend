@@ -8,7 +8,8 @@
     "start-client-training": "ts-node client/index.ts -t",
     "start-client-spectate": "ts-node client/index.ts -s",
     "start-client-match": "ts-node client/index.ts -m",
-    "compile-client": "webpack --config client/webpack.config.js --mode development"
+    "compile-client": "webpack --config client/webpack.config.js --mode development",
+    "postinstall": "webpack --config client/webpack.config.js --mode development"
   },
   "husky": {
     "hooks": {
