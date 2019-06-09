@@ -1,0 +1,35 @@
+{
+  "name": "bomberman",
+  "version": "0.0.1",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "start-server": "ts-node server/index.ts",
+    "start-client-training": "ts-node client/index.ts -t",
+    "start-client-spectate": "ts-node client/index.ts -s",
+    "start-client-match": "ts-node client/index.ts -m"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged"
+    }
+  },
+  "dependencies": {
+    "@colyseus/monitor": "^0.10.0",
+    "colyseus": "^0.10.7",
+    "colyseus.js": "^0.10.5",
+    "lodash": "^4.17.4",
+    "express": "^4.16.4",
+    "ws": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.16.1",
+    "@types/lodash": "^4.14.134",
+    "husky": "^2.4.0",
+    "minimist": "^1.2.0",
+    "prettier": "1.17.1",
+    "pretty-quick": "^1.11.0",
+    "ts-node": "^8.1.0",
+    "typescript": "^3.4.5"
+  }
+}
