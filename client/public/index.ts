@@ -2,11 +2,21 @@
 
 import { Application, TilingSprite, Sprite } from 'pixi.js';
 import { Client } from 'colyseus.js';
-import { IGameState } from '../../common/interfaces';
+import { IGameState, IJoinRoomOpts } from '../../common/interfaces';
 import { Sprites } from './assets';
 
+const roomId = new URLSearchParams(window.location.search).get('r');
+if (typeof roomId !== 'string' || roomId.trim().length === 0) throw new Error(`Missing roomId in 'r' query string parameter`);
+
+const joinOpts: IJoinRoomOpts = {
+  spectate: true,
+  roomId: roomId
+};
+
+console.log(`joinging room ${joinOpts.roomId}`);
+
 const client = new Client('ws://localhost:4321');
-const room = client.join('bomberman');
+const room = client.join('bomberman', joinOpts);
 
 const app = new Application({
   width: 256,
@@ -23,8 +33,12 @@ app.loader.add(Object.values(Sprites)).load(() => {
   room.onLeave.add(() => console.log(`leaved room ${room.id}`));
   room.onError.add((err: any) => console.log(`something wrong happened with room ${room.id}`, err));
 
-  const blockSprites: Sprite[] = [];
   const textureScaleRatio = tilePixelSize / app.loader.resources[Sprites.Floor].texture.width;
+
+  const blockSprites: Sprite[] = [];
+  const playerSprites: Sprite[] = [];
+  const bombSprites: Sprite[] = [];
+  const flameSprites: Sprite[] = [];
 
   let initialized = false;
   room.onStateChange.add((state: IGameState) => {
@@ -32,38 +46,91 @@ app.loader.add(Object.values(Sprites)).load(() => {
       app.renderer.resize(state.width * tilePixelSize, state.height * tilePixelSize);
       document.getElementById('pixi')!.appendChild(app.view);
 
-      const wallTexture = app.loader.resources[Sprites.Floor].texture;
-      const wallTilingSprite = new TilingSprite(wallTexture, app.screen.width, app.screen.height);
+      const wallTilingSprite = new TilingSprite(app.loader.resources[Sprites.Floor].texture, app.screen.width, app.screen.height);
       wallTilingSprite.tileScale.set(textureScaleRatio, textureScaleRatio);
       app.stage.addChild(wallTilingSprite);
+
+      for (let x = 0; x < state.width; x++) {
+        for (let y = 0; y < state.height; y++) {
+          const idx = y * state.width + x;
+          const char = state.tiles[idx];
+
+          if (char === '#') {
+            const sprite = new Sprite(app.loader.resources[Sprites.Wall].texture);
+            sprite.position.set(x * tilePixelSize, y * tilePixelSize);
+            sprite.scale.set(textureScaleRatio, textureScaleRatio);
+            app.stage.addChild(sprite);
+          }
+        }
+      }
 
       initialized = true;
     }
 
-    app.stage.removeChild(...blockSprites);
+    for (const sprite of [...blockSprites, ...playerSprites, ...bombSprites, ...flameSprites]) {
+      app.stage.removeChild(sprite);
+      sprite.destroy();
+    }
+
+    blockSprites.length = 0;
+    playerSprites.length = 0;
+    bombSprites.length = 0;
+    flameSprites.length = 0;
 
     for (let x = 0; x < state.width; x++) {
       for (let y = 0; y < state.height; y++) {
         const idx = y * state.width + x;
         const char = state.tiles[idx];
 
-        if (char === '+' || char === '#') {
-          let sprite: Sprite;
-          if (char === '+') {
-            sprite = new Sprite(app.loader.resources[Sprites.Block].texture);
-            blockSprites.push(sprite);
-          } else {
-            sprite = new Sprite(app.loader.resources[Sprites.Wall].texture);
-          }
-
+        if (char === '+') {
+          const sprite = new Sprite(app.loader.resources[Sprites.Block].texture);
           sprite.position.set(x * tilePixelSize, y * tilePixelSize);
           sprite.scale.set(textureScaleRatio, textureScaleRatio);
           app.stage.addChild(sprite);
+
+          blockSprites.push(sprite);
         }
       }
     }
 
-    console.log(JSON.stringify(state));
+    for (const playerId in state.players) {
+      const player = state.players[playerId];
+
+      const sprite = new Sprite(app.loader.resources[Sprites.Player].texture);
+      sprite.position.set(player.x * tilePixelSize, player.y * tilePixelSize);
+      sprite.scale.set(textureScaleRatio, textureScaleRatio);
+      sprite.anchor.set(0, 0.5);
+      app.stage.addChild(sprite);
+
+      playerSprites.push(sprite);
+    }
+
+    for (const bombId in state.bombs) {
+      const bomb = state.bombs[bombId];
+
+      const sprite = new Sprite(app.loader.resources[Sprites.Bomb].texture);
+      sprite.position.set(bomb.x * tilePixelSize, bomb.y * tilePixelSize);
+      sprite.scale.set(textureScaleRatio, textureScaleRatio);
+      app.stage.addChild(sprite);
+
+      playerSprites.push(sprite);
+    }
+
+    state.explosions
+      .split(';')
+      .filter(t => t.length > 0)
+      .forEach(str => {
+        const pos = str.split(':');
+
+        const sprite = new Sprite(app.loader.resources[Sprites.Flame].texture);
+        sprite.position.set(Number(pos[0]) * tilePixelSize, Number(pos[1]) * tilePixelSize);
+        sprite.scale.set(textureScaleRatio, textureScaleRatio);
+        app.stage.addChild(sprite);
+
+        playerSprites.push(sprite);
+      });
+
+    // console.log(JSON.stringify(state));
   });
 
   client.onClose.add(() => console.log('connection has been closed'));

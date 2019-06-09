@@ -30,27 +30,29 @@ class GameClient {
     this.client.onOpen.add(() => {
       this.log('connection established, trying to join room...');
       this.room = this.client.join('bomberman', joinOpts);
-      const roomId = this.room.id;
 
-      if (!silent && !this.expressAppOpened) {
-        const expressApp: express.Express = express();
-        expressApp.set('port', DEFAULT_CLIENT_PORT);
-        expressApp.use(express.static(path.resolve(__dirname, './public-dist')));
+      this.room.onJoin.add(() => {
+        this.log(`successfully joined room ${this.room!.id}`);
 
-        const expressServer: http.Server = expressApp.listen(DEFAULT_CLIENT_PORT, async () => {
-          this.expressAppOpened = true;
-          await open(`http://localhost:${DEFAULT_CLIENT_PORT}`);
-        });
+        if (!silent && !this.expressAppOpened) {
+          const expressApp: express.Express = express();
+          expressApp.set('port', DEFAULT_CLIENT_PORT);
+          expressApp.use(express.static(path.resolve(__dirname, './public-dist')));
 
-        onApplicationExit((forceExit: boolean) => {
-          expressServer.close();
-          if (forceExit) process.exit();
-        });
-      }
+          const expressServer: http.Server = expressApp.listen(DEFAULT_CLIENT_PORT, async () => {
+            this.expressAppOpened = true;
+            await open(`http://localhost:${DEFAULT_CLIENT_PORT}?r=${this.room!.id}`);
+          });
 
-      this.room.onJoin.add(() => this.log(`successfully joined room ${roomId}`));
-      this.room.onLeave.add(() => this.log(`leaved room ${roomId}`));
-      this.room.onError.add((err: any) => this.log(`something wrong happened with room ${roomId}`, err));
+          onApplicationExit((forceExit: boolean) => {
+            expressServer.close();
+            if (forceExit) process.exit();
+          });
+        }
+      });
+
+      this.room.onLeave.add(() => this.log(`leaved room ${this.room!.id}`));
+      this.room.onError.add((err: any) => this.log(`something wrong happened with room ${this.room!.id}`, err));
 
       this.room.onStateChange.add((state: IGameState) => {
         try {
