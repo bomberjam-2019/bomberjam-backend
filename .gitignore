@@ -125,3 +125,5 @@ cmake-build-*/
 
 .DS_Store
 Thumbs.db
+
+/client/public-dist/

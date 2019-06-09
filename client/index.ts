@@ -35,7 +35,7 @@ class GameClient {
       if (!silent && !this.expressAppOpened) {
         const expressApp: express.Express = express();
         expressApp.set('port', DEFAULT_CLIENT_PORT);
-        expressApp.use(express.static(path.resolve(__dirname, './public')));
+        expressApp.use(express.static(path.resolve(__dirname, './public-dist')));
 
         const expressServer: http.Server = expressApp.listen(DEFAULT_CLIENT_PORT, async () => {
           this.expressAppOpened = true;

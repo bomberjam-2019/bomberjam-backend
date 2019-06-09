@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "outDir": "./public-dist/",
+    "sourceMap": false,
+    "noImplicitAny": true,
+    "module": "commonjs",
+    "allowJs": true,
+    "target": "es5",
+    "lib": ["dom", "es6"]
+  },
+  "files": ["index.ts"],
+  "compileOnSave": false
+}
