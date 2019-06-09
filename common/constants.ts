@@ -9,3 +9,5 @@ export const MAX_SPECTATORS = 16;
 
 export const DEFAULT_BOMB_RANGE = 2;
 export const DEFAULT_BOMB_COUNTDOWN = 4;
+
+export const ARE_PLAYERS_INVINCIBLE = true;

@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import { ARE_PLAYERS_INVINCIBLE } from '../common/constants';
 import { IGameState } from '../common/interfaces';
 
 type ExpectedResultDefinition = {
@@ -43,6 +44,6 @@ export function loop(state: IGameState): ExpectedResultDefinition {
 
   return {
     movement: _.sample(allMoves) as any,
-    action: 'none'
+    action: !ARE_PLAYERS_INVINCIBLE ? 'none' : _.random(0, 1, true) > 0.5 ? 'bomb' : 'none'
   };
 }

@@ -1,5 +1,3 @@
-/// <reference path="../../node_modules/pixi.js/pixi.js.d.ts" />
-
 import { Application, TilingSprite, Sprite } from 'pixi.js';
 import { Client } from 'colyseus.js';
 import { IGameState, IJoinRoomOpts } from '../../common/interfaces';
@@ -22,7 +20,7 @@ const app = new Application({
   width: 256,
   height: 256,
   antialias: true,
-  backgroundColor: 0xdddddd,
+  backgroundColor: 0x000000,
   resolution: 1
 });
 
@@ -93,27 +91,16 @@ app.loader.add(Object.values(Sprites)).load(() => {
       }
     }
 
-    for (const playerId in state.players) {
-      const player = state.players[playerId];
-
-      const sprite = new Sprite(app.loader.resources[Sprites.Player].texture);
-      sprite.position.set(player.x * tilePixelSize, player.y * tilePixelSize);
-      sprite.scale.set(textureScaleRatio, textureScaleRatio);
-      sprite.anchor.set(0, 0.5);
-      app.stage.addChild(sprite);
-
-      playerSprites.push(sprite);
-    }
-
     for (const bombId in state.bombs) {
       const bomb = state.bombs[bombId];
+      if (bomb.countdown > 0) {
+        const sprite = new Sprite(app.loader.resources[Sprites.Bomb].texture);
+        sprite.position.set(bomb.x * tilePixelSize, bomb.y * tilePixelSize);
+        sprite.scale.set(textureScaleRatio, textureScaleRatio);
+        app.stage.addChild(sprite);
 
-      const sprite = new Sprite(app.loader.resources[Sprites.Bomb].texture);
-      sprite.position.set(bomb.x * tilePixelSize, bomb.y * tilePixelSize);
-      sprite.scale.set(textureScaleRatio, textureScaleRatio);
-      app.stage.addChild(sprite);
-
-      playerSprites.push(sprite);
+        playerSprites.push(sprite);
+      }
     }
 
     state.explosions
@@ -130,7 +117,17 @@ app.loader.add(Object.values(Sprites)).load(() => {
         playerSprites.push(sprite);
       });
 
-    // console.log(JSON.stringify(state));
+    for (const playerId in state.players) {
+      const player = state.players[playerId];
+
+      const sprite = new Sprite(app.loader.resources[Sprites.Player].texture);
+      sprite.position.set(player.x * tilePixelSize, player.y * tilePixelSize);
+      sprite.scale.set(textureScaleRatio, textureScaleRatio);
+      sprite.anchor.set(0, 0.5);
+      app.stage.addChild(sprite);
+
+      playerSprites.push(sprite);
+    }
   });
 
   client.onClose.add(() => console.log('connection has been closed'));

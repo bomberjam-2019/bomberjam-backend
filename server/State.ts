@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import { DEFAULT_BOMB_COUNTDOWN, DEFAULT_BOMB_RANGE } from '../common/constants';
+import { ARE_PLAYERS_INVINCIBLE, DEFAULT_BOMB_COUNTDOWN, DEFAULT_BOMB_RANGE } from '../common/constants';
 import { MapSchema, Schema, type } from '@colyseus/schema';
 import { Action, Movement, TileKind } from './types';
 import { IBomb, IBonus, IGameState, IHasPos, IPlayer } from '../common/interfaces';
@@ -203,10 +203,12 @@ export class GameState extends Schema implements IGameState {
   }
 
   public killPlayer(player: IPlayer) {
-    player.alive = false;
-    player.bombsLeft = 0;
-    player.maxBombs = 0;
-    player.bombRange = 0;
+    if (!ARE_PLAYERS_INVINCIBLE) {
+      player.alive = false;
+      player.bombsLeft = 0;
+      player.maxBombs = 0;
+      player.bombRange = 0;
+    }
   }
 
   public movePlayer(playerId: string, player: Player, movement: string) {
