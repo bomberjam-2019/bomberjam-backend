@@ -212,13 +212,15 @@ export class GameState extends Schema implements IGameState {
   public movePlayer(playerId: string, player: Player, movement: string) {
     if (movement === Movement.Stay) return;
 
+    const posIncrementer = positionIncrementers[movement];
+    if (!posIncrementer) return;
+
     const nextPos: IHasPos = {
       x: player.x,
       y: player.y
     };
 
-    const posIncrementer = positionIncrementers[movement];
-    if (posIncrementer) posIncrementer(nextPos);
+    posIncrementer(nextPos);
 
     const nextTile = this.getTileAt(nextPos.x, nextPos.y);
     if (nextTile === TileKind.OutOfBound) return;
