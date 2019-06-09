@@ -17,15 +17,17 @@
   "dependencies": {
     "@colyseus/monitor": "^0.10.0",
     "colyseus": "^0.10.7",
-    "colyseus.js": "^0.10.5",
+    "colyseus.js": "^0.10.8",
     "express": "^4.16.4",
     "lodash": "^4.17.4",
     "open": "^6.3.0",
+    "pixi.js": "^5.0.4",
     "ws": "^7.0.0"
   },
   "devDependencies": {
     "@types/express": "^4.16.1",
     "@types/lodash": "^4.14.134",
+    "copy-webpack-plugin": "^5.0.3",
     "file-loader": "^4.0.0",
     "husky": "^2.4.0",
     "minimist": "^1.2.0",
