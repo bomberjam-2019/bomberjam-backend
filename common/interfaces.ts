@@ -11,6 +11,9 @@ export interface IJoinRoomOpts {
   name?: string;
   roomId?: string;
   spectate?: boolean;
+  serverName?: string;
+  serverPort?: number;
+  training?: boolean;
 }
 
 export interface IClientMessage extends IHasTick {

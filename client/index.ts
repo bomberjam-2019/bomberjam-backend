@@ -1,42 +1,17 @@
-import path from 'path';
-import { Client } from 'colyseus.js';
-import { IGameState, IJoinRoomOpts } from '../common/interfaces';
+import { Client, Room } from 'colyseus.js';
+import { IGameState } from '../common/interfaces';
 import { loop } from './bot';
-
-const argv: any = require('minimist')(process.argv.slice(2));
-const configPath = path.resolve(__dirname, '../config.json');
-const config = require(configPath);
-
-const joinOpts: IJoinRoomOpts = {
-  name: config.yourName,
-  roomId: '',
-  spectate: false
-};
-
-// start training
-if (argv['t']) {
-  config.serverName = 'localhost';
-}
-// join a specific room
-else if (argv['s'] || argv['m']) {
-  if (typeof config.roomId !== 'string' || config.roomId.length === 0) {
-    throw new Error('Missing roomId to spectate in config.json');
-  }
-
-  joinOpts.roomId = config.roomId;
-
-  // join a specific room for a match
-  if (argv['s']) {
-    joinOpts.spectate = true;
-  }
-}
+import { getJoinOptions } from './utils';
 
 const colyseus = require('colyseus.js');
-const serverUrl = `ws://${config.serverName}:${config.serverPort}`;
+const joinOpts = getJoinOptions();
+const serverUrl = `ws://${joinOpts.serverName}:${joinOpts.serverPort}`;
 
 class GameClient {
   private readonly silent: boolean;
   private readonly client: Client;
+
+  private room?: Room<any>;
 
   public constructor(silent: boolean) {
     this.silent = silent;
@@ -44,15 +19,16 @@ class GameClient {
 
     this.client.onOpen.add(() => {
       this.log('connection established, trying to join room...');
-      const room = this.client.join('bomberman', joinOpts);
+      this.room = this.client.join('bomberman', joinOpts);
+      const roomId = this.room.id;
 
-      room.onJoin.add(() => this.log(`successfully joined room ${room.id}`));
-      room.onLeave.add(() => this.log(`leaved room ${room.id}`));
-      room.onError.add((err: any) => this.log(`something wrong happened with room ${room.id}`, err));
+      this.room.onJoin.add(() => this.log(`successfully joined room ${roomId}`));
+      this.room.onLeave.add(() => this.log(`leaved room ${roomId}`));
+      this.room.onError.add((err: any) => this.log(`something wrong happened with room ${roomId}`, err));
 
-      room.onStateChange.add((state: IGameState) => {
+      this.room.onStateChange.add((state: IGameState) => {
         try {
-          executeLoop(room, state);
+          executeLoop(this.room, state);
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
           this.log(msg);
@@ -74,7 +50,7 @@ class GameClient {
 const clients: GameClient[] = [];
 clients.push(new GameClient(false));
 
-if (argv['t']) {
+if (joinOpts.training) {
   for (let i = 0; i < 3; i++) clients.push(new GameClient(true));
 }
 

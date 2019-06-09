@@ -1,14 +1,14 @@
 import http from 'http';
 import express from 'express';
 
-import { DEFAULT_PORT } from '../common/constants';
+import { DEFAULT_SERVER_PORT } from '../common/constants';
 import { Server } from 'colyseus';
 import { monitor } from '@colyseus/monitor';
 import { BombermanRoom } from './Room';
 
 const config = {
   serverName: 'localhost',
-  serverPort: DEFAULT_PORT
+  serverPort: DEFAULT_SERVER_PORT
 };
 
 const app = express();

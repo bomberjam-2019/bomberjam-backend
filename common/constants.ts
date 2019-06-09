@@ -1,4 +1,4 @@
-export const DEFAULT_PORT = 4321;
+export const DEFAULT_SERVER_PORT = 4321;
 
 export const TICK_DURATION_MS = 1000;
 export const MAX_RESPONSE_TIME_MS = 1000;
