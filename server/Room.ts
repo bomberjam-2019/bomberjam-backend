@@ -169,7 +169,7 @@ export class BombermanRoom extends TickBasedRoom<GameState, IBombermanClientMess
 
       for (const playerId in this.state.players) {
         const player = this.state.players[playerId];
-        if (player.alive) alivePlayers.push(player);
+        if (player.alive && player.connected) alivePlayers.push(player);
       }
 
       // game ended: all dead or only one player alive left

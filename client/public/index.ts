@@ -121,8 +121,9 @@ app.loader.add(allTexturePaths).load(() => {
       if (bomb.countdown > 0) {
         const sprite = new AnimatedSprite(bombTextures, true);
         sprite.animationSpeed = 0.05;
-        sprite.position.set(bomb.x * tilePixelSize, bomb.y * tilePixelSize);
+        sprite.position.set(bomb.x * tilePixelSize + tilePixelSize / 2.0, bomb.y * tilePixelSize + tilePixelSize / 2.0);
         sprite.scale.set(textureScaleRatio, textureScaleRatio);
+        sprite.anchor.set(0.5, 0.5);
         sprite.play();
         app.stage.addChild(sprite);
 
@@ -134,12 +135,13 @@ app.loader.add(allTexturePaths).load(() => {
       .split(';')
       .filter(t => t.length > 0)
       .forEach(str => {
-        const pos = str.split(':');
+        const [x, y] = str.split(':');
 
         const sprite = new AnimatedSprite(flameTextures, true);
         sprite.animationSpeed = 0.05;
-        sprite.position.set(Number(pos[0]) * tilePixelSize, Number(pos[1]) * tilePixelSize);
+        sprite.position.set(Number(x) * tilePixelSize + tilePixelSize / 2.0, Number(y) * tilePixelSize + tilePixelSize / 2.0);
         sprite.scale.set(textureScaleRatio, textureScaleRatio);
+        sprite.anchor.set(0.5, 0.5);
         sprite.play();
         app.stage.addChild(sprite);
 
