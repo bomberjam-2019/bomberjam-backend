@@ -179,7 +179,7 @@ export class GameState extends Schema implements IGameState {
 
     _.forEach(this.bombs, (bomb: IBomb) => {
       bomb.countdown -= 1;
-      if (bomb.countdown > 0) playerBombCounts[bomb.playerId]++;
+      if (bomb.countdown >= 0) playerBombCounts[bomb.playerId]++;
     });
 
     for (const playerId in this.players) {
@@ -269,6 +269,7 @@ export class GameState extends Schema implements IGameState {
     const explosionChain: IBomb[] = []; // FIFO
     const deletedBombIds = new Set<string>();
     const explosionPositions = new Set<string>();
+    const destroyedBlockPositions = new Set<string>();
 
     // 1) detect zero-countdown exploding bombs
     for (const bombId in this.bombs) {
@@ -302,9 +303,8 @@ export class GameState extends Schema implements IGameState {
 
         // destroy block and do not spread explosion beyond that
         if (tile === TileKind.Block) {
-          // TODO we might want to drop a bonus here :tada:!
-          this.setTileAt(pos.x, pos.y, TileKind.Empty);
           explosionPositions.add(`${pos.x}:${pos.y}`);
+          destroyedBlockPositions.add(`${pos.x}:${pos.y}`);
           return;
         }
 
@@ -342,6 +342,13 @@ export class GameState extends Schema implements IGameState {
       propagateExplosion(bomb, positionIncrementers[Movement.Down]);
       propagateExplosion(bomb, positionIncrementers[Movement.Left]);
       propagateExplosion(bomb, positionIncrementers[Movement.Right]);
+    }
+
+    // 3) remove destroyed walls now otherwise too many walls could have been destroyed
+    for (const posStr of destroyedBlockPositions) {
+      // TODO we might want to drop a bonus here :tada:!
+      const [x, y] = posStr.split(':');
+      this.setTileAt(Number(x), Number(y), TileKind.Empty);
     }
 
     // TODO add a number to each explosion to represent its explosion time so the client can display a real explosion chain
