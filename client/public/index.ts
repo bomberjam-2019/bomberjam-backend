@@ -138,7 +138,7 @@ app.loader.add(allTexturePaths).load(() => {
         const [x, y] = str.split(':');
 
         const sprite = new AnimatedSprite(flameTextures, true);
-        sprite.animationSpeed = 0.05;
+        sprite.animationSpeed = 0.15;
         sprite.position.set(Number(x) * tilePixelSize + tilePixelSize / 2.0, Number(y) * tilePixelSize + tilePixelSize / 2.0);
         sprite.scale.set(textureScaleRatio, textureScaleRatio);
         sprite.anchor.set(0.5, 0.5);
