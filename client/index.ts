@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import http from 'http';
 
-import { DEFAULT_CLIENT_PORT } from '../common/constants';
+import { APP_NAME, DEFAULT_CLIENT_PORT } from '../common/constants';
 import { Client, Room } from 'colyseus.js';
 import { IGameState } from '../common/interfaces';
 import { loop } from './bot';
@@ -29,7 +29,7 @@ class GameClient {
 
     this.client.onOpen.add(() => {
       this.log('connection established, trying to join room...');
-      this.room = this.client.join('bomberman', joinOpts);
+      this.room = this.client.join(APP_NAME, joinOpts);
 
       this.room.onJoin.add(() => {
         this.log(`successfully joined room ${this.room!.id}`);

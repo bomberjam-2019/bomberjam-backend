@@ -1,4 +1,5 @@
-import { Application, TilingSprite, Sprite } from 'pixi.js';
+import { APP_NAME } from '../../common/constants';
+import { Application, AnimatedSprite, TilingSprite, Sprite } from 'pixi.js';
 import { Client } from 'colyseus.js';
 import { IGameState, IJoinRoomOpts } from '../../common/interfaces';
 import { Sprites } from './assets';
@@ -14,7 +15,7 @@ const joinOpts: IJoinRoomOpts = {
 console.log(`joinging room ${joinOpts.roomId}`);
 
 const client = new Client('ws://localhost:4321');
-const room = client.join('bomberman', joinOpts);
+const room = client.join(APP_NAME, joinOpts);
 
 const app = new Application({
   width: 256,
@@ -28,17 +29,23 @@ const tilePixelSize = 32;
 const pixiContainer = document.getElementById('pixi');
 const debugContainer = document.getElementById('debug');
 
-app.loader.add(Object.values(Sprites)).load(() => {
+const allTexturePaths = [Sprites.Floor, Sprites.Block, Sprites.Wall, ...Sprites.Bomb, ...Sprites.Flame, ...Sprites.Player];
+
+app.loader.add(allTexturePaths).load(() => {
   room.onJoin.add(() => console.log(`successfully joined room ${room.id}`));
   room.onLeave.add(() => console.log(`leaved room ${room.id}`));
   room.onError.add((err: any) => console.log(`something wrong happened with room ${room.id}`, err));
 
   const textureScaleRatio = tilePixelSize / app.loader.resources[Sprites.Floor].texture.width;
 
+  const playerTextures = Sprites.Player.map(path => app.loader.resources[path].texture);
+  const flameTextures = Sprites.Flame.map(path => app.loader.resources[path].texture);
+  const bombTextures = Sprites.Bomb.map(path => app.loader.resources[path].texture);
+
   const blockSprites: Sprite[] = [];
-  const playerSprites: Sprite[] = [];
-  const bombSprites: Sprite[] = [];
-  const flameSprites: Sprite[] = [];
+  const playerSprites: AnimatedSprite[] = [];
+  const bombSprites: AnimatedSprite[] = [];
+  const flameSprites: AnimatedSprite[] = [];
 
   let initialized = false;
   room.onStateChange.add((state: IGameState) => {
@@ -95,12 +102,28 @@ app.loader.add(Object.values(Sprites)).load(() => {
       }
     }
 
+    for (const playerId in state.players) {
+      const player = state.players[playerId];
+
+      const sprite = new AnimatedSprite(playerTextures, true);
+      sprite.animationSpeed = 0.15;
+      sprite.position.set(player.x * tilePixelSize, player.y * tilePixelSize);
+      sprite.scale.set(textureScaleRatio, textureScaleRatio);
+      sprite.anchor.set(0, 0.5);
+      sprite.play();
+      app.stage.addChild(sprite);
+
+      playerSprites.push(sprite);
+    }
+
     for (const bombId in state.bombs) {
       const bomb = state.bombs[bombId];
       if (bomb.countdown > 0) {
-        const sprite = new Sprite(app.loader.resources[Sprites.Bomb].texture);
+        const sprite = new AnimatedSprite(bombTextures, true);
+        sprite.animationSpeed = 0.05;
         sprite.position.set(bomb.x * tilePixelSize, bomb.y * tilePixelSize);
         sprite.scale.set(textureScaleRatio, textureScaleRatio);
+        sprite.play();
         app.stage.addChild(sprite);
 
         playerSprites.push(sprite);
@@ -113,25 +136,15 @@ app.loader.add(Object.values(Sprites)).load(() => {
       .forEach(str => {
         const pos = str.split(':');
 
-        const sprite = new Sprite(app.loader.resources[Sprites.Flame].texture);
+        const sprite = new AnimatedSprite(flameTextures, true);
+        sprite.animationSpeed = 0.05;
         sprite.position.set(Number(pos[0]) * tilePixelSize, Number(pos[1]) * tilePixelSize);
         sprite.scale.set(textureScaleRatio, textureScaleRatio);
+        sprite.play();
         app.stage.addChild(sprite);
 
         playerSprites.push(sprite);
       });
-
-    for (const playerId in state.players) {
-      const player = state.players[playerId];
-
-      const sprite = new Sprite(app.loader.resources[Sprites.Player].texture);
-      sprite.position.set(player.x * tilePixelSize, player.y * tilePixelSize);
-      sprite.scale.set(textureScaleRatio, textureScaleRatio);
-      sprite.anchor.set(0, 0.5);
-      app.stage.addChild(sprite);
-
-      playerSprites.push(sprite);
-    }
   });
 
   client.onClose.add(() => console.log('connection has been closed'));

@@ -1,7 +1,7 @@
 import http from 'http';
 import express from 'express';
 
-import { DEFAULT_SERVER_PORT } from '../common/constants';
+import { APP_NAME, DEFAULT_SERVER_PORT } from '../common/constants';
 import { Server } from 'colyseus';
 import { monitor } from '@colyseus/monitor';
 import { BombermanRoom } from './Room';
@@ -16,7 +16,7 @@ const server = http.createServer(app);
 const gameServer = new Server({ server });
 
 // register your room handlers
-gameServer.register('bomberman', BombermanRoom);
+gameServer.register(APP_NAME, BombermanRoom);
 
 // Register colyseus monitor AFTER registering your room handlers
 app.use('/colyseus', monitor(gameServer));
