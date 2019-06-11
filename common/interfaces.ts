@@ -16,7 +16,28 @@ export interface IHasPos {
   y: number;
 }
 
+export type ActionCode = 'up' | 'down' | 'left' | 'right' | 'bomb' | 'stay';
+
+export const Actions: { [key: string]: ActionCode } = {
+  Up: 'up',
+  Down: 'down',
+  Left: 'left',
+  Right: 'right',
+  Bomb: 'bomb',
+  Stay: 'stay'
+};
+
+export type TileCode = '' | '.' | '#' | '+';
+
+export const Tiles: { [key: string]: TileCode } = {
+  OutOfBound: '',
+  Empty: '.',
+  Wall: '#',
+  Block: '+'
+};
+
 export interface IClientMessage extends IHasTick {
+  action: ActionCode;
   playerId: string;
   elapsed: number;
 }
@@ -29,6 +50,7 @@ export interface IPlayer extends IHasPos {
   maxBombs: number;
   bombRange: number;
   alive: boolean;
+  lives: number;
 }
 
 export interface IBomb extends IHasPos {
@@ -37,16 +59,11 @@ export interface IBomb extends IHasPos {
   range: number;
 }
 
-export interface IBonus extends IHasPos {
-  type: string;
-}
-
 export interface IGameState extends IHasTick {
   state: -1 | 0 | 1;
   tiles: string;
   players: { [id: string]: IPlayer };
   bombs: { [id: string]: IBomb };
-  bonuses: { [id: string]: IBonus };
   explosions: string;
   width: number;
   height: number;

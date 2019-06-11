@@ -1,9 +1,9 @@
 import _ from 'lodash';
 
-import { ARE_PLAYERS_INVINCIBLE, DEFAULT_BOMB_COUNTDOWN, DEFAULT_BOMB_RANGE } from '../common/constants';
+import { ARE_PLAYERS_INVINCIBLE, DEFAULT_BOMB_COUNTDOWN, DEFAULT_BOMB_RANGE, DEFAULT_LIVES } from '../common/constants';
 import { MapSchema, Schema, type } from '@colyseus/schema';
-import { Action, Movement, TileKind } from './types';
-import { IBomb, IBonus, IGameState, IHasPos, IPlayer } from '../common/interfaces';
+import { ActionCode, Actions, IBomb, IGameState, IHasPos, IPlayer, TileCode, Tiles } from '../common/interfaces';
+import { replaceCharAt } from '../common/utils';
 
 // prettier-ignore
 const defaultMap: string[] = [
@@ -47,6 +47,9 @@ export class Player extends Schema implements IPlayer {
 
   @type('boolean')
   alive: boolean = true;
+
+  @type('number')
+  lives: number = DEFAULT_LIVES;
 }
 
 export class Bomb extends Schema implements IBomb {
@@ -66,24 +69,13 @@ export class Bomb extends Schema implements IBomb {
   y: number = 0;
 }
 
-export class Bonus extends Schema implements IBonus {
-  @type('string')
-  type: string = '';
-
-  @type('number')
-  x: number = 0;
-
-  @type('number')
-  y: number = 0;
-}
-
 type PosIncrementer = (pos: IHasPos) => void;
 
 const positionIncrementers: { [mov: string]: PosIncrementer } = {
-  [Movement.Up]: (pos: IHasPos) => pos.y--,
-  [Movement.Down]: (pos: IHasPos) => pos.y++,
-  [Movement.Left]: (pos: IHasPos) => pos.x--,
-  [Movement.Right]: (pos: IHasPos) => pos.x++
+  [Actions.Up]: (pos: IHasPos) => pos.y--,
+  [Actions.Down]: (pos: IHasPos) => pos.y++,
+  [Actions.Left]: (pos: IHasPos) => pos.x--,
+  [Actions.Right]: (pos: IHasPos) => pos.x++
 };
 
 let objectCounter = 0;
@@ -92,7 +84,7 @@ export class GameState extends Schema implements IGameState {
   private static readonly DefaultWidth: number = defaultMap[0].length;
   private static readonly DefaultHeight: number = defaultMap.length;
 
-  private static readonly StartPositions: Array<{ x: number; y: number }> = [
+  private static readonly StartPositions: Array<IHasPos> = [
     { x: 0, y: 0 },
     { x: GameState.DefaultWidth - 1, y: 0 },
     { x: 0, y: GameState.DefaultHeight - 1 },
@@ -114,9 +106,6 @@ export class GameState extends Schema implements IGameState {
   @type({ map: Bomb })
   bombs: { [id: string]: Bomb } = new MapSchema<Bomb>();
 
-  @type({ map: Bonus })
-  bonuses: { [id: string]: Bonus } = new MapSchema<Bonus>();
-
   @type('string')
   explosions: string = '';
 
@@ -129,16 +118,8 @@ export class GameState extends Schema implements IGameState {
   @type('number')
   tickDuration: number = 0;
 
-  public isWaitingForPlayers(): boolean {
-    return this.state === -1;
-  }
-
   public isPlaying(): boolean {
     return this.state === 0;
-  }
-
-  public isEnded(): boolean {
-    return this.state === 1;
   }
 
   private isOutOfBound(x: number, y: number): boolean {
@@ -148,18 +129,18 @@ export class GameState extends Schema implements IGameState {
     return idx >= this.tiles.length;
   }
 
-  public getTileAt(x: number, y: number): TileKind {
-    if (this.isOutOfBound(x, y)) return TileKind.OutOfBound;
+  public getTileAt(x: number, y: number): TileCode {
+    if (this.isOutOfBound(x, y)) return Tiles.OutOfBound;
 
     const idx = y * this.width + x;
-    return this.tiles[idx] as TileKind;
+    return this.tiles[idx] as TileCode;
   }
 
-  public setTileAt(x: number, y: number, newTile: TileKind) {
+  public setTileAt(x: number, y: number, newTile: TileCode): void {
     if (this.isOutOfBound(x, y) || newTile.length !== 1) return;
 
     const idx = y * this.width + x;
-    this.tiles = this.tiles.substr(0, idx) + newTile + this.tiles.substr(idx + 1);
+    this.tiles = replaceCharAt(this.tiles, idx, newTile);
   }
 
   public findActiveBombAt(x: number, y: number): IBomb | undefined {
@@ -205,17 +186,28 @@ export class GameState extends Schema implements IGameState {
     this.players[id] = player;
   }
 
-  public killPlayer(player: IPlayer) {
+  public hitPlayer(player: IPlayer) {
     if (!ARE_PLAYERS_INVINCIBLE) {
-      player.alive = false;
-      player.bombsLeft = 0;
-      player.maxBombs = 0;
-      player.bombRange = 0;
+      if (player.lives > 0) {
+        player.lives--;
+
+        if (player.lives <= 0) {
+          this.killPlayer(player);
+        }
+      }
     }
   }
 
-  public movePlayer(playerId: string, player: Player, movement: string) {
-    if (movement === Movement.Stay) return;
+  public killPlayer(player: IPlayer) {
+    player.lives = 0;
+    player.alive = false;
+    player.bombsLeft = 0;
+    player.maxBombs = 0;
+    player.bombRange = 0;
+  }
+
+  public movePlayer(player: Player, movement: ActionCode) {
+    if (movement === Actions.Stay) return;
 
     const posIncrementer = positionIncrementers[movement];
     if (!posIncrementer) return;
@@ -228,9 +220,9 @@ export class GameState extends Schema implements IGameState {
     posIncrementer(nextPos);
 
     const nextTile = this.getTileAt(nextPos.x, nextPos.y);
-    if (nextTile === TileKind.OutOfBound) return;
+    if (nextTile === Tiles.OutOfBound) return;
 
-    if (nextTile === TileKind.Empty) {
+    if (nextTile === Tiles.Empty) {
       const otherPlayer = this.findAlivePlayerAt(nextPos.x, nextPos.y);
       if (otherPlayer) return;
 
@@ -242,25 +234,23 @@ export class GameState extends Schema implements IGameState {
     }
   }
 
-  public executeAction(playerId: string, player: Player, action: Action) {
-    if (action === Action.PlantBomb) {
-      const hasEnoughBombs = player.bombsLeft > 0;
-      if (!hasEnoughBombs) return;
+  public plantBomb(player: Player) {
+    const hasEnoughBombs = player.bombsLeft > 0;
+    if (!hasEnoughBombs) return;
 
-      const existingBomb = this.findActiveBombAt(player.x, player.y);
-      if (!existingBomb) {
-        const newBomb = new Bomb();
+    const existingBomb = this.findActiveBombAt(player.x, player.y);
+    if (!existingBomb) {
+      const newBomb = new Bomb();
 
-        newBomb.x = player.x;
-        newBomb.y = player.y;
-        newBomb.range = player.bombRange;
-        newBomb.playerId = playerId;
-        newBomb.countdown = DEFAULT_BOMB_COUNTDOWN;
+      newBomb.x = player.x;
+      newBomb.y = player.y;
+      newBomb.range = player.bombRange;
+      newBomb.playerId = player.id;
+      newBomb.countdown = DEFAULT_BOMB_COUNTDOWN;
 
-        const bombId = objectCounter++ + '';
-        this.bombs[bombId] = newBomb;
-        player.bombsLeft--;
-      }
+      const bombId = objectCounter++ + '';
+      this.bombs[bombId] = newBomb;
+      player.bombsLeft--;
     }
   }
 
@@ -270,6 +260,7 @@ export class GameState extends Schema implements IGameState {
     const deletedBombIds = new Set<string>();
     const explosionPositions = new Set<string>();
     const destroyedBlockPositions = new Set<string>();
+    const hitPlayers = new Set<string>();
 
     // 1) detect zero-countdown exploding bombs
     for (const bombId in this.bombs) {
@@ -296,20 +287,23 @@ export class GameState extends Schema implements IGameState {
       const pos: IHasPos = { x: bomb.x, y: bomb.y };
       explosionPositions.add(`${pos.x}:${pos.y}`);
 
+      const victim = this.findAlivePlayerAt(bomb.x, bomb.y);
+      if (victim) hitPlayers.add(victim.id);
+
       for (let i = 1; i <= bomb.range; i++) {
         posIncrementer(pos);
 
         const tile = this.getTileAt(pos.x, pos.y);
 
         // destroy block and do not spread explosion beyond that
-        if (tile === TileKind.Block) {
+        if (tile === Tiles.Block) {
           explosionPositions.add(`${pos.x}:${pos.y}`);
           destroyedBlockPositions.add(`${pos.x}:${pos.y}`);
           return;
         }
 
         // check if hitting another bomb / player / bonus
-        if (tile === TileKind.Empty) {
+        if (tile === Tiles.Empty) {
           const otherBomb = this.findActiveBombAt(pos.x, pos.y);
           if (otherBomb && !visitedBombs.has(otherBomb)) {
             explosionChain.push(otherBomb);
@@ -317,7 +311,7 @@ export class GameState extends Schema implements IGameState {
           }
 
           const victim = this.findAlivePlayerAt(pos.x, pos.y);
-          if (victim) this.killPlayer(victim);
+          if (victim) hitPlayers.add(victim.id);
 
           // TODO destroy bonus
           explosionPositions.add(`${pos.x}:${pos.y}`);
@@ -334,21 +328,23 @@ export class GameState extends Schema implements IGameState {
       const bomb = explosionChain.shift() as IBomb;
       bomb.countdown = 0;
 
-      const victim = this.findAlivePlayerAt(bomb.x, bomb.y);
-      if (victim) this.killPlayer(victim);
-
       // find other bombs that would explode and their victims
-      propagateExplosion(bomb, positionIncrementers[Movement.Up]);
-      propagateExplosion(bomb, positionIncrementers[Movement.Down]);
-      propagateExplosion(bomb, positionIncrementers[Movement.Left]);
-      propagateExplosion(bomb, positionIncrementers[Movement.Right]);
+      propagateExplosion(bomb, positionIncrementers[Actions.Up]);
+      propagateExplosion(bomb, positionIncrementers[Actions.Down]);
+      propagateExplosion(bomb, positionIncrementers[Actions.Left]);
+      propagateExplosion(bomb, positionIncrementers[Actions.Right]);
     }
 
     // 3) remove destroyed walls now otherwise too many walls could have been destroyed
     for (const posStr of destroyedBlockPositions) {
       // TODO we might want to drop a bonus here :tada:!
       const [x, y] = posStr.split(':');
-      this.setTileAt(Number(x), Number(y), TileKind.Empty);
+      this.setTileAt(Number(x), Number(y), Tiles.Empty);
+    }
+
+    // 4) apply damage to players
+    for (const playerId of hitPlayers) {
+      this.hitPlayer(this.players[playerId]);
     }
 
     // TODO add a number to each explosion to represent its explosion time so the client can display a real explosion chain

@@ -1,6 +1,6 @@
+import { Client } from 'colyseus.js';
 import { APP_NAME } from '../../common/constants';
 import { Application, AnimatedSprite, TilingSprite, Sprite } from 'pixi.js';
-import { Client } from 'colyseus.js';
 import { IGameState, IJoinRoomOpts } from '../../common/interfaces';
 import { Sprites } from './assets';
 
@@ -105,15 +105,17 @@ app.loader.add(allTexturePaths).load(() => {
     for (const playerId in state.players) {
       const player = state.players[playerId];
 
-      const sprite = new AnimatedSprite(playerTextures, true);
-      sprite.animationSpeed = 0.15;
-      sprite.position.set(player.x * tilePixelSize, player.y * tilePixelSize);
-      sprite.scale.set(textureScaleRatio, textureScaleRatio);
-      sprite.anchor.set(0, 0.5);
-      sprite.play();
-      app.stage.addChild(sprite);
+      if (player.alive) {
+        const sprite = new AnimatedSprite(playerTextures, true);
+        sprite.animationSpeed = 0.15;
+        sprite.position.set(player.x * tilePixelSize, player.y * tilePixelSize);
+        sprite.scale.set(textureScaleRatio, textureScaleRatio);
+        sprite.anchor.set(0, 0.5);
+        sprite.play();
+        app.stage.addChild(sprite);
 
-      playerSprites.push(sprite);
+        playerSprites.push(sprite);
+      }
     }
 
     for (const bombId in state.bombs) {

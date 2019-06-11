@@ -1,12 +1,13 @@
 import _ from 'lodash';
 
 import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../common/constants';
-import { IClientMessage, IHasTick, IJoinRoomOpts, IPlayer } from '../common/interfaces';
+import { ActionCode, Actions, IClientMessage, IHasTick, IJoinRoomOpts, IPlayer } from '../common/interfaces';
 import { Client, Room } from 'colyseus';
 import { GameState } from './State';
-import { IBombermanClientMessage } from './types';
 
-export abstract class TickBasedRoom<TState extends IHasTick, TClientMessage extends IClientMessage> extends Room<TState> {
+const allActionCodes = new Set<ActionCode>(Object.values(Actions));
+
+export abstract class TickBasedRoom<TState extends IHasTick> extends Room<TState> {
   protected abstract readonly tickDurationMs: number;
   protected abstract readonly maxResponseTimeMs: number;
   protected abstract readonly maxPlayerCount: number;
@@ -14,7 +15,7 @@ export abstract class TickBasedRoom<TState extends IHasTick, TClientMessage exte
   // Each time we sent the state to all players, we gather their responses here
   // and apply them just before sending the new state. The fastests messages are
   // applied first.
-  private queuedMessages: TClientMessage[] = [];
+  private queuedMessages: IClientMessage[] = [];
   private lastStateSentAt: [number, number] = process.hrtime();
 
   public onInit(options: any): void {
@@ -46,9 +47,11 @@ export abstract class TickBasedRoom<TState extends IHasTick, TClientMessage exte
   }
 
   // apply game logic and player messages here
-  protected abstract computeState(messages: TClientMessage[]): void;
+  protected abstract computeState(messages: IClientMessage[]): void;
 
-  public onMessage(client: Client, message: TClientMessage) {
+  public onMessage(client: Client, message: IClientMessage) {
+    if (typeof client !== 'object') return;
+
     const elapsed: [number, number] = process.hrtime(this.lastStateSentAt);
 
     message.playerId = client.sessionId;
@@ -61,6 +64,8 @@ export abstract class TickBasedRoom<TState extends IHasTick, TClientMessage exte
     const isTooLate = message.elapsed > this.maxResponseTimeMs;
     if (isTooLate) return;
 
+    if (!allActionCodes.has(message.action)) return;
+
     // only accept one message per player
     const alreadyReceivedMessage = this.queuedMessages.some(m => m.playerId === client.sessionId);
     if (alreadyReceivedMessage) return;
@@ -71,7 +76,7 @@ export abstract class TickBasedRoom<TState extends IHasTick, TClientMessage exte
     }
   }
 
-  protected abstract isValidMessage(message: TClientMessage): boolean;
+  protected abstract isValidMessage(message: IClientMessage): boolean;
 
   protected log(text: string) {
     const roomId = this.roomId;
@@ -80,12 +85,12 @@ export abstract class TickBasedRoom<TState extends IHasTick, TClientMessage exte
   }
 }
 
-export class BombermanRoom extends TickBasedRoom<GameState, IBombermanClientMessage> {
+export class BombermanRoom extends TickBasedRoom<GameState> {
   protected readonly tickDurationMs: number = TICK_DURATION_MS;
   protected readonly maxResponseTimeMs: number = MAX_RESPONSE_TIME_MS;
   protected readonly maxPlayerCount: number = MAX_PLAYERS;
 
-  protected onRoomInitializing(options: any): void {
+  protected onRoomInitializing(options: IJoinRoomOpts): void {
     this.autoDispose = true;
     this.maxClients = MAX_PLAYERS + MAX_SPECTATORS;
 
@@ -141,7 +146,7 @@ export class BombermanRoom extends TickBasedRoom<GameState, IBombermanClientMess
     this.state.killPlayer(player);
   }
 
-  protected isValidMessage(message: IBombermanClientMessage): boolean {
+  protected isValidMessage(message: IClientMessage): boolean {
     if (this.state.isPlaying()) {
       const player: IPlayer = this.state.players[message.playerId];
       return player && player.alive && player.connected;
@@ -150,16 +155,20 @@ export class BombermanRoom extends TickBasedRoom<GameState, IBombermanClientMess
     return false;
   }
 
-  protected computeState(queuedMessages: IBombermanClientMessage[]) {
+  protected computeState(queuedMessages: IClientMessage[]) {
     this.state.tickDuration = this.tickDurationMs;
-    this.state.refresh();
 
     if (this.state.isPlaying()) {
+      this.state.refresh();
+
       for (const message of queuedMessages) {
         const player = this.state.players[message.playerId];
-        if (player && player.connected) {
-          if (message.action) this.state.executeAction(message.playerId, player, message.action);
-          if (message.movement) this.state.movePlayer(message.playerId, player, message.movement);
+        if (player && player.connected && player.alive) {
+          if (message.action === Actions.Bomb) {
+            this.state.plantBomb(player);
+          } else {
+            this.state.movePlayer(player, message.action);
+          }
         }
       }
 
