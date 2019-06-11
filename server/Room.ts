@@ -191,6 +191,11 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
             : 'game ended, all players are dead'
         );
       }
+    } else if (this.state.isGameEnded()) {
+      // end game cleanup
+      for (const bombId in this.state.bombs) delete this.state.bombs[bombId];
+
+      if (this.state.explosions.length > 0) this.state.explosions = '';
     }
 
     this.log(JSON.stringify(this.state));

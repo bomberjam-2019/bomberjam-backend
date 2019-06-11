@@ -122,6 +122,10 @@ export class GameState extends Schema implements IGameState {
     return this.state === 0;
   }
 
+  public isGameEnded(): boolean {
+    return this.state === 1;
+  }
+
   private isOutOfBound(x: number, y: number): boolean {
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return true;
 
