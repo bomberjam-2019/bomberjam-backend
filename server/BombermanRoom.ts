@@ -105,6 +105,7 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
       // game ended: all dead or only one player alive left
       if (alivePlayers.length <= 1) {
         this.state.state = 1;
+        this.setPatchRate(60 * 60 * 1000);
 
         this.log(
           alivePlayers.length === 1

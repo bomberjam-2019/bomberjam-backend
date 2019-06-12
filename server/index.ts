@@ -3,8 +3,8 @@ import express from 'express';
 
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../common/constants';
 import { Server } from 'colyseus';
+import { BombermanRoom } from './BombermanRoom';
 import { monitor } from '@colyseus/monitor';
-import { BombermanRoom } from './Room';
 
 const config = {
   serverName: 'localhost',
