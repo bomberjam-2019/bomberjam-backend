@@ -42,6 +42,7 @@ app.loader.add(allTexturePaths).load(() => {
   const flameTextures = Sprites.Flame.map(path => app.loader.resources[path].texture);
   const bombTextures = Sprites.Bomb.map(path => app.loader.resources[path].texture);
 
+  const wallSprites: Sprite[] = [];
   const blockSprites: Sprite[] = [];
   const playerSprites: AnimatedSprite[] = [];
   const bombSprites: AnimatedSprite[] = [];
@@ -59,28 +60,15 @@ app.loader.add(allTexturePaths).load(() => {
       wallTilingSprite.tileScale.set(textureScaleRatio, textureScaleRatio);
       app.stage.addChild(wallTilingSprite);
 
-      for (let x = 0; x < state.width; x++) {
-        for (let y = 0; y < state.height; y++) {
-          const idx = y * state.width + x;
-          const char = state.tiles[idx];
-
-          if (char === '#') {
-            const sprite = new Sprite(app.loader.resources[Sprites.Wall].texture);
-            sprite.position.set(x * tilePixelSize, y * tilePixelSize);
-            sprite.scale.set(textureScaleRatio, textureScaleRatio);
-            app.stage.addChild(sprite);
-          }
-        }
-      }
-
       initialized = true;
     }
 
-    for (const sprite of [...blockSprites, ...playerSprites, ...bombSprites, ...flameSprites]) {
+    for (const sprite of [...wallSprites, ...blockSprites, ...playerSprites, ...bombSprites, ...flameSprites]) {
       app.stage.removeChild(sprite);
       sprite.destroy();
     }
 
+    wallSprites.length = 0;
     blockSprites.length = 0;
     playerSprites.length = 0;
     bombSprites.length = 0;
@@ -91,13 +79,19 @@ app.loader.add(allTexturePaths).load(() => {
         const idx = y * state.width + x;
         const char = state.tiles[idx];
 
-        if (char === '+') {
-          const sprite = new Sprite(app.loader.resources[Sprites.Block].texture);
+        if (char === '+' || char === '#') {
+          let sprite: Sprite;
+          if (char === '+') {
+            sprite = new Sprite(app.loader.resources[Sprites.Block].texture);
+            blockSprites.push(sprite);
+          } else {
+            sprite = new Sprite(app.loader.resources[Sprites.Wall].texture);
+            wallSprites.push(sprite);
+          }
+
           sprite.position.set(x * tilePixelSize, y * tilePixelSize);
           sprite.scale.set(textureScaleRatio, textureScaleRatio);
           app.stage.addChild(sprite);
-
-          blockSprites.push(sprite);
         }
       }
     }

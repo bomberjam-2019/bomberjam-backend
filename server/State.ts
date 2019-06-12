@@ -1,6 +1,12 @@
 import _ from 'lodash';
 
-import { ARE_PLAYERS_INVINCIBLE, DEFAULT_BOMB_COUNTDOWN, DEFAULT_BOMB_RANGE, DEFAULT_LIVES } from '../common/constants';
+import {
+  ARE_PLAYERS_INVINCIBLE,
+  DEFAULT_BOMB_COUNTDOWN,
+  DEFAULT_BOMB_RANGE,
+  DEFAULT_LIVES,
+  SUDDEN_DEATH_STARTS_AT
+} from '../common/constants';
 import { MapSchema, Schema, type } from '@colyseus/schema';
 import { ActionCode, Actions, IBomb, IGameState, IHasPos, IPlayer, TileCode, Tiles } from '../common/types';
 import { replaceCharAt } from '../common/utils';
@@ -129,21 +135,21 @@ export class GameState extends Schema implements IGameState {
   private isOutOfBound(x: number, y: number): boolean {
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return true;
 
-    const idx = y * this.width + x;
+    const idx = this.coordToTileIndex(x, y);
     return idx >= this.tiles.length;
   }
 
   public getTileAt(x: number, y: number): TileCode {
     if (this.isOutOfBound(x, y)) return Tiles.OutOfBound;
 
-    const idx = y * this.width + x;
+    const idx = this.coordToTileIndex(x, y);
     return this.tiles[idx] as TileCode;
   }
 
   public setTileAt(x: number, y: number, newTile: TileCode): void {
     if (this.isOutOfBound(x, y) || newTile.length !== 1) return;
 
-    const idx = y * this.width + x;
+    const idx = this.coordToTileIndex(x, y);
     this.tiles = replaceCharAt(this.tiles, idx, newTile);
   }
 
@@ -156,6 +162,28 @@ export class GameState extends Schema implements IGameState {
   }
 
   public refresh() {
+    this.unleashSuddenDeath();
+    this.computeBombCountdownAndPlayerBombsLeft();
+  }
+
+  private suddenDeathPos: IHasPos = {
+    x: 0,
+    y: 0
+  };
+
+  private unleashSuddenDeath() {
+    if (this.isPlaying() && this.tick >= SUDDEN_DEATH_STARTS_AT) {
+      const idx = this.coordToTileIndex(this.suddenDeathPos.x, this.suddenDeathPos.y);
+      this.tiles = replaceCharAt(this.tiles, idx, Tiles.Wall);
+
+      const victim = this.findAlivePlayerAt(this.suddenDeathPos.x, this.suddenDeathPos.y);
+      if (victim) this.killPlayer(victim);
+
+      [this.suddenDeathPos.x, this.suddenDeathPos.y] = this.tileIndexToCoord(idx + 1);
+    }
+  }
+
+  private computeBombCountdownAndPlayerBombsLeft() {
     const playerBombCounts: { [playerId: string]: number } = {};
 
     for (const playerId in this.players) {
@@ -179,9 +207,8 @@ export class GameState extends Schema implements IGameState {
     player.id = id;
     player.name = name;
 
-    // no spot left ?
     const playerCount = Object.keys(this.players).length;
-    if (playerCount >= GameState.StartPositions.length) return;
+    if (playerCount >= GameState.StartPositions.length) throw new Error('More players than starting spots');
 
     const startPos = GameState.StartPositions[playerCount];
     player.x = startPos.x;
@@ -353,5 +380,16 @@ export class GameState extends Schema implements IGameState {
 
     // TODO add a number to each explosion to represent its explosion time so the client can display a real explosion chain
     this.explosions = [...explosionPositions].join(';');
+  }
+
+  private coordToTileIndex(x: number, y: number): number {
+    return y * this.width + x;
+  }
+
+  private tileIndexToCoord(idx: number): number[] {
+    const x = idx % this.width;
+    const y = Math.floor(idx / this.width);
+
+    return [x, y];
   }
 }
