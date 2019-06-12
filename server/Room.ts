@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
 import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../common/constants';
-import { ActionCode, Actions, IClientMessage, IHasTick, IJoinRoomOpts, IPlayer } from '../common/interfaces';
+import { ActionCode, Actions, IClientMessage, IHasTick, IJoinRoomOpts, IPlayer } from '../common/types';
 import { Client, Room } from 'colyseus';
 import { GameState } from './State';
 

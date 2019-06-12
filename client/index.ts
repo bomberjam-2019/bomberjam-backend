@@ -4,7 +4,7 @@ import http from 'http';
 
 import { APP_NAME, DEFAULT_CLIENT_PORT } from '../common/constants';
 import { Client, Room } from 'colyseus.js';
-import { IGameState } from '../common/interfaces';
+import { IGameState } from '../common/types';
 import { loop } from './bot';
 import { getJoinOptions, onApplicationExit } from './utils';
 import { deepClone, drawAsciiGame } from '../common/utils';

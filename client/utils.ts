@@ -1,6 +1,6 @@
 import path from 'path';
 import { DEFAULT_SERVER_PORT } from '../common/constants';
-import { IJoinRoomOpts } from '../common/interfaces';
+import { IJoinRoomOpts } from '../common/types';
 
 export function getJoinOptions(): IJoinRoomOpts {
   const argv: any = require('minimist')(process.argv.slice(2));

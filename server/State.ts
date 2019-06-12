@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import { ARE_PLAYERS_INVINCIBLE, DEFAULT_BOMB_COUNTDOWN, DEFAULT_BOMB_RANGE, DEFAULT_LIVES } from '../common/constants';
 import { MapSchema, Schema, type } from '@colyseus/schema';
-import { ActionCode, Actions, IBomb, IGameState, IHasPos, IPlayer, TileCode, Tiles } from '../common/interfaces';
+import { ActionCode, Actions, IBomb, IGameState, IHasPos, IPlayer, TileCode, Tiles } from '../common/types';
 import { replaceCharAt } from '../common/utils';
 
 // prettier-ignore

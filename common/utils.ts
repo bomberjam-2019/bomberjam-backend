@@ -1,4 +1,4 @@
-import { IGameState } from './interfaces';
+import { IGameState } from './types';
 
 export function replaceCharAt(text: string, idx: number, newChar: string): string {
   return text.substr(0, idx) + newChar + text.substr(idx + 1);

@@ -1,7 +1,7 @@
 import { Client } from 'colyseus.js';
 import { APP_NAME } from '../../common/constants';
 import { Application, AnimatedSprite, TilingSprite, Sprite } from 'pixi.js';
-import { IGameState, IJoinRoomOpts } from '../../common/interfaces';
+import { IGameState, IJoinRoomOpts } from '../../common/types';
 import { Sprites } from './assets';
 
 const roomId = new URLSearchParams(window.location.search).get('r');
