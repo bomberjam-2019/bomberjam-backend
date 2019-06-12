@@ -2,13 +2,15 @@ import _ from 'lodash';
 
 import {
   ARE_PLAYERS_INVINCIBLE,
+  BOMB_BONUS_COUNT,
   DEFAULT_BOMB_COUNTDOWN,
   DEFAULT_BOMB_RANGE,
   DEFAULT_LIVES,
+  FIRE_BONUS_COUNT,
   SUDDEN_DEATH_STARTS_AT
 } from '../common/constants';
 import { MapSchema, Schema, type } from '@colyseus/schema';
-import { ActionCode, Actions, IBomb, IGameState, IHasPos, IPlayer, MoveCode, TileCode, Tiles } from '../common/types';
+import { ActionCode, Actions, BonusCode, IBomb, IBonus, IGameState, IHasPos, IPlayer, MoveCode, TileCode, Tiles } from '../common/types';
 import { replaceCharAt } from '../common/utils';
 
 // prettier-ignore
@@ -75,6 +77,17 @@ export class Bomb extends Schema implements IBomb {
   y: number = 0;
 }
 
+export class Bonus extends Schema implements IBonus {
+  @type('number')
+  x: number = 0;
+
+  @type('number')
+  y: number = 0;
+
+  @type('string')
+  type: BonusCode = 'bomb';
+}
+
 type PosIncrementer = (pos: IHasPos) => void;
 
 const positionIncrementers: { [mov: string]: PosIncrementer } = {
@@ -105,13 +118,16 @@ export class GameState extends Schema implements IGameState {
   tick: number = 0;
 
   @type('string')
-  tiles: string = defaultMap.join('');
+  tiles: string = '';
 
   @type({ map: Player })
   players: { [id: string]: Player } = new MapSchema<Player>();
 
   @type({ map: Bomb })
   bombs: { [id: string]: Bomb } = new MapSchema<Bomb>();
+
+  @type({ map: Bonus })
+  bonuses: { [id: string]: Bonus } = new MapSchema<Bonus>();
 
   @type('string')
   explosions: string = '';
@@ -124,6 +140,40 @@ export class GameState extends Schema implements IGameState {
 
   @type('number')
   tickDuration: number = 0;
+
+  private plannedBonuses: { [tileIndex: number]: BonusCode } = {};
+
+  constructor(...args: any[]) {
+    super(args);
+
+    this.tiles = defaultMap.join('');
+    this.planBonusPositions();
+  }
+
+  private planBonusPositions() {
+    // TODO assign random tiles here, instead of hardcoded map
+
+    const potentialBonusPositions = new Set<number>();
+
+    for (let i = 0; i < this.tiles.length; i++) {
+      const char = this.tiles[i];
+      if (char === Tiles.Block) potentialBonusPositions.add(i);
+    }
+
+    // TODO check that potentialBonusPositions.length >= BOMB_BONUS_COUNT + FIRE_BONUS_COUNT
+
+    for (let i = 0; i < BOMB_BONUS_COUNT; i++) {
+      const idx = _.sample([...potentialBonusPositions]) as number;
+      this.plannedBonuses[idx] = 'bomb';
+      potentialBonusPositions.delete(idx);
+    }
+
+    for (let i = 0; i < FIRE_BONUS_COUNT; i++) {
+      const idx = _.sample([...potentialBonusPositions]) as number;
+      this.plannedBonuses[idx] = 'fire';
+      potentialBonusPositions.delete(idx);
+    }
+  }
 
   public isPlaying(): boolean {
     return this.state === 0;
@@ -160,6 +210,10 @@ export class GameState extends Schema implements IGameState {
 
   public findAlivePlayerAt(x: number, y: number): IPlayer | undefined {
     return _.find(this.players, p => p.alive && p.x === x && p.y === y);
+  }
+
+  public findDroppedBonusAt(x: number, y: number): IBonus | undefined {
+    return _.find(this.bonuses, p => p.x === x && p.y === y);
   }
 
   public refresh() {
@@ -300,10 +354,21 @@ export class GameState extends Schema implements IGameState {
       newBomb.playerId = player.id;
       newBomb.countdown = DEFAULT_BOMB_COUNTDOWN;
 
-      const bombId = objectCounter++ + '';
+      const bombId = String(objectCounter++);
       this.bombs[bombId] = newBomb;
       player.bombsLeft--;
     }
+  }
+
+  public dropBonus(x: number, y: number, type: BonusCode) {
+    const bonus = new Bonus();
+
+    bonus.x = x;
+    bonus.y = y;
+    bonus.type = type;
+
+    const bonusId = String(objectCounter++);
+    this.bonuses[bonusId] = bonus;
   }
 
   public runBombs() {
@@ -365,8 +430,13 @@ export class GameState extends Schema implements IGameState {
           const victim = this.findAlivePlayerAt(pos.x, pos.y);
           if (victim) hitPlayers.add(victim.id);
 
-          // TODO destroy bonus
-          explosionPositions.add(`${pos.x}:${pos.y}`);
+          for (const bonusId in this.bonuses) {
+            const bonus = this.bonuses[bonusId];
+            if (bonus.x === pos.x && bonus.y === pos.y) delete this.bonuses[bonusId];
+          }
+
+          const bonus = this.findDroppedBonusAt(pos.x, pos.y);
+          if (bonus) explosionPositions.add(`${pos.x}:${pos.y}`);
         }
         // nothing to do on walls or out of bounds
         else {
@@ -389,9 +459,15 @@ export class GameState extends Schema implements IGameState {
 
     // 3) remove destroyed walls now otherwise too many walls could have been destroyed
     for (const posStr of destroyedBlockPositions) {
-      // TODO we might want to drop a bonus here :tada:!
-      const [x, y] = posStr.split(':');
-      this.setTileAt(Number(x), Number(y), Tiles.Empty);
+      const [x, y] = posStr.split(':').map(Number);
+      this.setTileAt(x, y, Tiles.Empty);
+
+      const idx = this.coordToTileIndex(x, y);
+      const bonusType = this.plannedBonuses[idx];
+      if (bonusType) {
+        this.dropBonus(x, y, bonusType);
+        delete this.plannedBonuses[idx];
+      }
     }
 
     // 4) apply damage to players

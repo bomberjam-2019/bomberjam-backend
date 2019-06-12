@@ -60,11 +60,18 @@ export interface IBomb extends IHasPos {
   range: number;
 }
 
+export type BonusCode = 'bomb' | 'fire';
+
+export interface IBonus extends IHasPos {
+  type: BonusCode;
+}
+
 export interface IGameState extends IHasTick {
   state: -1 | 0 | 1;
   tiles: string;
   players: { [id: string]: IPlayer };
   bombs: { [id: string]: IBomb };
+  bonuses: { [id: string]: IBonus };
   explosions: string;
   width: number;
   height: number;
