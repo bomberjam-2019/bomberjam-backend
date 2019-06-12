@@ -8,7 +8,7 @@ import {
   SUDDEN_DEATH_STARTS_AT
 } from '../common/constants';
 import { MapSchema, Schema, type } from '@colyseus/schema';
-import { ActionCode, Actions, IBomb, IGameState, IHasPos, IPlayer, TileCode, Tiles } from '../common/types';
+import { ActionCode, Actions, IBomb, IGameState, IHasPos, IPlayer, MoveCode, TileCode, Tiles } from '../common/types';
 import { replaceCharAt } from '../common/utils';
 
 // prettier-ignore
@@ -81,7 +81,8 @@ const positionIncrementers: { [mov: string]: PosIncrementer } = {
   [Actions.Up]: (pos: IHasPos) => pos.y--,
   [Actions.Down]: (pos: IHasPos) => pos.y++,
   [Actions.Left]: (pos: IHasPos) => pos.x--,
-  [Actions.Right]: (pos: IHasPos) => pos.x++
+  [Actions.Right]: (pos: IHasPos) => pos.x++,
+  [Actions.Stay]: () => {}
 };
 
 let objectCounter = 0;
@@ -166,9 +167,11 @@ export class GameState extends Schema implements IGameState {
     this.computeBombCountdownAndPlayerBombsLeft();
   }
 
-  private suddenDeathPos: IHasPos = {
+  private suddenDeathPos: IHasPos & { dir: MoveCode; iter: number } = {
     x: 0,
-    y: 0
+    y: 0,
+    iter: 0,
+    dir: 'right'
   };
 
   private unleashSuddenDeath() {
@@ -179,7 +182,25 @@ export class GameState extends Schema implements IGameState {
       const victim = this.findAlivePlayerAt(this.suddenDeathPos.x, this.suddenDeathPos.y);
       if (victim) this.killPlayer(victim);
 
-      [this.suddenDeathPos.x, this.suddenDeathPos.y] = this.tileIndexToCoord(idx + 1);
+      // walling bottom
+      if (this.suddenDeathPos.dir === 'right' && this.suddenDeathPos.x + 1 >= this.width - this.suddenDeathPos.iter) {
+        this.suddenDeathPos.dir = 'down';
+      }
+      // walling left
+      else if (this.suddenDeathPos.dir === 'down' && this.suddenDeathPos.y + 1 >= this.height - this.suddenDeathPos.iter) {
+        this.suddenDeathPos.dir = 'left';
+      }
+      // walling up
+      else if (this.suddenDeathPos.dir === 'left' && this.suddenDeathPos.x - 1 < this.suddenDeathPos.iter) {
+        this.suddenDeathPos.dir = 'up';
+        this.suddenDeathPos.iter++;
+      }
+      // walling right
+      else if (this.suddenDeathPos.dir === 'up' && this.suddenDeathPos.y - 1 < this.suddenDeathPos.iter) {
+        this.suddenDeathPos.dir = 'right';
+      }
+
+      positionIncrementers[this.suddenDeathPos.dir](this.suddenDeathPos);
     }
   }
 

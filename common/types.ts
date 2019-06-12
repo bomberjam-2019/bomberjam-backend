@@ -16,7 +16,8 @@ export interface IHasPos {
   y: number;
 }
 
-export type ActionCode = 'up' | 'down' | 'left' | 'right' | 'bomb' | 'stay';
+export type MoveCode = 'up' | 'down' | 'left' | 'right' | 'stay';
+export type ActionCode = MoveCode | 'bomb';
 
 export const Actions: { [key: string]: ActionCode } = {
   Up: 'up',
