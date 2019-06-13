@@ -160,7 +160,9 @@ export class GameState extends Schema implements IGameState {
       if (char === Tiles.Block) potentialBonusPositions.add(i);
     }
 
-    // TODO check that potentialBonusPositions.length >= BOMB_BONUS_COUNT + FIRE_BONUS_COUNT
+    if (BOMB_BONUS_COUNT + FIRE_BONUS_COUNT > potentialBonusPositions.size) throw new Error('Too many bonuses');
+
+    // TODO fair bonus positioning instead of random
 
     for (let i = 0; i < BOMB_BONUS_COUNT; i++) {
       const idx = _.sample([...potentialBonusPositions]) as number;
@@ -212,8 +214,11 @@ export class GameState extends Schema implements IGameState {
     return _.find(this.players, p => p.alive && p.x === x && p.y === y);
   }
 
-  public findDroppedBonusAt(x: number, y: number): IBonus | undefined {
-    return _.find(this.bonuses, p => p.x === x && p.y === y);
+  public findDroppedBonusIndexAt(x: number, y: number): string | undefined {
+    for (const bonusId in this.bonuses) {
+      const bonus: IBonus = this.bonuses[bonusId];
+      if (bonus.x === x && bonus.y === y) return bonusId;
+    }
   }
 
   public refresh() {
@@ -335,6 +340,19 @@ export class GameState extends Schema implements IGameState {
       const bomb = this.findActiveBombAt(nextPos.x, nextPos.y);
       if (bomb) return;
 
+      const bonusId = this.findDroppedBonusIndexAt(nextPos.x, nextPos.y);
+      if (bonusId) {
+        const bonus: IBonus = this.bonuses[bonusId];
+
+        if (bonus.type === 'bomb') {
+          player.maxBombs++;
+        } else if (bonus.type === 'fire') {
+          player.bombRange++;
+        }
+
+        delete this.bonuses[bonusId];
+      }
+
       player.x = nextPos.x;
       player.y = nextPos.y;
     }
@@ -430,13 +448,10 @@ export class GameState extends Schema implements IGameState {
           const victim = this.findAlivePlayerAt(pos.x, pos.y);
           if (victim) hitPlayers.add(victim.id);
 
-          for (const bonusId in this.bonuses) {
-            const bonus = this.bonuses[bonusId];
-            if (bonus.x === pos.x && bonus.y === pos.y) delete this.bonuses[bonusId];
-          }
+          const bonusId = this.findDroppedBonusIndexAt(pos.x, pos.y);
+          if (bonusId) delete this.bonuses[bonusId];
 
-          const bonus = this.findDroppedBonusAt(pos.x, pos.y);
-          if (bonus) explosionPositions.add(`${pos.x}:${pos.y}`);
+          explosionPositions.add(`${pos.x}:${pos.y}`);
         }
         // nothing to do on walls or out of bounds
         else {
