@@ -5,6 +5,7 @@ import { APP_NAME } from '../../common/constants';
 import { Application, AnimatedSprite, TilingSprite, Sprite, IResourceDictionary, Texture } from 'pixi.js';
 import { IBonus, IGameState, IHasPos, IJoinRoomOpts, IPlayer, IStateListener } from '../../common/types';
 import { Sprites } from './assets';
+import { deepClone } from '../../common/utils';
 
 const roomId = new URLSearchParams(window.location.search).get('r');
 if (typeof roomId !== 'string' || roomId.trim().length === 0) throw new Error(`Missing roomId in 'r' query string parameter`);
@@ -54,8 +55,8 @@ class GameRenderer {
   private room: Room<any>;
   private pixi: Application;
   private textures: TextureRegistry;
-  private state: IGameState;
-  private deltaSum: number = 0;
+  private prevState: IGameState;
+  private currState: IGameState;
   private playerSprites: { [playerId: string]: Sprite } = {};
 
   public spriteRatio: number = 1;
@@ -65,30 +66,38 @@ class GameRenderer {
     this.pixi = pixi;
     this.textures = textures;
 
-    this.state = room.state as IGameState;
+    this.currState = room.state as IGameState;
+    this.prevState = this.currState;
   }
 
   public onGameTick(state: IGameState) {
-    this.deltaSum = 0;
-    this.state = state;
+    this.currState = state;
 
-    console.log('=========');
-    _.forEach(this.state.players, (player: any) => {
-      player.triggerAll();
-    });
+    for (const playerId in this.playerSprites) {
+      const oldPlayer = this.prevState.players[playerId];
+      const newPlayer = this.currState.players[playerId];
+
+      if (oldPlayer && newPlayer) {
+        const sprite: Sprite = this.playerSprites[playerId];
+
+        sprite.x = oldPlayer.x * tilePixelSize;
+        sprite.y = oldPlayer.y * tilePixelSize;
+
+        sprite.vx = oldPlayer.x === newPlayer.x ? 0 : newPlayer.x - oldPlayer.x > 0 ? tilePixelSize : -tilePixelSize;
+        sprite.vy = oldPlayer.y === newPlayer.y ? 0 : newPlayer.y - oldPlayer.y > 0 ? tilePixelSize : -tilePixelSize;
+      }
+    }
+
+    this.prevState = deepClone(this.currState);
   }
 
   public onPixiTick(delta: number): void {
-    const progress = delta / this.state.tickDuration;
-
-    console.log(delta + ' / ' + this.deltaSum);
+    const progress = delta / this.currState.tickDuration;
 
     _.forEach(this.playerSprites, (sprite: Sprite) => {
       sprite.x += sprite.vx * progress;
       sprite.y += sprite.vy * progress;
     });
-
-    this.deltaSum += delta;
   }
 
   public registerChangeHandlers() {
@@ -113,31 +122,10 @@ class GameRenderer {
     if (player.alive) {
       const sprite = this.makeAnimatedSprite(this.textures.playerTextures, player, false);
       sprite.anchor.set(0, 0.5);
+      sprite.zIndex = 999;
       this.playerSprites[playerId] = sprite;
       this.pixi.stage.addChild(sprite);
-
-      const propertyCallbacks: { [field: string]: (oldVal: any, newVal: any) => void } = {
-        x: (prev: number, curr: number) => {
-          sprite.vx = typeof prev === 'undefined' || prev === curr ? 0 : curr - prev > 0 ? tilePixelSize : -tilePixelSize;
-          sprite.x = player.x * tilePixelSize;
-        },
-        y: (prev: number, curr: number) => {
-          sprite.vy = typeof prev === 'undefined' || prev === curr ? 0 : curr - prev > 0 ? tilePixelSize : -tilePixelSize;
-          sprite.y = player.y * tilePixelSize;
-        }
-      };
-
-      this.onStatePropertyChange(player, propertyCallbacks);
     }
-  }
-
-  private onStatePropertyChange(obj: Object, callbacks: { [field: string]: (oldVal: any, newVal: any) => void }) {
-    (obj as IStateListener).onChange = changes => {
-      for (const change of changes) {
-        const callback = callbacks[change.field];
-        if (callback) callback(change.previousValue, change.value);
-      }
-    };
   }
 
   private unregisterSprite(sprites: { [k: string]: Sprite }, key: string) {

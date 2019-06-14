@@ -3,8 +3,8 @@ export const APP_NAME = 'bomberman';
 export const DEFAULT_SERVER_PORT = 4321;
 export const DEFAULT_CLIENT_PORT = 4322;
 
-export const TICK_DURATION_MS = 2000;
-export const MAX_RESPONSE_TIME_MS = 2000;
+export const TICK_DURATION_MS = 300;
+export const MAX_RESPONSE_TIME_MS = 300;
 export const MAX_PLAYERS = 4;
 export const MAX_SPECTATORS = 16;
 
