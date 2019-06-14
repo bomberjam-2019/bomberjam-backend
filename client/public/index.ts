@@ -1,9 +1,9 @@
 import _ from 'lodash';
 
-import { Client, Room, DataChange } from 'colyseus.js';
+import { Client, Room } from 'colyseus.js';
 import { APP_NAME } from '../../common/constants';
 import { Application, AnimatedSprite, TilingSprite, Sprite, IResourceDictionary, Texture } from 'pixi.js';
-import { IBonus, IGameState, IJoinRoomOpts, IPlayer } from '../../common/types';
+import { IBonus, IGameState, IHasPos, IJoinRoomOpts, IPlayer, IStateListener } from '../../common/types';
 import { Sprites } from './assets';
 
 const roomId = new URLSearchParams(window.location.search).get('r');
@@ -43,14 +43,10 @@ const allTexturePaths = [
 ];
 
 class TextureRegistry {
-  private resources: IResourceDictionary;
-
   public playerTextures: Texture[];
 
   constructor(resources: IResourceDictionary) {
-    this.resources = resources;
-
-    this.playerTextures = Sprites.player.map(path => this.resources[path].texture);
+    this.playerTextures = Sprites.player.map(path => resources[path].texture);
   }
 }
 
@@ -58,8 +54,9 @@ class GameRenderer {
   private room: Room<any>;
   private pixi: Application;
   private textures: TextureRegistry;
-
-  private playerSprites: { [playerId: string]: AnimatedSprite } = {};
+  private state: IGameState;
+  private deltaSum: number = 0;
+  private playerSprites: { [playerId: string]: Sprite } = {};
 
   public spriteRatio: number = 1;
 
@@ -67,73 +64,108 @@ class GameRenderer {
     this.room = room;
     this.pixi = pixi;
     this.textures = textures;
+
+    this.state = room.state as IGameState;
+  }
+
+  public onGameTick(state: IGameState) {
+    this.deltaSum = 0;
+    this.state = state;
+
+    console.log('=========');
+    _.forEach(this.state.players, (player: any) => {
+      player.triggerAll();
+    });
+  }
+
+  public onPixiTick(delta: number): void {
+    const progress = delta / this.state.tickDuration;
+
+    console.log(delta + ' / ' + this.deltaSum);
+
+    _.forEach(this.playerSprites, (sprite: Sprite) => {
+      sprite.x += sprite.vx * progress;
+      sprite.y += sprite.vy * progress;
+    });
+
+    this.deltaSum += delta;
   }
 
   public registerChangeHandlers() {
-    this.registerPlayerHandlers();
+    this.registerPlayers();
   }
 
-  private registerPlayerHandlers() {
+  private registerPlayers() {
     this.room.state.players.onAdd = (player: IPlayer, playerId: string) => {
-      if (player.alive) {
-        const sprite = this.makePlayerSprite(player);
-        this.playerSprites[playerId] = sprite;
-        this.pixi.stage.addChild(sprite);
-
-        // @ts-ignore
-        player.onChange = (changes: DataChange[]) => {
-          for (const change of changes) {
-            console.log(JSON.stringify(change));
-          }
-        };
-      }
+      this.registerPlayer(playerId, player);
     };
 
     this.room.state.players.onRemove = (player: IPlayer, playerId: string) => {
-      const sprite: AnimatedSprite = this.playerSprites[playerId];
-      if (sprite) {
-        this.pixi.stage.removeChild(sprite);
-        sprite.destroy();
-        delete this.playerSprites[playerId];
-      }
+      this.unregisterSprite(this.playerSprites, playerId);
     };
 
     for (const playerId in this.room.state.players) {
-      const player: IPlayer = this.room.state.players[playerId];
-      if (player.alive) {
-        const sprite = this.makePlayerSprite(player);
-        this.playerSprites[playerId] = sprite;
-        this.pixi.stage.addChild(sprite);
-
-        // @ts-ignore
-        player.onChange = (changes: DataChange[]) => {
-          for (const change of changes) {
-            console.log(JSON.stringify(change));
-          }
-        };
-      }
+      this.registerPlayer(playerId, this.room.state.players[playerId]);
     }
   }
 
-  private makePlayerSprite(player: IPlayer): AnimatedSprite {
-    const sprite = new AnimatedSprite(this.textures.playerTextures, true);
+  private registerPlayer(playerId: string, player: IPlayer): void {
+    if (player.alive) {
+      const sprite = this.makeAnimatedSprite(this.textures.playerTextures, player, false);
+      sprite.anchor.set(0, 0.5);
+      this.playerSprites[playerId] = sprite;
+      this.pixi.stage.addChild(sprite);
+
+      const propertyCallbacks: { [field: string]: (oldVal: any, newVal: any) => void } = {
+        x: (prev: number, curr: number) => {
+          sprite.vx = typeof prev === 'undefined' || prev === curr ? 0 : curr - prev > 0 ? tilePixelSize : -tilePixelSize;
+          sprite.x = player.x * tilePixelSize;
+        },
+        y: (prev: number, curr: number) => {
+          sprite.vy = typeof prev === 'undefined' || prev === curr ? 0 : curr - prev > 0 ? tilePixelSize : -tilePixelSize;
+          sprite.y = player.y * tilePixelSize;
+        }
+      };
+
+      this.onStatePropertyChange(player, propertyCallbacks);
+    }
+  }
+
+  private onStatePropertyChange(obj: Object, callbacks: { [field: string]: (oldVal: any, newVal: any) => void }) {
+    (obj as IStateListener).onChange = changes => {
+      for (const change of changes) {
+        const callback = callbacks[change.field];
+        if (callback) callback(change.previousValue, change.value);
+      }
+    };
+  }
+
+  private unregisterSprite(sprites: { [k: string]: Sprite }, key: string) {
+    const sprite: Sprite = sprites[key];
+    if (sprite) {
+      this.pixi.stage.removeChild(sprite);
+      sprite.destroy();
+      delete sprites[key];
+    }
+  }
+
+  private makeAnimatedSprite(textures: Texture[], pos: IHasPos, center: boolean = false): Sprite {
+    const sprite = new AnimatedSprite(textures, true);
+
+    if (center) {
+      sprite.position.set(pos.x * tilePixelSize + tilePixelSize / 2.0, pos.y * tilePixelSize + tilePixelSize / 2.0);
+    } else {
+      sprite.position.set(pos.x * tilePixelSize, pos.y * tilePixelSize);
+    }
 
     sprite.animationSpeed = 0.15;
-    sprite.position.set(player.x * tilePixelSize, player.y * tilePixelSize);
     sprite.scale.set(this.spriteRatio, this.spriteRatio);
-    sprite.anchor.set(0, 0.5);
     sprite.vx = 0;
     sprite.vy = 0;
+
     sprite.play();
 
     return sprite;
-  }
-
-  public render(): void {
-    _.forEach(this.playerSprites, (sprite: AnimatedSprite) => {
-      sprite.x += 1;
-      sprite.y += 1;
-    });
   }
 }
 
@@ -143,7 +175,6 @@ let gameRenderer: GameRenderer;
 app.loader.add(allTexturePaths).load(() => {
   const textureScaleRatio = tilePixelSize / app.loader.resources[Sprites.floor].texture.width;
 
-  const playerTextures = Sprites.player.map(path => app.loader.resources[path].texture);
   const flameTextures = Sprites.flame.map(path => app.loader.resources[path].texture);
   const bombTextures = Sprites.bomb.map(path => app.loader.resources[path].texture);
 
@@ -178,10 +209,14 @@ app.loader.add(allTexturePaths).load(() => {
       gameRenderer.spriteRatio = textureScaleRatio;
       gameRenderer.registerChangeHandlers();
 
+      app.ticker.add(delta => {
+        gameRenderer.onPixiTick(app.ticker.elapsedMS);
+      });
+
       initialized = true;
     }
 
-    // gameRenderer.render();
+    gameRenderer.onGameTick(state);
 
     for (const sprite of [...wallSprites, ...blockSprites, ...playerSprites, ...bombSprites, ...flameSprites, ...bonusSprites]) {
       app.stage.removeChild(sprite);
