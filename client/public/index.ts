@@ -109,6 +109,7 @@ class GameRenderer {
       }
     }
 
+    // Hide bombs that just exploded
     for (const bombId in this.currState.bombs) {
       const bomb: IBomb = this.currState.bombs[bombId];
       const bombSprite: Sprite = this.bombSprites[bombId];
@@ -116,9 +117,18 @@ class GameRenderer {
       if (bomb.countdown <= 0 && bombSprite) bombSprite.visible = false;
     }
 
+    // Hide dead players
+    for (const playerId in this.currState.players) {
+      const player: IPlayer = this.currState.players[playerId];
+      const playerSprite: Sprite = this.playerSprites[playerId];
+
+      if (!player.alive && playerSprite) playerSprite.visible = false;
+    }
+
     this.registerFlames();
     this.registerWallsAndBlocks();
 
+    // z-ordering
     this.pixi.stage.children.sort((s1: DisplayObject, s2: DisplayObject) => {
       const y1 = Math.floor(s1.y / tilePixelSize);
       const y2 = Math.floor(s2.y / tilePixelSize);
