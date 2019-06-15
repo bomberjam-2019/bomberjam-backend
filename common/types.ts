@@ -80,21 +80,3 @@ export interface IGameState extends IHasTick {
   height: number;
   tickDuration: number;
 }
-
-/** Colyseus **/
-
-export interface IMapSchemaListener<T> {
-  onAdd: (obj: T, key: string) => void;
-  onRemove: (obj: T, key: string) => void;
-  onChange: (obj: T, key: string) => void;
-}
-
-export interface IDataChange {
-  field: string;
-  value: any;
-  previousValue: any;
-}
-
-export interface IStateListener {
-  onChange: (changes: IDataChange[]) => void;
-}

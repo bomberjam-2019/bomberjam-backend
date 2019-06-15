@@ -3,9 +3,12 @@ import _ from 'lodash';
 import { Client, Room } from 'colyseus.js';
 import { APP_NAME } from '../../common/constants';
 import { Application, AnimatedSprite, TilingSprite, Sprite, IResourceDictionary, Texture } from 'pixi.js';
-import { IBomb, IBonus, IGameState, IHasPos, IJoinRoomOpts, IPlayer, IStateListener } from '../../common/types';
+import { IBomb, IBonus, IGameState, IHasPos, IJoinRoomOpts, IPlayer } from '../../common/types';
 import { Sprites } from './assets';
 import { deepClone } from '../../common/utils';
+import DisplayObject = PIXI.DisplayObject;
+
+type SpriteType = 'player' | 'bomb' | 'flame' | 'bonus' | 'block' | 'wall';
 
 const roomId = new URLSearchParams(window.location.search).get('r');
 if (typeof roomId !== 'string' || roomId.trim().length === 0) throw new Error(`Missing roomId in 'r' query string parameter`);
@@ -116,6 +119,22 @@ class GameRenderer {
     this.registerFlames();
     this.registerWallsAndBlocks();
 
+    this.pixi.stage.children.sort((s1: DisplayObject, s2: DisplayObject) => {
+      const y1 = Math.floor(s1.y / tilePixelSize);
+      const y2 = Math.floor(s2.y / tilePixelSize);
+
+      if (y1 === y2) {
+        const x1 = Math.floor(s1.x / tilePixelSize);
+        const x2 = Math.floor(s2.x / tilePixelSize);
+
+        if (x1 === x2) {
+          // TODO sort sprites at the same location based on their type (bomb behind player for example)
+        }
+      }
+
+      return y1 - y2;
+    });
+
     this.prevState = deepClone(this.currState);
   }
 
@@ -142,7 +161,7 @@ class GameRenderer {
 
   private registerPlayer(playerId: string, player: IPlayer): void {
     if (player.alive) {
-      const sprite = this.makeAnimatedSprite(this.textures.playerTextures, player, false);
+      const sprite = this.makeAnimatedSprite(this.textures.playerTextures, player, 'player', false);
       sprite.anchor.set(0, 0.5);
       this.playerSprites[playerId] = sprite;
       this.pixi.stage.addChild(sprite);
@@ -157,7 +176,7 @@ class GameRenderer {
 
   private registerBomb(bombId: string, bomb: IBomb) {
     if (bomb.countdown >= 0) {
-      const sprite = this.makeAnimatedSprite(this.textures.bombTextures, bomb, true);
+      const sprite = this.makeAnimatedSprite(this.textures.bombTextures, bomb, 'bomb', true);
       sprite.anchor.set(0.5, 0.5);
       this.bombSprites[bombId] = sprite;
       this.pixi.stage.addChild(sprite);
@@ -172,7 +191,7 @@ class GameRenderer {
 
   private registerBonus(bonusId: string, bonus: IBonus) {
     const texture = bonus.type === 'bomb' ? this.textures.bombBonusTexture : this.textures.fireBonusTexture;
-    const sprite = this.makeSprite(texture, bonus, true);
+    const sprite = this.makeSprite(texture, bonus, 'bonus', true);
     sprite.anchor.set(0.5, 0.5);
     this.bonusesSprites[bonusId] = sprite;
     this.pixi.stage.addChild(sprite);
@@ -191,7 +210,7 @@ class GameRenderer {
       .forEach(str => {
         const [x, y] = str.split(':').map(Number);
 
-        const sprite = this.makeAnimatedSprite(this.textures.flameTextures, { x: x, y: y }, true);
+        const sprite = this.makeAnimatedSprite(this.textures.flameTextures, { x: x, y: y }, 'flame', true);
         sprite.anchor.set(0.5, 0.5);
         this.pixi.stage.addChild(sprite);
         this.flameSprites.push(sprite);
@@ -214,10 +233,10 @@ class GameRenderer {
         if (char === '+' || char === '#') {
           let sprite: Sprite;
           if (char === '+') {
-            sprite = this.makeSprite(this.textures.blockTexture, { x: x, y: y });
+            sprite = this.makeSprite(this.textures.blockTexture, { x: x, y: y }, 'block', false);
             this.blockSprites.push(sprite);
           } else {
-            sprite = this.makeSprite(this.textures.wallTexture, { x: x, y: y });
+            sprite = this.makeSprite(this.textures.wallTexture, { x: x, y: y }, 'wall', false);
             this.wallSprites.push(sprite);
           }
 
@@ -240,7 +259,7 @@ class GameRenderer {
     sprite.destroy();
   }
 
-  private makeAnimatedSprite(textures: Texture[], pos: IHasPos, centered: boolean = false): Sprite {
+  private makeAnimatedSprite(textures: Texture[], pos: IHasPos, type: SpriteType, centered: boolean): Sprite {
     const sprite = new AnimatedSprite(textures, true);
 
     if (centered) {
@@ -253,13 +272,14 @@ class GameRenderer {
     sprite.scale.set(this.spriteRatio, this.spriteRatio);
     sprite.vx = 0;
     sprite.vy = 0;
+    sprite.type = type;
 
     sprite.play();
 
     return sprite;
   }
 
-  private makeSprite(texture: Texture, pos: IHasPos, centered: boolean = false): Sprite {
+  private makeSprite(texture: Texture, pos: IHasPos, type: SpriteType, centered: boolean): Sprite {
     const sprite = new Sprite(texture);
 
     if (centered) {
@@ -271,6 +291,7 @@ class GameRenderer {
     sprite.scale.set(this.spriteRatio, this.spriteRatio);
     sprite.vx = 0;
     sprite.vy = 0;
+    sprite.type = type;
 
     return sprite;
   }

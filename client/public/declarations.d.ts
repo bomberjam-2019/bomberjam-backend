@@ -1,6 +1,7 @@
 declare module PIXI {
-  interface Sprite {
+  interface DisplayObject {
     vx: number;
     vy: number;
+    type: string;
   }
 }
