@@ -3,7 +3,7 @@ import _ from 'lodash';
 import { Client, Room } from 'colyseus.js';
 import { APP_NAME } from '../../common/constants';
 import { Application, AnimatedSprite, TilingSprite, Sprite, IResourceDictionary, Texture } from 'pixi.js';
-import { IBonus, IGameState, IHasPos, IJoinRoomOpts, IPlayer, IStateListener } from '../../common/types';
+import { IBomb, IBonus, IGameState, IHasPos, IJoinRoomOpts, IPlayer, IStateListener } from '../../common/types';
 import { Sprites } from './assets';
 import { deepClone } from '../../common/utils';
 
@@ -44,10 +44,22 @@ const allTexturePaths = [
 ];
 
 class TextureRegistry {
+  public wallTexture: Texture;
+  public blockTexture: Texture;
   public playerTextures: Texture[];
+  public bombTextures: Texture[];
+  public flameTextures: Texture[];
+  public fireBonusTexture: Texture;
+  public bombBonusTexture: Texture;
 
   constructor(resources: IResourceDictionary) {
+    this.wallTexture = resources[Sprites.wall].texture;
+    this.blockTexture = resources[Sprites.block].texture;
     this.playerTextures = Sprites.player.map(path => resources[path].texture);
+    this.bombTextures = Sprites.bomb.map(path => resources[path].texture);
+    this.flameTextures = Sprites.flame.map(path => resources[path].texture);
+    this.fireBonusTexture = resources[Sprites.bonuses.fire].texture;
+    this.bombBonusTexture = resources[Sprites.bonuses.bomb].texture;
   }
 }
 
@@ -57,7 +69,13 @@ class GameRenderer {
   private textures: TextureRegistry;
   private prevState: IGameState;
   private currState: IGameState;
+
+  private wallSprites: Sprite[] = [];
+  private blockSprites: Sprite[] = [];
   private playerSprites: { [playerId: string]: Sprite } = {};
+  private bombSprites: { [bombId: string]: Sprite } = {};
+  private bonusesSprites: { [bonusId: string]: Sprite } = {};
+  private flameSprites: Sprite[] = [];
 
   public spriteRatio: number = 1;
 
@@ -88,6 +106,16 @@ class GameRenderer {
       }
     }
 
+    for (const bombId in this.currState.bombs) {
+      const bomb: IBomb = this.currState.bombs[bombId];
+      const bombSprite: Sprite = this.bombSprites[bombId];
+
+      if (bomb.countdown <= 0 && bombSprite) bombSprite.visible = false;
+    }
+
+    this.registerFlames();
+    this.registerWallsAndBlocks();
+
     this.prevState = deepClone(this.currState);
   }
 
@@ -102,45 +130,120 @@ class GameRenderer {
 
   public registerChangeHandlers() {
     this.registerPlayers();
+    this.registerBombs();
+    this.registerBonuses();
   }
 
   private registerPlayers() {
-    this.room.state.players.onAdd = (player: IPlayer, playerId: string) => {
-      this.registerPlayer(playerId, player);
-    };
-
-    this.room.state.players.onRemove = (player: IPlayer, playerId: string) => {
-      this.unregisterSprite(this.playerSprites, playerId);
-    };
-
-    for (const playerId in this.room.state.players) {
-      this.registerPlayer(playerId, this.room.state.players[playerId]);
-    }
+    this.room.state.players.onAdd = (player: IPlayer, playerId: string) => this.registerPlayer(playerId, player);
+    this.room.state.players.onRemove = (player: IPlayer, playerId: string) => this.unregisterObjectSprite(this.playerSprites, playerId);
+    for (const playerId in this.room.state.players) this.registerPlayer(playerId, this.room.state.players[playerId]);
   }
 
   private registerPlayer(playerId: string, player: IPlayer): void {
     if (player.alive) {
       const sprite = this.makeAnimatedSprite(this.textures.playerTextures, player, false);
       sprite.anchor.set(0, 0.5);
-      sprite.zIndex = 999;
       this.playerSprites[playerId] = sprite;
       this.pixi.stage.addChild(sprite);
     }
   }
 
-  private unregisterSprite(sprites: { [k: string]: Sprite }, key: string) {
+  private registerBombs() {
+    this.room.state.bombs.onAdd = (bomb: IBomb, bombId: string) => this.registerBomb(bombId, bomb);
+    this.room.state.bombs.onRemove = (bomb: IBomb, bombId: string) => this.unregisterObjectSprite(this.bombSprites, bombId);
+    for (const bombId in this.room.state.bombs) this.registerBomb(bombId, this.room.state.bombs[bombId]);
+  }
+
+  private registerBomb(bombId: string, bomb: IBomb) {
+    if (bomb.countdown >= 0) {
+      const sprite = this.makeAnimatedSprite(this.textures.bombTextures, bomb, true);
+      sprite.anchor.set(0.5, 0.5);
+      this.bombSprites[bombId] = sprite;
+      this.pixi.stage.addChild(sprite);
+    }
+  }
+
+  private registerBonuses() {
+    this.room.state.bonuses.onAdd = (bonus: IBonus, bonusId: string) => this.registerBonus(bonusId, bonus);
+    this.room.state.bonuses.onRemove = (bonus: IBonus, bonusId: string) => this.unregisterObjectSprite(this.bonusesSprites, bonusId);
+    for (const bonusId in this.room.state.bonuses) this.registerBonus(bonusId, this.room.state.bombs[bonusId]);
+  }
+
+  private registerBonus(bonusId: string, bonus: IBonus) {
+    const texture = bonus.type === 'bomb' ? this.textures.bombBonusTexture : this.textures.fireBonusTexture;
+    const sprite = this.makeSprite(texture, bonus, true);
+    sprite.anchor.set(0.5, 0.5);
+    this.bonusesSprites[bonusId] = sprite;
+    this.pixi.stage.addChild(sprite);
+  }
+
+  private registerFlames() {
+    for (const sprite of this.flameSprites) {
+      this.unregisterSprite(sprite);
+    }
+
+    this.flameSprites.length = 0;
+
+    (this.room.state.explosions as string)
+      .split(';')
+      .filter(str => str.length > 0)
+      .forEach(str => {
+        const [x, y] = str.split(':').map(Number);
+
+        const sprite = this.makeAnimatedSprite(this.textures.flameTextures, { x: x, y: y }, true);
+        sprite.anchor.set(0.5, 0.5);
+        this.pixi.stage.addChild(sprite);
+        this.flameSprites.push(sprite);
+      });
+  }
+
+  private registerWallsAndBlocks() {
+    for (const sprite of [...this.wallSprites, ...this.blockSprites]) {
+      this.unregisterSprite(sprite);
+    }
+
+    this.wallSprites.length = 0;
+    this.blockSprites.length = 0;
+
+    for (let x = 0; x < this.room.state.width; x++) {
+      for (let y = 0; y < this.room.state.height; y++) {
+        const idx = y * this.room.state.width + x;
+        const char = this.room.state.tiles[idx];
+
+        if (char === '+' || char === '#') {
+          let sprite: Sprite;
+          if (char === '+') {
+            sprite = this.makeSprite(this.textures.blockTexture, { x: x, y: y });
+            this.blockSprites.push(sprite);
+          } else {
+            sprite = this.makeSprite(this.textures.wallTexture, { x: x, y: y });
+            this.wallSprites.push(sprite);
+          }
+
+          this.pixi.stage.addChild(sprite);
+        }
+      }
+    }
+  }
+
+  private unregisterObjectSprite(sprites: { [k: string]: Sprite }, key: string) {
     const sprite: Sprite = sprites[key];
     if (sprite) {
-      this.pixi.stage.removeChild(sprite);
-      sprite.destroy();
+      this.unregisterSprite(sprite);
       delete sprites[key];
     }
   }
 
-  private makeAnimatedSprite(textures: Texture[], pos: IHasPos, center: boolean = false): Sprite {
+  private unregisterSprite(sprite: Sprite) {
+    this.pixi.stage.removeChild(sprite);
+    sprite.destroy();
+  }
+
+  private makeAnimatedSprite(textures: Texture[], pos: IHasPos, centered: boolean = false): Sprite {
     const sprite = new AnimatedSprite(textures, true);
 
-    if (center) {
+    if (centered) {
       sprite.position.set(pos.x * tilePixelSize + tilePixelSize / 2.0, pos.y * tilePixelSize + tilePixelSize / 2.0);
     } else {
       sprite.position.set(pos.x * tilePixelSize, pos.y * tilePixelSize);
@@ -155,23 +258,31 @@ class GameRenderer {
 
     return sprite;
   }
+
+  private makeSprite(texture: Texture, pos: IHasPos, centered: boolean = false): Sprite {
+    const sprite = new Sprite(texture);
+
+    if (centered) {
+      sprite.position.set(pos.x * tilePixelSize + tilePixelSize / 2.0, pos.y * tilePixelSize + tilePixelSize / 2.0);
+    } else {
+      sprite.position.set(pos.x * tilePixelSize, pos.y * tilePixelSize);
+    }
+
+    sprite.scale.set(this.spriteRatio, this.spriteRatio);
+    sprite.vx = 0;
+    sprite.vy = 0;
+
+    return sprite;
+  }
 }
 
 let textures: TextureRegistry;
 let gameRenderer: GameRenderer;
 
 app.loader.add(allTexturePaths).load(() => {
+  textures = new TextureRegistry(app.loader.resources);
+
   const textureScaleRatio = tilePixelSize / app.loader.resources[Sprites.floor].texture.width;
-
-  const flameTextures = Sprites.flame.map(path => app.loader.resources[path].texture);
-  const bombTextures = Sprites.bomb.map(path => app.loader.resources[path].texture);
-
-  const wallSprites: Sprite[] = [];
-  const blockSprites: Sprite[] = [];
-  const playerSprites: AnimatedSprite[] = [];
-  const bombSprites: AnimatedSprite[] = [];
-  const flameSprites: AnimatedSprite[] = [];
-  const bonusSprites: Sprite[] = [];
 
   room.onJoin.add(() => {
     console.log(`successfully joined room ${room.id}`);
@@ -192,12 +303,11 @@ app.loader.add(allTexturePaths).load(() => {
       wallTilingSprite.tileScale.set(textureScaleRatio, textureScaleRatio);
       app.stage.addChild(wallTilingSprite);
 
-      textures = new TextureRegistry(app.loader.resources);
       gameRenderer = new GameRenderer(room, app, textures);
       gameRenderer.spriteRatio = textureScaleRatio;
       gameRenderer.registerChangeHandlers();
 
-      app.ticker.add(delta => {
+      app.ticker.add(() => {
         gameRenderer.onPixiTick(app.ticker.elapsedMS);
       });
 
@@ -205,104 +315,6 @@ app.loader.add(allTexturePaths).load(() => {
     }
 
     gameRenderer.onGameTick(state);
-
-    for (const sprite of [...wallSprites, ...blockSprites, ...playerSprites, ...bombSprites, ...flameSprites, ...bonusSprites]) {
-      app.stage.removeChild(sprite);
-      sprite.destroy();
-    }
-
-    wallSprites.length = 0;
-    blockSprites.length = 0;
-    playerSprites.length = 0;
-    bombSprites.length = 0;
-    flameSprites.length = 0;
-    bonusSprites.length = 0;
-
-    for (let x = 0; x < state.width; x++) {
-      for (let y = 0; y < state.height; y++) {
-        const idx = y * state.width + x;
-        const char = state.tiles[idx];
-
-        if (char === '+' || char === '#') {
-          let sprite: Sprite;
-          if (char === '+') {
-            sprite = new Sprite(app.loader.resources[Sprites.block].texture);
-            blockSprites.push(sprite);
-          } else {
-            sprite = new Sprite(app.loader.resources[Sprites.wall].texture);
-            wallSprites.push(sprite);
-          }
-
-          sprite.position.set(x * tilePixelSize, y * tilePixelSize);
-          sprite.scale.set(textureScaleRatio, textureScaleRatio);
-          app.stage.addChild(sprite);
-        }
-      }
-    }
-
-    /*
-    for (const playerId in state.players) {
-      const player = state.players[playerId];
-
-      if (player.alive) {
-        const sprite = new AnimatedSprite(playerTextures, true);
-        sprite.animationSpeed = 0.15;
-        sprite.position.set(player.x * tilePixelSize, player.y * tilePixelSize);
-        sprite.scale.set(textureScaleRatio, textureScaleRatio);
-        sprite.anchor.set(0, 0.5);
-        sprite.play();
-        app.stage.addChild(sprite);
-
-        playerSprites.push(sprite);
-      }
-    }
-    */
-
-    for (const bonusId in state.bonuses) {
-      const bonus: IBonus = state.bonuses[bonusId];
-
-      const texture = app.loader.resources[bonus.type === 'fire' ? Sprites.bonuses.fire : Sprites.bonuses.bomb].texture;
-      const sprite = new Sprite(texture);
-
-      sprite.position.set(bonus.x * tilePixelSize + tilePixelSize / 2.0, bonus.y * tilePixelSize + tilePixelSize / 2.0);
-      sprite.scale.set(textureScaleRatio, textureScaleRatio);
-      sprite.anchor.set(0.5, 0.5);
-
-      app.stage.addChild(sprite);
-      bonusSprites.push(sprite);
-    }
-
-    for (const bombId in state.bombs) {
-      const bomb = state.bombs[bombId];
-      if (bomb.countdown > 0) {
-        const sprite = new AnimatedSprite(bombTextures, true);
-        sprite.animationSpeed = 0.05;
-        sprite.position.set(bomb.x * tilePixelSize + tilePixelSize / 2.0, bomb.y * tilePixelSize + tilePixelSize / 2.0);
-        sprite.scale.set(textureScaleRatio, textureScaleRatio);
-        sprite.anchor.set(0.5, 0.5);
-        sprite.play();
-
-        app.stage.addChild(sprite);
-        playerSprites.push(sprite);
-      }
-    }
-
-    state.explosions
-      .split(';')
-      .filter(t => t.length > 0)
-      .forEach(str => {
-        const [x, y] = str.split(':');
-
-        const sprite = new AnimatedSprite(flameTextures, true);
-        sprite.animationSpeed = 0.15;
-        sprite.position.set(Number(x) * tilePixelSize + tilePixelSize / 2.0, Number(y) * tilePixelSize + tilePixelSize / 2.0);
-        sprite.scale.set(textureScaleRatio, textureScaleRatio);
-        sprite.anchor.set(0.5, 0.5);
-        sprite.play();
-        app.stage.addChild(sprite);
-
-        playerSprites.push(sprite);
-      });
   });
 
   client.onClose.add(() => console.log('connection has been closed'));
