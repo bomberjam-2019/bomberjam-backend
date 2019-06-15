@@ -40,28 +40,38 @@ const allTexturePaths = [
   Sprites.wall,
   ...Sprites.bomb,
   ...Sprites.flame,
-  ...Sprites.player,
+  ...Sprites.player.front,
+  ...Sprites.player.back,
+  ...Sprites.player.side,
   Sprites.bonuses.bomb,
   Sprites.bonuses.fire
 ];
 
 class TextureRegistry {
-  public wallTexture: Texture;
-  public blockTexture: Texture;
-  public playerTextures: Texture[];
-  public bombTextures: Texture[];
-  public flameTextures: Texture[];
-  public fireBonusTexture: Texture;
-  public bombBonusTexture: Texture;
+  public wall: Texture;
+  public block: Texture;
+  public player: {
+    side: Texture[];
+    back: Texture[];
+    front: Texture[];
+  };
+  public bomb: Texture[];
+  public flame: Texture[];
+  public fireBonus: Texture;
+  public bombBonus: Texture;
 
   constructor(resources: IResourceDictionary) {
-    this.wallTexture = resources[Sprites.wall].texture;
-    this.blockTexture = resources[Sprites.block].texture;
-    this.playerTextures = Sprites.player.map(path => resources[path].texture);
-    this.bombTextures = Sprites.bomb.map(path => resources[path].texture);
-    this.flameTextures = Sprites.flame.map(path => resources[path].texture);
-    this.fireBonusTexture = resources[Sprites.bonuses.fire].texture;
-    this.bombBonusTexture = resources[Sprites.bonuses.bomb].texture;
+    this.wall = resources[Sprites.wall].texture;
+    this.block = resources[Sprites.block].texture;
+    this.player = {
+      front: Sprites.player.front.map(path => resources[path].texture),
+      back: Sprites.player.back.map(path => resources[path].texture),
+      side: Sprites.player.side.map(path => resources[path].texture)
+    };
+    this.bomb = Sprites.bomb.map(path => resources[path].texture);
+    this.flame = Sprites.flame.map(path => resources[path].texture);
+    this.fireBonus = resources[Sprites.bonuses.fire].texture;
+    this.bombBonus = resources[Sprites.bonuses.bomb].texture;
   }
 }
 
@@ -170,7 +180,7 @@ class GameRenderer {
 
   private registerPlayer(playerId: string, player: IPlayer): void {
     if (player.alive) {
-      const sprite = this.makeAnimatedSprite(this.textures.playerTextures, player, 'player', false);
+      const sprite = this.makeAnimatedSprite(this.textures.player.front, player, 'player', false);
       sprite.anchor.set(0, 0.5);
       this.playerSprites[playerId] = sprite;
       this.pixi.stage.addChild(sprite);
@@ -185,7 +195,7 @@ class GameRenderer {
 
   private registerBomb(bombId: string, bomb: IBomb) {
     if (bomb.countdown >= 0) {
-      const sprite = this.makeAnimatedSprite(this.textures.bombTextures, bomb, 'bomb', true);
+      const sprite = this.makeAnimatedSprite(this.textures.bomb, bomb, 'bomb', true);
       sprite.anchor.set(0.5, 0.5);
       this.bombSprites[bombId] = sprite;
       this.pixi.stage.addChild(sprite);
@@ -199,7 +209,7 @@ class GameRenderer {
   }
 
   private registerBonus(bonusId: string, bonus: IBonus) {
-    const texture = bonus.type === 'bomb' ? this.textures.bombBonusTexture : this.textures.fireBonusTexture;
+    const texture = bonus.type === 'bomb' ? this.textures.bombBonus : this.textures.fireBonus;
     const sprite = this.makeSprite(texture, bonus, 'bonus', true);
     sprite.anchor.set(0.5, 0.5);
     this.bonusesSprites[bonusId] = sprite;
@@ -219,7 +229,7 @@ class GameRenderer {
       .forEach(str => {
         const [x, y] = str.split(':').map(Number);
 
-        const sprite = this.makeAnimatedSprite(this.textures.flameTextures, { x: x, y: y }, 'flame', true);
+        const sprite = this.makeAnimatedSprite(this.textures.flame, { x: x, y: y }, 'flame', true);
         sprite.anchor.set(0.5, 0.5);
         this.pixi.stage.addChild(sprite);
         this.flameSprites.push(sprite);
@@ -242,10 +252,10 @@ class GameRenderer {
         if (char === '+' || char === '#') {
           let sprite: Sprite;
           if (char === '+') {
-            sprite = this.makeSprite(this.textures.blockTexture, { x: x, y: y }, 'block', false);
+            sprite = this.makeSprite(this.textures.block, { x: x, y: y }, 'block', false);
             this.blockSprites.push(sprite);
           } else {
-            sprite = this.makeSprite(this.textures.wallTexture, { x: x, y: y }, 'wall', false);
+            sprite = this.makeSprite(this.textures.wall, { x: x, y: y }, 'wall', false);
             this.wallSprites.push(sprite);
           }
 
