@@ -10,16 +10,38 @@ export const Sprites = {
     'assets/flame/Flame_f03.png',
     'assets/flame/Flame_f04.png'
   ],
-  player: [
-    'assets/player/Front/Bman_F_f00.png',
-    'assets/player/Front/Bman_F_f01.png',
-    'assets/player/Front/Bman_F_f02.png',
-    'assets/player/Front/Bman_F_f03.png',
-    'assets/player/Front/Bman_F_f04.png',
-    'assets/player/Front/Bman_F_f05.png',
-    'assets/player/Front/Bman_F_f06.png',
-    'assets/player/Front/Bman_F_f07.png'
-  ],
+  player: {
+    front: [
+      'assets/player/front/Bman_F_f00.png',
+      'assets/player/front/Bman_F_f01.png',
+      'assets/player/front/Bman_F_f02.png',
+      'assets/player/front/Bman_F_f03.png',
+      'assets/player/front/Bman_F_f04.png',
+      'assets/player/front/Bman_F_f05.png',
+      'assets/player/front/Bman_F_f06.png',
+      'assets/player/front/Bman_F_f07.png'
+    ],
+    back: [
+      'assets/player/back/Bman_F_f00.png',
+      'assets/player/back/Bman_F_f01.png',
+      'assets/player/back/Bman_F_f02.png',
+      'assets/player/back/Bman_F_f03.png',
+      'assets/player/back/Bman_F_f04.png',
+      'assets/player/back/Bman_F_f05.png',
+      'assets/player/back/Bman_F_f06.png',
+      'assets/player/back/Bman_F_f07.png'
+    ],
+    side: [
+      'assets/player/side/Bman_F_f00.png',
+      'assets/player/side/Bman_F_f01.png',
+      'assets/player/side/Bman_F_f02.png',
+      'assets/player/side/Bman_F_f03.png',
+      'assets/player/side/Bman_F_f04.png',
+      'assets/player/side/Bman_F_f05.png',
+      'assets/player/side/Bman_F_f06.png',
+      'assets/player/side/Bman_F_f07.png'
+    ]
+  },
   bonuses: {
     fire: 'assets/powerups/FlamePowerup.png',
     bomb: 'assets/powerups/BombPowerup.png'

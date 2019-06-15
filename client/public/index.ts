@@ -1,12 +1,11 @@
 import _ from 'lodash';
 
 import { Client, Room } from 'colyseus.js';
-import { APP_NAME } from '../../common/constants';
-import { Application, AnimatedSprite, TilingSprite, Sprite, IResourceDictionary, Texture } from 'pixi.js';
+import { APP_NAME, DEFAULT_SERVER_PORT } from '../../common/constants';
+import { Application, AnimatedSprite, TilingSprite, Sprite, IResourceDictionary, Texture, DisplayObject } from 'pixi.js';
 import { IBomb, IBonus, IGameState, IHasPos, IJoinRoomOpts, IPlayer } from '../../common/types';
 import { Sprites } from './assets';
 import { deepClone } from '../../common/utils';
-import DisplayObject = PIXI.DisplayObject;
 
 type SpriteType = 'player' | 'bomb' | 'flame' | 'bonus' | 'block' | 'wall';
 
@@ -20,7 +19,7 @@ const joinOpts: IJoinRoomOpts = {
 
 console.log(`joinging room ${joinOpts.roomId}`);
 
-const client = new Client('ws://localhost:4321');
+const client = new Client('ws://localhost:' + DEFAULT_SERVER_PORT);
 const room = client.join(APP_NAME, joinOpts);
 
 const app = new Application({
