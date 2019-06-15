@@ -42,7 +42,8 @@ const allTexturePaths = [
   ...Sprites.flame,
   ...Sprites.player.front,
   ...Sprites.player.back,
-  ...Sprites.player.side,
+  ...Sprites.player.left,
+  ...Sprites.player.right,
   Sprites.bonuses.bomb,
   Sprites.bonuses.fire
 ];
@@ -51,9 +52,10 @@ class TextureRegistry {
   public wall: Texture;
   public block: Texture;
   public player: {
-    side: Texture[];
-    back: Texture[];
     front: Texture[];
+    back: Texture[];
+    left: Texture[];
+    right: Texture[];
   };
   public bomb: Texture[];
   public flame: Texture[];
@@ -66,7 +68,8 @@ class TextureRegistry {
     this.player = {
       front: Sprites.player.front.map(path => resources[path].texture),
       back: Sprites.player.back.map(path => resources[path].texture),
-      side: Sprites.player.side.map(path => resources[path].texture)
+      left: Sprites.player.left.map(path => resources[path].texture),
+      right: Sprites.player.right.map(path => resources[path].texture)
     };
     this.bomb = Sprites.bomb.map(path => resources[path].texture);
     this.flame = Sprites.flame.map(path => resources[path].texture);
@@ -108,6 +111,20 @@ class GameRenderer {
       const newPlayer = this.currState.players[playerId];
 
       if (oldPlayer && newPlayer) {
+        if (newPlayer.x > oldPlayer.x) {
+          this.unregisterObjectSprite(this.playerSprites, playerId);
+          this.registerPlayer(playerId, oldPlayer, 'right');
+        } else if (newPlayer.x < oldPlayer.x) {
+          this.unregisterObjectSprite(this.playerSprites, playerId);
+          this.registerPlayer(playerId, oldPlayer, 'left');
+        } else if (newPlayer.y > oldPlayer.y) {
+          this.unregisterObjectSprite(this.playerSprites, playerId);
+          this.registerPlayer(playerId, oldPlayer, 'front');
+        } else if (newPlayer.y < oldPlayer.y) {
+          this.unregisterObjectSprite(this.playerSprites, playerId);
+          this.registerPlayer(playerId, oldPlayer, 'back');
+        }
+
         const sprite: Sprite = this.playerSprites[playerId];
 
         sprite.x = oldPlayer.x * tilePixelSize;
@@ -178,9 +195,15 @@ class GameRenderer {
     for (const playerId in this.room.state.players) this.registerPlayer(playerId, this.room.state.players[playerId]);
   }
 
-  private registerPlayer(playerId: string, player: IPlayer): void {
+  private registerPlayer(playerId: string, player: IPlayer, orientation: 'left' | 'right' | 'front' | 'back' = 'front'): void {
     if (player.alive) {
-      const sprite = this.makeAnimatedSprite(this.textures.player.front, player, 'player', false);
+      let textures: Texture[] = this.textures.player.front;
+      if (orientation === 'left') textures = this.textures.player.left;
+      else if (orientation === 'right') textures = this.textures.player.right;
+      else if (orientation === 'front') textures = this.textures.player.front;
+      else if (orientation === 'back') textures = this.textures.player.back;
+
+      const sprite = this.makeAnimatedSprite(textures, player, 'player', false);
       sprite.anchor.set(0, 0.5);
       this.playerSprites[playerId] = sprite;
       this.pixi.stage.addChild(sprite);
