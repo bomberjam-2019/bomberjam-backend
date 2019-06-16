@@ -6,7 +6,7 @@ import { APP_NAME, DEFAULT_CLIENT_PORT } from '../common/constants';
 import { Client, Room } from 'colyseus.js';
 import { IGameState } from '../common/types';
 import { loop } from './bot';
-import { getJoinOptions, onApplicationExit } from './utils';
+import { getJoinOptions, isPortAvailableAsync, onApplicationExit } from './utils';
 import { deepClone, drawAsciiGame } from '../common/utils';
 
 // so the program will not close instantly
@@ -32,23 +32,30 @@ class GameClient {
       this.log('connection established, trying to join room...');
       this.room = this.client.join(APP_NAME, joinOpts);
 
-      this.room.onJoin.add(() => {
+      this.room.onJoin.add(async () => {
         this.log(`successfully joined room ${this.room!.id}`);
 
         if (!silent && !this.expressAppOpened) {
-          const expressApp: express.Express = express();
-          expressApp.set('port', DEFAULT_CLIENT_PORT);
-          expressApp.use(express.static(path.resolve(__dirname, './public-dist')));
+          const isPortAvailable = await isPortAvailableAsync(DEFAULT_CLIENT_PORT);
 
-          const expressServer: http.Server = expressApp.listen(DEFAULT_CLIENT_PORT, async () => {
-            this.expressAppOpened = true;
-            await open(`http://localhost:${DEFAULT_CLIENT_PORT}?r=${this.room!.id}`);
-          });
+          if (isPortAvailable) {
+            const expressApp: express.Express = express();
+            expressApp.set('port', DEFAULT_CLIENT_PORT);
+            expressApp.use(express.static(path.resolve(__dirname, './public-dist')));
 
-          onApplicationExit((forceExit: boolean) => {
-            expressServer.close();
-            if (forceExit) process.exit();
-          });
+            const expressServer: http.Server = expressApp.listen(DEFAULT_CLIENT_PORT, async () => {
+              this.expressAppOpened = true;
+
+              onApplicationExit((forceExit: boolean) => {
+                expressServer.close();
+                if (forceExit) process.exit();
+              });
+
+              await open(`http://localhost:${DEFAULT_CLIENT_PORT}?r=${this.room!.id}`);
+            });
+          } else {
+            this.log('Could not launch the express server UI');
+          }
         }
       });
 
@@ -71,7 +78,10 @@ class GameClient {
   }
 
   private log(message?: any, ...optionalParams: any[]) {
-    if (!this.silent) console.log(message, optionalParams);
+    if (!this.silent) {
+      if (optionalParams && optionalParams.length > 0) console.log(message, optionalParams);
+      else console.log(message);
+    }
   }
 }
 

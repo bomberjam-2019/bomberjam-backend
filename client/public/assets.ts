@@ -57,3 +57,17 @@ export const Sprites = {
     bomb: 'assets/powerups/BombPowerup.png'
   }
 };
+
+export const AllTexturePaths: string[] = [
+  Sprites.floor,
+  Sprites.block,
+  Sprites.wall,
+  ...Sprites.bomb,
+  ...Sprites.flame,
+  ...Sprites.player.front,
+  ...Sprites.player.back,
+  ...Sprites.player.left,
+  ...Sprites.player.right,
+  Sprites.bonuses.bomb,
+  Sprites.bonuses.fire
+];
