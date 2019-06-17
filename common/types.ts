@@ -1,3 +1,5 @@
+/** Bomberman **/
+
 export interface IJoinRoomOpts {
   name?: string;
   roomId?: string;
@@ -17,7 +19,12 @@ export interface IHasPos {
 }
 
 export type MoveCode = 'up' | 'down' | 'left' | 'right' | 'stay';
+
 export type ActionCode = MoveCode | 'bomb';
+
+export type TileCode = '' | '.' | '#' | '+';
+
+export type BonusCode = 'bomb' | 'fire';
 
 export const Actions: { [key: string]: ActionCode } = {
   Up: 'up',
@@ -27,8 +34,6 @@ export const Actions: { [key: string]: ActionCode } = {
   Bomb: 'bomb',
   Stay: 'stay'
 };
-
-export type TileCode = '' | '.' | '#' | '+';
 
 export const Tiles: { [key: string]: TileCode } = {
   OutOfBound: '',
@@ -59,8 +64,6 @@ export interface IBomb extends IHasPos {
   countdown: number;
   range: number;
 }
-
-export type BonusCode = 'bomb' | 'fire';
 
 export interface IBonus extends IHasPos {
   type: BonusCode;
