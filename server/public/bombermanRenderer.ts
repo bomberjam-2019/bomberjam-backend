@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import { Room } from 'colyseus.js';
 import { AnimatedSprite, Application, Sprite, Texture, TilingSprite, DisplayObject } from 'pixi.js';
-import { TextureRegistry } from './TextureRegistry';
+import { TextureRegistry } from './textureRegistry';
 import { IBomb, IBonus, IGameState, IHasPos, IPlayer } from '../../common/types';
 import { deepClone } from '../../common/utils';
 
@@ -189,7 +189,7 @@ export class BombermanRenderer {
 
   private registerBonus(bonusId: string, bonus: IBonus) {
     const texture = bonus.type === 'bomb' ? this.textures.bombBonus : this.textures.fireBonus;
-    const sprite = this.makeSprite(texture, bonus, 'bonus', true);
+    const sprite = this.makeStaticSprite(texture, bonus, 'bonus', true);
     sprite.anchor.set(0.5, 0.5);
     this.bonusesSprites[bonusId] = sprite;
     this.pixiApp.stage.addChild(sprite);
@@ -231,10 +231,10 @@ export class BombermanRenderer {
         if (char === '+' || char === '#') {
           let sprite: Sprite;
           if (char === '+') {
-            sprite = this.makeSprite(this.textures.block, { x: x, y: y }, 'block', false);
+            sprite = this.makeStaticSprite(this.textures.block, { x: x, y: y }, 'block', false);
             this.blockSprites.push(sprite);
           } else {
-            sprite = this.makeSprite(this.textures.wall, { x: x, y: y }, 'wall', false);
+            sprite = this.makeStaticSprite(this.textures.wall, { x: x, y: y }, 'wall', false);
             this.wallSprites.push(sprite);
           }
 
@@ -277,7 +277,7 @@ export class BombermanRenderer {
     return sprite;
   }
 
-  private makeSprite(texture: Texture, pos: IHasPos, type: SpriteType, centered: boolean): Sprite {
+  private makeStaticSprite(texture: Texture, pos: IHasPos, type: SpriteType, centered: boolean): Sprite {
     const sprite = new Sprite(texture);
 
     if (centered) {

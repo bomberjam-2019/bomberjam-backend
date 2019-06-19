@@ -1,32 +1,25 @@
-import express from 'express';
-import path from 'path';
-import http from 'http';
-
-import { APP_NAME, DEFAULT_CLIENT_PORT } from '../common/constants';
+import { APP_NAME } from '../common/constants';
 import { Client, Room } from 'colyseus.js';
 import { IGameState } from '../common/types';
 import { loop } from './bot';
-import { getJoinOptions, isPortAvailableAsync, onApplicationExit } from './utils';
+import { getJoinOptions } from './utils';
 import { deepClone, drawAsciiGame } from '../common/utils';
-
-// so the program will not close instantly
-process.stdin.resume();
 
 const open = require('open');
 const colyseus = require('colyseus.js');
 const joinOpts = getJoinOptions();
-const serverUrl = `ws://${joinOpts.serverName}:${joinOpts.serverPort}`;
+const serverWsUrl = `ws://${joinOpts.serverName}:${joinOpts.serverPort}`;
+const serverHttpUrl = `http://${joinOpts.serverName}:${joinOpts.serverPort}`;
 
 class GameClient {
   private readonly silent: boolean;
   private readonly client: Client;
 
   private room?: Room<any>;
-  private expressAppOpened: boolean = false;
 
   public constructor(silent: boolean) {
     this.silent = silent;
-    this.client = new colyseus.Client(serverUrl);
+    this.client = new colyseus.Client(serverWsUrl);
 
     this.client.onOpen.add(() => {
       this.log('connection established, trying to join room...');
@@ -35,28 +28,7 @@ class GameClient {
       this.room.onJoin.add(async () => {
         this.log(`successfully joined room ${this.room!.id}`);
 
-        if (!silent && !this.expressAppOpened) {
-          const isPortAvailable = await isPortAvailableAsync(DEFAULT_CLIENT_PORT);
-
-          if (isPortAvailable) {
-            const expressApp: express.Express = express();
-            expressApp.set('port', DEFAULT_CLIENT_PORT);
-            expressApp.use(express.static(path.resolve(__dirname, './public-dist')));
-
-            const expressServer: http.Server = expressApp.listen(DEFAULT_CLIENT_PORT, async () => {
-              this.expressAppOpened = true;
-
-              onApplicationExit((forceExit: boolean) => {
-                expressServer.close();
-                if (forceExit) process.exit();
-              });
-
-              await open(`http://localhost:${DEFAULT_CLIENT_PORT}?r=${this.room!.id}`);
-            });
-          } else {
-            this.log('Could not launch the express server UI');
-          }
-        }
+        if (!silent) await open(`${serverHttpUrl}?r=${this.room!.id}`);
       });
 
       this.room.onLeave.add(() => this.log(`leaved room ${this.room!.id}`));

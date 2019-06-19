@@ -2,8 +2,8 @@ import { Client } from 'colyseus.js';
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../../common/constants';
 import { Application } from 'pixi.js';
 import { IGameState, IJoinRoomOpts } from '../../common/types';
-import { TextureRegistry } from './TextureRegistry';
-import { BombermanRenderer } from './BombermanRenderer';
+import { TextureRegistry } from './textureRegistry';
+import { BombermanRenderer } from './bombermanRenderer';
 import { AllTexturePaths } from './assets';
 
 const roomId = new URLSearchParams(window.location.search).get('r');
