@@ -2,9 +2,9 @@ import { Room } from 'colyseus.js';
 import { Application } from 'pixi.js';
 import { TextureRegistry } from './textureRegistry';
 import { IBomb, IBonus, IGameState, IPlayer } from '../../common/types';
-import { GameMap } from "./gameMap";
+import { GameMap } from './gameMap';
 import { deepClone } from '../../common/utils';
-import { GameHud } from "./gameHud";
+import { GameHud } from './gameHud';
 
 export class BombermanRenderer {
   private room: Room<IGameState>;
@@ -37,7 +37,7 @@ export class BombermanRenderer {
 
     this.registerStateChangeHandlers();
 
-    this.pixiApp.renderer.resize(this.map.container.width + this.hud.container.width, this.map.container.height);
+    this.pixiApp.renderer.resize(this.pixiApp.stage.width, this.pixiApp.stage.height);
   }
 
   public registerStateChangeHandlers() {
@@ -99,10 +99,13 @@ export class BombermanRenderer {
 
   public onStateChanged() {
     this.map.onStateChanged(this.prevState);
+    this.hud.onStateChanged(this.prevState);
+
     this.prevState = deepClone(this.room.state);
   }
 
   public onPixiFrameUpdated(delta: number): void {
     this.map.onPixiFrameUpdated(delta);
+    this.hud.onPixiFrameUpdated(delta);
   }
 }

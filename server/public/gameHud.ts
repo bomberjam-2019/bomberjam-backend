@@ -1,32 +1,90 @@
-import { GameContainer } from "./gameContainer";
-import { TextureRegistry } from "./textureRegistry";
-import { IGameState, IHasPos, IPlayer } from "../../common/types";
-import { Sprite, Texture } from "pixi.js";
+import { GameContainer } from './gameContainer';
+import { TextureRegistry } from './textureRegistry';
+import { IGameState, IPlayer } from '../../common/types';
+import { Sprite, Texture, Container, Text, TextStyle, Graphics } from 'pixi.js';
+import { DropShadowFilter } from '@pixi/filter-drop-shadow';
 
 export class GameHud extends GameContainer {
+  private static readonly TextStyle = new TextStyle({
+    fontFamily: 'Arial',
+    fontSize: 20
+  });
+
   private readonly textures: TextureRegistry;
-  private readonly players: Array<{
-    player: IPlayer,
-    sprite: Sprite
-  }>;
 
   constructor(state: IGameState, textures: TextureRegistry) {
     super(state);
     this.textures = textures;
-    this.players = [];
   }
 
   initialize(): void {
+    this.refresh();
   }
 
-  onPlayerAdded(playerId: string, player: IPlayer): void {
-    const obj = {
-      player: player,
-      sprite: this.makeStaticSprite(this.textures.player.front[0])
-    };
+  onStateChanged(prevState: IGameState): void {
+    this.refresh();
+  }
 
-    this.players.push(obj);
-    this.container.addChild(obj.sprite);
+  private refresh() {
+    this.cleanup();
+
+    for (const playerId in this.state.players) {
+      this.createPlayerHud(this.state.players[playerId]);
+    }
+  }
+
+  private cleanup() {
+    for (let i = 0; i < this.container.children.length; i++) {
+      const childContainer = this.container.children[i] as Container;
+      childContainer.destroy({
+        children: true
+      });
+    }
+
+    this.container.removeChildren();
+  }
+
+  private createPlayerHud(player: IPlayer): void {
+    const container = new Container();
+
+    const playerShadow = new DropShadowFilter();
+    const playerSprite = this.makeStaticSprite(this.textures.player.front[0]);
+    playerSprite.x = 20;
+    playerSprite.y = 25;
+    playerSprite.filters = [playerShadow];
+
+    const playerNameText = new Text(player.name, GameHud.TextStyle);
+    playerNameText.x = playerSprite.x + playerSprite.width + 10;
+    playerNameText.y = playerSprite.y + 10;
+
+    const bombSprite = this.makeStaticSprite(this.textures.bomb[0]);
+    bombSprite.x = playerNameText.x;
+    bombSprite.y = playerNameText.y + playerNameText.height + 5;
+
+    const bombCountText = new Text(player.bombsLeft + '/' + player.maxBombs, GameHud.TextStyle);
+    bombCountText.x = bombSprite.x + bombSprite.width + 5;
+    bombCountText.y = bombSprite.y;
+
+    const flameSprite = this.makeStaticSprite(this.textures.flame[0]);
+    flameSprite.x = bombCountText.x + bombCountText.width + 10;
+    flameSprite.y = bombSprite.y;
+
+    const bombRangeText = new Text(player.bombRange.toString(), GameHud.TextStyle);
+    bombRangeText.x = flameSprite.x + flameSprite.width + 5;
+    bombRangeText.y = bombSprite.y;
+
+    const padding = new Graphics();
+
+    padding.beginFill(0xff0000);
+    padding.drawRect(Math.max(playerNameText.x + playerNameText.width, bombRangeText.x + bombRangeText.width), playerNameText.y, 50, 10);
+    padding.endFill();
+    padding.alpha = 0;
+
+    container.addChild(playerSprite, playerNameText, bombSprite, bombCountText, flameSprite, bombRangeText, padding);
+
+    container.y = this.container.children.length * (container.height + 25);
+
+    this.container.addChild(container);
   }
 
   private makeStaticSprite(texture: Texture): Sprite {

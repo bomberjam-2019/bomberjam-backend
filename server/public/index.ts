@@ -22,8 +22,8 @@ const room: Room<IGameState> = client.join(APP_NAME, joinOpts);
 const pixiApp = new Application({
   width: 256,
   height: 256,
-  antialias: false,
-  backgroundColor: 0x000000,
+  antialias: true,
+  backgroundColor: 0xffffff,
   resolution: 1
 });
 
