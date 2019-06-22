@@ -3,6 +3,7 @@ import { TextureRegistry } from './textureRegistry';
 import { IGameState, IPlayer } from '../../common/types';
 import { Sprite, Texture, Container, Text, TextStyle, Graphics } from 'pixi.js';
 import { DropShadowFilter } from '@pixi/filter-drop-shadow';
+import { PlayerColor } from './playerColor';
 
 export class GameHud extends GameContainer {
   private static readonly TextStyle = new TextStyle({
@@ -29,7 +30,7 @@ export class GameHud extends GameContainer {
     this.cleanup();
 
     for (const playerId in this.state.players) {
-      this.createPlayerHud(this.state.players[playerId]);
+      this.createPlayerHud(playerId, this.state.players[playerId]);
     }
   }
 
@@ -44,7 +45,7 @@ export class GameHud extends GameContainer {
     this.container.removeChildren();
   }
 
-  private createPlayerHud(player: IPlayer): void {
+  private createPlayerHud(playerId: string, player: IPlayer): void {
     const container = new Container();
 
     const playerShadow = new DropShadowFilter();
@@ -52,6 +53,7 @@ export class GameHud extends GameContainer {
     playerSprite.x = 20;
     playerSprite.y = 25;
     playerSprite.filters = [playerShadow];
+    PlayerColor.colorize(playerId, playerSprite);
 
     const playerNameText = new Text(player.name, GameHud.TextStyle);
     playerNameText.x = playerSprite.x + playerSprite.width + 10;

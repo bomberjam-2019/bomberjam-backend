@@ -3,7 +3,8 @@ import _ from 'lodash';
 import { AnimatedSprite, Container, DisplayObject, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { TextureRegistry } from './textureRegistry';
 import { IBomb, IBonus, IGameState, IHasPos, IPlayer } from '../../common/types';
-import { GameContainer } from "./gameContainer";
+import { GameContainer } from './gameContainer';
+import { PlayerColor } from './playerColor';
 
 type SpriteType = 'player' | 'bomb' | 'flame' | 'bonus' | 'block' | 'wall';
 
@@ -165,6 +166,7 @@ export class GameMap extends GameContainer {
 
       const sprite = this.makeAnimatedSprite(textures, player, 'player', false);
       sprite.anchor.set(0, 0.5);
+      PlayerColor.colorize(playerId, sprite);
       this.playerSprites[playerId] = sprite;
       this.mapContainer.addChild(sprite);
     }
@@ -253,7 +255,10 @@ export class GameMap extends GameContainer {
     const sprite = new AnimatedSprite(textures, true);
 
     if (centered) {
-      sprite.position.set(pos.x * this.textures.tileSize + this.textures.tileSize / 2.0, pos.y * this.textures.tileSize + this.textures.tileSize / 2.0);
+      sprite.position.set(
+        pos.x * this.textures.tileSize + this.textures.tileSize / 2.0,
+        pos.y * this.textures.tileSize + this.textures.tileSize / 2.0
+      );
     } else {
       sprite.position.set(pos.x * this.textures.tileSize, pos.y * this.textures.tileSize);
     }
@@ -273,7 +278,10 @@ export class GameMap extends GameContainer {
     const sprite = new Sprite(texture);
 
     if (centered) {
-      sprite.position.set(pos.x * this.textures.tileSize + this.textures.tileSize / 2.0, pos.y * this.textures.tileSize + this.textures.tileSize / 2.0);
+      sprite.position.set(
+        pos.x * this.textures.tileSize + this.textures.tileSize / 2.0,
+        pos.y * this.textures.tileSize + this.textures.tileSize / 2.0
+      );
     } else {
       sprite.position.set(pos.x * this.textures.tileSize, pos.y * this.textures.tileSize);
     }
