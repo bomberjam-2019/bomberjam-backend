@@ -1,4 +1,4 @@
-import { Client } from 'colyseus.js';
+import { Client, Room } from 'colyseus.js';
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../../common/constants';
 import { Application } from 'pixi.js';
 import { IGameState, IJoinRoomOpts } from '../../common/types';
@@ -17,7 +17,7 @@ const joinOpts: IJoinRoomOpts = {
 };
 
 const client = new Client('ws://localhost:' + DEFAULT_SERVER_PORT);
-const room = client.join(APP_NAME, joinOpts);
+const room: Room<IGameState> = client.join(APP_NAME, joinOpts);
 
 const pixiApp = new Application({
   width: 256,
@@ -48,7 +48,8 @@ pixiApp.loader.add(AllTexturePaths).load(() => {
 
     if (!initialized) {
       gameRenderer = new BombermanRenderer(room, pixiApp, textures);
-      pixiContainer.appendChild(gameRenderer.canvas);
+      pixiContainer.appendChild(pixiApp.view);
+      pixiApp.ticker.add(() => gameRenderer.onPixiFrameUpdated(pixiApp.ticker.elapsedMS));
       initialized = true;
     }
 
