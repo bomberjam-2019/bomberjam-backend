@@ -4,12 +4,10 @@
   "description": "",
   "private": true,
   "scripts": {
-    "start-server": "ts-node server/index.ts",
+    "start-server": "webpack --config server/webpack.config.js --mode development && ts-node server/index.ts",
     "start-client-training": "ts-node client/index.ts -t",
     "start-client-spectate": "ts-node client/index.ts -s",
-    "start-client-match": "ts-node client/index.ts -m",
-    "compile-client": "webpack --config client/webpack.config.js --mode development",
-    "postinstall": "webpack --config client/webpack.config.js --mode development"
+    "start-client-match": "ts-node client/index.ts -m"
   },
   "husky": {
     "hooks": {
@@ -18,11 +16,13 @@
   },
   "dependencies": {
     "@colyseus/monitor": "^0.10.0",
+    "@pixi/filter-drop-shadow": "^3.0.3",
     "colyseus": "^0.10.7",
     "colyseus.js": "^0.10.8",
     "express": "^4.16.4",
     "lodash": "^4.17.4",
     "open": "^6.3.0",
+    "pixi-filters": "^3.0.3",
     "pixi.js": "^5.0.4",
     "ws": "^7.0.0"
   },

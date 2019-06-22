@@ -3,8 +3,8 @@ import _ from 'lodash';
 import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../common/constants';
 import { Actions, IClientMessage, IJoinRoomOpts, IPlayer } from '../common/types';
 import { Client } from 'colyseus';
-import { GameState } from './State';
-import { TickBasedRoom } from './TickBasedRoom';
+import { GameState } from './state';
+import { TickBasedRoom } from './tickBasedRoom';
 
 export class BombermanRoom extends TickBasedRoom<GameState> {
   protected readonly tickDurationMs: number = TICK_DURATION_MS;

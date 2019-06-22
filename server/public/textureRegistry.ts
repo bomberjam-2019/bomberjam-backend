@@ -2,19 +2,21 @@ import { IResourceDictionary, Texture } from 'pixi.js';
 import { Sprites } from './assets';
 
 export class TextureRegistry {
-  public floor: Texture;
-  public wall: Texture;
-  public block: Texture;
-  public player: {
+  public readonly floor: Texture;
+  public readonly wall: Texture;
+  public readonly block: Texture;
+  public readonly player: {
     front: Texture[];
     back: Texture[];
     left: Texture[];
     right: Texture[];
   };
-  public bomb: Texture[];
-  public flame: Texture[];
-  public fireBonus: Texture;
-  public bombBonus: Texture;
+  public readonly bomb: Texture[];
+  public readonly flame: Texture[];
+  public readonly fireBonus: Texture;
+  public readonly bombBonus: Texture;
+  public readonly tileSize: number = 32;
+  public readonly spriteRatio: number;
 
   constructor(resources: IResourceDictionary) {
     this.floor = resources[Sprites.floor].texture;
@@ -30,5 +32,7 @@ export class TextureRegistry {
     this.flame = Sprites.flame.map(path => resources[path].texture);
     this.fireBonus = resources[Sprites.bonuses.fire].texture;
     this.bombBonus = resources[Sprites.bonuses.bomb].texture;
+
+    this.spriteRatio = this.tileSize / this.floor.width;
   }
 }
