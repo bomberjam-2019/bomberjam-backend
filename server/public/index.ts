@@ -16,7 +16,7 @@ const joinOpts: IJoinRoomOpts = {
   roomId: roomId
 };
 
-const client = new Client('ws://localhost:' + DEFAULT_SERVER_PORT);
+const client = new Client('ws://' + window.location.hostname + ':' + DEFAULT_SERVER_PORT);
 const room: Room<IGameState> = client.join(APP_NAME, joinOpts);
 
 const pixiApp = new Application({
