@@ -141,6 +141,8 @@ export class GameState extends Schema implements IGameState {
   @type('number')
   tickDuration: number = 0;
 
+  gameStartedAtTick: number = 0;
+
   private plannedBonuses: { [tileIndex: number]: BonusCode } = {};
 
   constructor(...args: any[]) {
@@ -234,7 +236,7 @@ export class GameState extends Schema implements IGameState {
   };
 
   private unleashSuddenDeath() {
-    if (this.isPlaying() && this.tick >= SUDDEN_DEATH_STARTS_AT) {
+    if (this.isPlaying() && this.tick >= this.gameStartedAtTick + SUDDEN_DEATH_STARTS_AT) {
       const idx = this.coordToTileIndex(this.suddenDeathPos.x, this.suddenDeathPos.y);
       this.tiles = replaceCharAt(this.tiles, idx, Tiles.Wall);
 

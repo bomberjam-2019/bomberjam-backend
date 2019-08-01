@@ -34,16 +34,21 @@ let gameRenderer: BombermanRenderer;
 
 pixiApp.loader.add(AllTexturePaths).load(() => {
   const textures = new TextureRegistry(pixiApp.loader.resources);
+  let initialized = false;
 
   room.onJoin.add(() => {
     console.log(`successfully joined room ${room.id}`);
+    onStateChanged(room.state);
   });
 
-  room.onLeave.add(() => console.log(`leaved room ${room.id}`));
-  room.onError.add((err: any) => console.log(`something wrong happened with room ${room.id}`, err));
+  room.onStateChange.add(onStateChanged);
+  room.onLeave.add(() => endGame(`leaved room ${room.id}`));
+  room.onError.add((err: any) => endGame(`something wrong happened with room ${room.id}`, err));
 
-  let initialized = false;
-  room.onStateChange.add((state: IGameState) => {
+  client.onClose.add(() => endGame('connection has been closed'));
+  client.onError.add((err: any) => endGame('something wrong happened with client', err));
+
+  function onStateChanged(state: IGameState) {
     debugContainer.innerHTML = JSON.stringify(state, null, 2);
 
     if (!initialized) {
@@ -54,8 +59,12 @@ pixiApp.loader.add(AllTexturePaths).load(() => {
     }
 
     gameRenderer.onStateChanged();
-  });
+  }
 
-  client.onClose.add(() => console.log('connection has been closed'));
-  client.onError.add((err: any) => console.log('something wrong happened with client: ', err));
+  function endGame(message: string, err?: any) {
+    console.log(message, err);
+    try {
+      client.close();
+    } catch {}
+  }
 });

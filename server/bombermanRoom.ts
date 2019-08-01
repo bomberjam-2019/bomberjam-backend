@@ -53,6 +53,8 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
       // start game when all players are here
       if (playerCount + 1 >= this.maxPlayerCount) {
         this.state.state = 0;
+        this.state.gameStartedAtTick = this.state.tick;
+
         const playersStr = _.map(this.state.players, (p: IPlayer) => `${p.name} (${p.id})`).join(', ');
         this.log(`game started with players: ${playersStr}`);
       }
