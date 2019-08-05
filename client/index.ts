@@ -1,78 +1,30 @@
-import { APP_NAME } from '../common/constants';
-import { Client, Room } from 'colyseus.js';
-import { IGameState } from '../common/types';
-import { loop } from './bot';
-import { getJoinOptions } from './utils';
-import { deepClone, drawAsciiGame } from '../common/utils';
+import { getFourBots, getJoinOptions, sleepAsync } from './utils';
+import { jsonClone } from '../common/utils';
+import { GameClient } from './gameClient';
 
-const open = require('open');
-const colyseus = require('colyseus.js');
-const joinOpts = getJoinOptions();
-const serverWsUrl = `ws://${joinOpts.serverName}:${joinOpts.serverPort}`;
-const serverHttpUrl = `http://${joinOpts.serverName}:${joinOpts.serverPort}`;
+async function main(): Promise<void> {
+  const bots = getFourBots();
+  const joinOpts = getJoinOptions();
+  const clients: GameClient[] = [];
 
-class GameClient {
-  private readonly silent: boolean;
-  private readonly client: Client;
+  const mainClient = new GameClient(bots[0], joinOpts, false);
+  const roomId = await mainClient.runAsync();
+  await sleepAsync(500);
+  clients.push(mainClient);
 
-  private room?: Room<any>;
+  if (joinOpts.training) {
+    for (let i = 0; i < 3; i++) {
+      const newJoinOpts = jsonClone(joinOpts);
+      newJoinOpts.roomId = roomId;
+      newJoinOpts.name = `${newJoinOpts.name} (${i + 1})`;
+      newJoinOpts.createNewRoom = false;
 
-  public constructor(silent: boolean) {
-    this.silent = silent;
-    this.client = new colyseus.Client(serverWsUrl);
-
-    this.client.onOpen.add(() => {
-      this.log('connection established, trying to join room...');
-      this.room = this.client.join(APP_NAME, joinOpts);
-
-      this.room.onJoin.add(async () => {
-        this.log(`successfully joined room ${this.room!.id}`);
-
-        if (!silent) await open(`${serverHttpUrl}?r=${this.room!.id}`);
-      });
-
-      this.room.onLeave.add(() => this.log(`leaved room ${this.room!.id}`));
-      this.room.onError.add((err: any) => this.log(`something wrong happened with room ${this.room!.id}`, err));
-
-      this.room.onStateChange.add((state: IGameState) => {
-        try {
-          executeLoop(this.room, state);
-        } catch (err) {
-          this.log('encountered an error in loop', err);
-        }
-
-        if (!this.silent) drawAsciiGame(state);
-      });
-    });
-
-    this.client.onClose.add(() => this.log('connection has been closed'));
-    this.client.onError.add((err: any) => this.log('something wrong happened with client: ', err));
-  }
-
-  private log(message?: any, ...optionalParams: any[]) {
-    if (!this.silent) {
-      if (optionalParams && optionalParams.length > 0) console.log(message, optionalParams);
-      else console.log(message);
+      const otherClient = new GameClient(bots[i + 1], newJoinOpts, true);
+      await otherClient.runAsync();
+      await sleepAsync(500);
+      clients.push(otherClient);
     }
   }
 }
 
-const clients: GameClient[] = [];
-clients.push(new GameClient(false));
-
-if (joinOpts.training) {
-  for (let i = 0; i < 3; i++) clients.push(new GameClient(true));
-}
-
-function executeLoop(room: any, state: IGameState) {
-  // TODO simplify / create a new state object so the bot can be developed in an easier way
-  const stateCopy = deepClone(state);
-  const result = loop(stateCopy);
-
-  if (result && typeof result === 'string') {
-    room.send({
-      action: result,
-      tick: state.tick
-    });
-  }
-}
+main().catch(err => console.log(err));

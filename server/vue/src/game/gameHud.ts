@@ -1,7 +1,7 @@
 import { GameContainer } from './gameContainer';
 import { TextureRegistry } from './textureRegistry';
-import { IGameState, IPlayer } from '../../common/types';
-import { Sprite, Texture, Container, Text, TextStyle, Graphics } from 'pixi.js';
+import { IGameState, IPlayer } from '../../../../common/types';
+import { Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 import { DropShadowFilter } from '@pixi/filter-drop-shadow';
 import { PlayerColor } from './playerColor';
 
@@ -32,6 +32,22 @@ export class GameHud extends GameContainer {
     for (const playerId in this.state.players) {
       this.createPlayerHud(playerId, this.state.players[playerId]);
     }
+
+    this.reserveSpaceForHud();
+  }
+
+  private reserveSpaceForHud() {
+    const container = new Container();
+    const padding = new Graphics();
+
+    padding.beginFill(0xff0000);
+    padding.drawRect(0, 0, 400, 1);
+    padding.endFill();
+    padding.alpha = 0;
+
+    container.addChild(padding);
+
+    this.container.addChild(container);
   }
 
   private cleanup() {
@@ -85,6 +101,10 @@ export class GameHud extends GameContainer {
     container.addChild(playerSprite, playerNameText, bombSprite, bombCountText, flameSprite, bombRangeText, padding);
 
     container.y = this.container.children.length * (container.height + 25);
+
+    if (!player.alive) {
+      container.alpha = 0.5;
+    }
 
     this.container.addChild(container);
   }

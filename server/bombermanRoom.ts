@@ -1,29 +1,45 @@
 import _ from 'lodash';
 
 import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../common/constants';
-import { Actions, IClientMessage, IJoinRoomOpts, IPlayer } from '../common/types';
+import { Actions, IClientMessage, IJoinRoomOpts, IPlayer, IRoomMetadata } from '../common/types';
 import { Client } from 'colyseus';
 import { GameState } from './state';
 import { TickBasedRoom } from './tickBasedRoom';
 
 export class BombermanRoom extends TickBasedRoom<GameState> {
-  protected readonly tickDurationMs: number = TICK_DURATION_MS;
-  protected readonly maxResponseTimeMs: number = MAX_RESPONSE_TIME_MS;
   protected readonly maxPlayerCount: number = MAX_PLAYERS;
+  protected tickDurationMs: number = TICK_DURATION_MS;
+  protected maxResponseTimeMs: number = MAX_RESPONSE_TIME_MS;
 
   protected onRoomInitializing(options: IJoinRoomOpts): void {
     this.autoDispose = true;
     this.maxClients = MAX_PLAYERS + MAX_SPECTATORS;
 
-    this.setState(new GameState());
+    if (typeof options.tickDurationMs === 'number' && options.tickDurationMs > 0) {
+      const tickDurationMs = Math.ceil(options.tickDurationMs);
+      this.tickDurationMs = tickDurationMs;
+      this.maxResponseTimeMs = tickDurationMs;
+    }
+
+    const state = new GameState();
+    state.roomId = this.roomId;
+    this.setState(state);
     this.computeState([]);
   }
 
   public requestJoin(options: IJoinRoomOpts, isNew?: boolean): number | boolean {
+    // requested a new room but this one is not => denied
+    if (options.createNewRoom && !isNew) return false;
+
     const isSpectator = options.spectate === true;
     if (isSpectator) {
+      // want to spectate a specific room?
+      if (options.roomId) {
+        return options.roomId === this.roomId;
+      }
+
       if (isNew) return true;
-      if (options.roomId === this.roomId) return true;
+      return false;
     }
 
     // too many players
@@ -31,7 +47,7 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
     if (playerCount >= this.maxPlayerCount) return false;
 
     // want to play in a specific room?
-    if (typeof options.roomId === 'string' && options.roomId.length > 0) {
+    if (options.roomId) {
       return options.roomId === this.roomId;
     }
 
@@ -52,8 +68,7 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
 
       // start game when all players are here
       if (playerCount + 1 >= this.maxPlayerCount) {
-        this.state.state = 0;
-        this.state.gameStartedAtTick = this.state.tick;
+        this.state.startGame();
 
         const playersStr = _.map(this.state.players, (p: IPlayer) => `${p.name} (${p.id})`).join(', ');
         this.log(`game started with players: ${playersStr}`);
@@ -67,6 +82,28 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
 
     player.connected = false;
     this.state.killPlayer(player);
+  }
+
+  public onMessage(client: Client, message: IClientMessage) {
+    if (typeof message === 'string') {
+      if (message === 'increaseSpeed') {
+        this.tickDurationMs = Math.max(10, this.tickDurationMs - 100);
+        this.maxResponseTimeMs = this.tickDurationMs;
+
+        this.setSimulationInterval(_.noop, this.tickDurationMs);
+        this.setPatchRate(this.tickDurationMs);
+      } else if (message === 'decreaseSpeed') {
+        this.tickDurationMs = this.tickDurationMs + 100;
+        this.maxResponseTimeMs = this.tickDurationMs;
+
+        this.setSimulationInterval(_.noop, this.tickDurationMs);
+        this.setPatchRate(this.tickDurationMs);
+      }
+
+      return;
+    }
+
+    super.onMessage(client, message);
   }
 
   protected isValidMessage(message: IClientMessage): boolean {
@@ -96,25 +133,7 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
       }
 
       this.state.runBombs();
-
-      const alivePlayers: IPlayer[] = [];
-
-      for (const playerId in this.state.players) {
-        const player = this.state.players[playerId];
-        if (player.alive && player.connected) alivePlayers.push(player);
-      }
-
-      // game ended: all dead or only one player alive left
-      if (alivePlayers.length <= 1) {
-        this.state.state = 1;
-        this.setPatchRate(60 * 60 * 1000);
-
-        this.log(
-          alivePlayers.length === 1
-            ? `game ended, winner: ${alivePlayers[0].name} (${alivePlayers[0].id})`
-            : 'game ended, all players are dead'
-        );
-      }
+      this.state.changeStateIfGameEnded();
     } else if (this.state.isGameEnded()) {
       // end game cleanup
       for (const bombId in this.state.bombs) delete this.state.bombs[bombId];
@@ -122,7 +141,20 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
       if (this.state.explosions.length > 0) this.state.explosions = '';
     }
 
+    this.populateMetadata();
+
     this.log(JSON.stringify(this.state));
+  }
+
+  private populateMetadata() {
+    const metadata: IRoomMetadata = {
+      roomId: this.roomId,
+      tick: this.state.tick,
+      state: this.state.state,
+      players: _.map(this.state.players, (p: IPlayer) => p.name || p.id)
+    };
+
+    this.setMetadata(metadata);
   }
 
   public onDispose() {

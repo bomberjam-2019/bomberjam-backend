@@ -35,4 +35,18 @@ export class TextureRegistry {
 
     this.spriteRatio = this.tileSize / this.floor.width;
   }
+
+  destroy() {
+    this.floor.destroy(true);
+    this.wall.destroy(true);
+    this.block.destroy(true);
+    this.player.front.forEach(t => t.destroy(true));
+    this.player.back.forEach(t => t.destroy(true));
+    this.player.left.forEach(t => t.destroy(true));
+    this.player.right.forEach(t => t.destroy(true));
+    this.bomb.forEach(t => t.destroy(true));
+    this.flame.forEach(t => t.destroy(true));
+    this.fireBonus.destroy(true);
+    this.bombBonus.destroy(true);
+  }
 }

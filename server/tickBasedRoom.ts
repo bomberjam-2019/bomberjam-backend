@@ -49,6 +49,7 @@ export abstract class TickBasedRoom<TState extends IHasTick> extends Room<TState
 
   public onMessage(client: Client, message: IClientMessage) {
     if (typeof client !== 'object') return;
+    if (typeof message !== 'object') return;
 
     const elapsed: [number, number] = process.hrtime(this.lastStateSentAt);
 

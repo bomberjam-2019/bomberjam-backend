@@ -122,8 +122,11 @@ cmake-build-*/
 
 # IntelliJ
 .idea/
+.vscode/
 
 .DS_Store
 Thumbs.db
 
 /server/public-dist/
+/server/vue/dist/
+*.gamelog

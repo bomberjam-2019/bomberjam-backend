@@ -38,50 +38,53 @@ export class Player extends Schema implements IPlayer {
   @type('boolean')
   connected: boolean = true;
 
-  @type('number')
+  @type('int8')
   x: number = 0;
 
-  @type('number')
+  @type('int8')
   y: number = 0;
 
-  @type('number')
+  @type('int8')
   bombsLeft: number = 1;
 
-  @type('number')
+  @type('int8')
   maxBombs: number = 1;
 
-  @type('number')
+  @type('int8')
   bombRange: number = DEFAULT_BOMB_RANGE;
 
   @type('boolean')
   alive: boolean = true;
 
-  @type('number')
+  @type('int8')
   lives: number = DEFAULT_LIVES;
+
+  @type('boolean')
+  hasWon: boolean = false;
 }
 
 export class Bomb extends Schema implements IBomb {
   @type('string')
   playerId: string = '';
 
-  @type('number')
+  @type('int8')
   countdown: number = 0;
 
-  @type('number')
+  @type('int8')
   range: number = 1;
 
-  @type('number')
+  @type('int8')
   x: number = 0;
 
-  @type('number')
+  @type('int8')
   y: number = 0;
 }
 
 export class Bonus extends Schema implements IBonus {
-  @type('number')
+  @type('int8')
   x: number = 0;
 
-  @type('number')
+  @type('int8')
   y: number = 0;
 
   @type('string')
@@ -111,10 +114,13 @@ export class GameState extends Schema implements IGameState {
     { x: GameState.DefaultWidth - 1, y: GameState.DefaultHeight - 1 }
   ];
 
-  @type('number')
+  @type('string')
+  roomId: string = '';
+
+  @type('int8')
   state: -1 | 0 | 1 = -1;
 
-  @type('number')
+  @type('int32')
   tick: number = 0;
 
   @type('string')
@@ -132,14 +138,17 @@ export class GameState extends Schema implements IGameState {
   @type('string')
   explosions: string = '';
 
-  @type('number')
+  @type('int8')
   width: number = GameState.DefaultWidth;
 
-  @type('number')
+  @type('int8')
   height: number = GameState.DefaultHeight;
 
-  @type('number')
+  @type('int16')
   tickDuration: number = 0;
+
+  @type('boolean')
+  suddenDeathEnabled: boolean = false;
 
   gameStartedAtTick: number = 0;
 
@@ -237,6 +246,10 @@ export class GameState extends Schema implements IGameState {
 
   private unleashSuddenDeath() {
     if (this.isPlaying() && this.tick >= this.gameStartedAtTick + SUDDEN_DEATH_STARTS_AT) {
+      if (!this.suddenDeathEnabled) {
+        this.suddenDeathEnabled = true;
+      }
+
       const idx = this.coordToTileIndex(this.suddenDeathPos.x, this.suddenDeathPos.y);
       this.tiles = replaceCharAt(this.tiles, idx, Tiles.Wall);
 
@@ -280,6 +293,8 @@ export class GameState extends Schema implements IGameState {
     for (const playerId in this.players) {
       const player = this.players[playerId];
       player.bombsLeft = player.maxBombs - playerBombCounts[playerId];
+
+      if (player.bombsLeft < 0) player.bombsLeft = 0;
     }
   }
 
@@ -299,6 +314,29 @@ export class GameState extends Schema implements IGameState {
     this.players[id] = player;
   }
 
+  public startGame() {
+    this.state = 0;
+    this.gameStartedAtTick = this.tick;
+  }
+
+  public changeStateIfGameEnded() {
+    const alivePlayers: IPlayer[] = [];
+
+    for (const playerId in this.players) {
+      const player = this.players[playerId];
+      if (player.alive && player.connected) alivePlayers.push(player);
+    }
+
+    // game ended: all dead or only one player alive left
+    if (alivePlayers.length <= 1) {
+      this.state = 1;
+
+      if (alivePlayers.length === 1) {
+        alivePlayers[0].hasWon = true;
+      }
+    }
+  }
+
   public hitPlayer(player: IPlayer) {
     if (!ARE_PLAYERS_INVINCIBLE) {
       if (player.lives > 0) {
@@ -313,10 +351,11 @@ export class GameState extends Schema implements IGameState {
 
   public killPlayer(player: IPlayer) {
     player.lives = 0;
-    player.alive = false;
     player.bombsLeft = 0;
     player.maxBombs = 0;
     player.bombRange = 0;
+
+    if (!player.hasWon) player.alive = false;
   }
 
   public movePlayer(player: Player, movement: ActionCode) {
@@ -377,6 +416,8 @@ export class GameState extends Schema implements IGameState {
       const bombId = String(objectCounter++);
       this.bombs[bombId] = newBomb;
       player.bombsLeft--;
+
+      if (player.bombsLeft < 0) player.bombsLeft = 0;
     }
   }
 
@@ -492,7 +533,6 @@ export class GameState extends Schema implements IGameState {
       this.hitPlayer(this.players[playerId]);
     }
 
-    // TODO add a number to each explosion to represent its explosion time so the client can display a real explosion chain
     this.explosions = [...explosionPositions].join(';');
   }
 

@@ -7,6 +7,8 @@ export interface IJoinRoomOpts {
   serverName?: string;
   serverPort?: number;
   training?: boolean;
+  createNewRoom?: boolean;
+  tickDurationMs?: number;
 }
 
 export interface IHasTick {
@@ -48,10 +50,11 @@ export interface IClientMessage extends IHasTick {
   elapsed: number;
 }
 
-export interface IPlayer extends IHasPos {
+// "simple" versions of state interfaces are used in bot clients
+// so they don't get access to unnecessary stuff
+
+export interface ISimplePlayer extends IHasPos {
   id: string;
-  name: string;
-  connected: boolean;
   bombsLeft: number;
   maxBombs: number;
   bombRange: number;
@@ -59,24 +62,50 @@ export interface IPlayer extends IHasPos {
   lives: number;
 }
 
-export interface IBomb extends IHasPos {
+export interface IPlayer extends ISimplePlayer {
+  name: string;
+  connected: boolean;
+  hasWon: boolean;
+}
+
+export interface ISimpleBomb extends IHasPos {
   playerId: string;
   countdown: number;
   range: number;
 }
 
-export interface IBonus extends IHasPos {
+export interface IBomb extends ISimpleBomb {}
+
+export interface ISimpleBonus extends IHasPos {
   type: BonusCode;
 }
 
-export interface IGameState extends IHasTick {
+export interface IBonus extends ISimpleBonus {}
+
+export interface ISimpleGameState extends IHasTick {
   state: -1 | 0 | 1;
   tiles: string;
+  players: { [id: string]: ISimplePlayer };
+  bombs: { [id: string]: ISimpleBomb };
+  bonuses: { [id: string]: ISimpleBonus };
+  width: number;
+  height: number;
+  suddenDeathEnabled: boolean;
+}
+
+export interface IGameState extends ISimpleGameState {
+  roomId: string;
   players: { [id: string]: IPlayer };
   bombs: { [id: string]: IBomb };
   bonuses: { [id: string]: IBonus };
   explosions: string;
-  width: number;
-  height: number;
   tickDuration: number;
+  suddenDeathEnabled: boolean;
+}
+
+export interface IRoomMetadata {
+  roomId: string;
+  tick: number;
+  state: -1 | 0 | 1;
+  players: string[];
 }

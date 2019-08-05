@@ -4,10 +4,12 @@
   "description": "",
   "private": true,
   "scripts": {
-    "start-server": "webpack --config server/webpack.config.js --mode development && ts-node server/index.ts",
+    "postinstall": "cd server/vue/ && npm install",
+    "start-server": "cd server/vue/ && npm run build-development && cd ../../ && ts-node server/index.ts",
     "start-client-training": "ts-node client/index.ts -t",
     "start-client-spectate": "ts-node client/index.ts -s",
-    "start-client-match": "ts-node client/index.ts -m"
+    "start-client-match": "ts-node client/index.ts -m",
+    "start-client-export": "ts-node client/export.ts"
   },
   "husky": {
     "hooks": {
@@ -19,6 +21,7 @@
     "@pixi/filter-drop-shadow": "^3.0.3",
     "colyseus": "^0.10.7",
     "colyseus.js": "^0.10.8",
+    "connect-history-api-fallback": "^1.6.0",
     "express": "^4.16.4",
     "lodash": "^4.17.15",
     "open": "^6.3.0",
@@ -27,6 +30,7 @@
     "ws": "^7.0.0"
   },
   "devDependencies": {
+    "@types/connect-history-api-fallback": "^1.3.2",
     "@types/express": "^4.16.1",
     "@types/lodash": "^4.14.134",
     "copy-webpack-plugin": "^5.0.3",

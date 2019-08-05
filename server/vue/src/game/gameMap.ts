@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import { AnimatedSprite, Container, DisplayObject, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { TextureRegistry } from './textureRegistry';
-import { IBomb, IBonus, IGameState, IHasPos, IPlayer } from '../../common/types';
+import { IBomb, IBonus, IGameState, IHasPos, IPlayer } from '../../../../common/types';
 import { GameContainer } from './gameContainer';
 import { PlayerColor } from './playerColor';
 
@@ -123,7 +123,7 @@ export class GameMap extends GameContainer {
       const player: IPlayer = this.state.players[playerId];
       const playerSprite: Sprite = this.playerSprites[playerId];
 
-      if (!player.alive && playerSprite) playerSprite.visible = false;
+      if (!player.alive && !player.hasWon && playerSprite) playerSprite.visible = false;
     }
 
     this.displayFlames();
@@ -157,7 +157,7 @@ export class GameMap extends GameContainer {
   }
 
   private registerPlayer(playerId: string, player: IPlayer, orientation: 'left' | 'right' | 'front' | 'back' = 'front'): void {
-    if (player.alive) {
+    if (player.alive || player.hasWon) {
       let textures: Texture[] = this.textures.player.front;
       if (orientation === 'left') textures = this.textures.player.left;
       else if (orientation === 'right') textures = this.textures.player.right;
