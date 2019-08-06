@@ -26,7 +26,7 @@
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator';
 import { IGameViewerController, showGame } from '../game/game';
-import { IJoinRoomOpts } from '../../../../common/types';
+import { IJoinRoomOpts } from '../../../common/types';
 
 @Component
 export default class Game extends Vue {

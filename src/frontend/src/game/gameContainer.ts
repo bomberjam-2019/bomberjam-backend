@@ -1,5 +1,5 @@
 import { Container } from 'pixi.js';
-import { IBomb, IBonus, IGameState, IPlayer } from '../../../../common/types';
+import { IBomb, IBonus, IGameState, IPlayer } from '../../../common/types';
 
 export abstract class GameContainer {
   public readonly state: IGameState;

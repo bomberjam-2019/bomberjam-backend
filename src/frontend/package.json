@@ -1,12 +1,17 @@
 {
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build-production": "vue-cli-service build",
-    "build-development": "vue-cli-service build --mode development"
+    "build-development": "vue-cli-service build --mode development",
+    "build-production": "vue-cli-service build --mode production",
+    "serve": "vue-cli-service serve --open --port 4322"
   },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions"
+  ],
   "dependencies": {
     "core-js": "^2.6.5",
+    "pixi.js": "^5.0.4",
     "vue": "^2.6.10",
     "vue-class-component": "^7.0.2",
     "vue-property-decorator": "^8.1.0",
@@ -23,9 +28,5 @@
     "plugins": {
       "autoprefixer": {}
     }
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions"
-  ]
+  }
 }

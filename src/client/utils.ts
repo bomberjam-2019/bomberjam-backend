@@ -4,13 +4,23 @@ import { DEFAULT_SERVER_PORT } from '../common/constants';
 import { IGameState, IJoinRoomOpts, ISimpleGameState } from '../common/types';
 import { jsonClone } from '../common/utils';
 
+const argv: any = require('minimist')(process.argv.slice(2));
+const mode = argv['mode'];
+const configPath = argv['config'];
+const botsPath = argv['bot'];
+const execPath = process.cwd();
+
+console.log('exec path  = ' + execPath);
+console.log('mode       = ' + mode);
+console.log('configPath = ' + configPath);
+console.log('botsPath   = ' + botsPath);
+
 export function getJoinOptions(): IJoinRoomOpts {
-  const argv: any = require('minimist')(process.argv.slice(2));
-  const configPath = path.resolve(__dirname, '../config.json');
-  const config: any = require(configPath);
+  // const configPath = path.resolve(__dirname, '../config.json');
+  const config: any = require(path.resolve(execPath, configPath));
 
   const joinOpts: IJoinRoomOpts = {
-    name: config.yourName,
+    name: config.playerName,
     roomId: '',
     spectate: false,
     serverName: 'localhost',
@@ -18,7 +28,7 @@ export function getJoinOptions(): IJoinRoomOpts {
   };
 
   // join a specific room when spectate or joining a match
-  if (argv['s'] || argv['m']) {
+  if (mode === 'spectate' || mode === 'match') {
     if (typeof config.roomId !== 'string' || config.roomId.length === 0) {
       throw new Error('Missing roomId in config.json');
     }
@@ -28,10 +38,10 @@ export function getJoinOptions(): IJoinRoomOpts {
     joinOpts.serverPort = config.serverPort;
 
     // join a specific room for a match
-    if (argv['s']) {
+    if (mode === 'spectate') {
       joinOpts.spectate = true;
     }
-  } else if (argv['t']) {
+  } else if (mode === 'training') {
     joinOpts.training = true;
     joinOpts.createNewRoom = true;
   }
@@ -40,7 +50,8 @@ export function getJoinOptions(): IJoinRoomOpts {
 }
 
 export function getFourBots(): Function[] {
-  const bot = require('../bot/bot.js');
+  //const bot = require('../bot/bot.js');
+  const bot = require(path.resolve(execPath, botsPath));
   const botType = typeof bot;
 
   if (botType === 'function') {

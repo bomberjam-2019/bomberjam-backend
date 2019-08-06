@@ -1,10 +1,10 @@
 import { Room } from 'colyseus.js';
 import { Application } from 'pixi.js';
 import { TextureRegistry } from './textureRegistry';
-import { IBomb, IBonus, IGameState, IPlayer } from '../../../../common/types';
+import { IBomb, IBonus, IGameState, IPlayer } from '../../../common/types';
 import { GameMap } from './gameMap';
 import { GameHud } from './gameHud';
-import { jsonClone } from '../../../../common/utils';
+import { jsonClone } from '../../../common/utils';
 
 export class BombermanRenderer {
   private room: Room<IGameState>;

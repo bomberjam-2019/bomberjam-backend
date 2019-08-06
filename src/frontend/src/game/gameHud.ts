@@ -1,8 +1,7 @@
 import { GameContainer } from './gameContainer';
 import { TextureRegistry } from './textureRegistry';
-import { IGameState, IPlayer } from '../../../../common/types';
+import { IGameState, IPlayer } from '../../../common/types';
 import { Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
-import { DropShadowFilter } from '@pixi/filter-drop-shadow';
 import { PlayerColor } from './playerColor';
 
 export class GameHud extends GameContainer {
@@ -64,11 +63,9 @@ export class GameHud extends GameContainer {
   private createPlayerHud(playerId: string, player: IPlayer): void {
     const container = new Container();
 
-    const playerShadow = new DropShadowFilter();
     const playerSprite = this.makeStaticSprite(this.textures.player.front[0]);
     playerSprite.x = 20;
     playerSprite.y = 25;
-    playerSprite.filters = [playerShadow];
     PlayerColor.colorize(playerId, playerSprite);
 
     const playerNameText = new Text(player.name, GameHud.TextStyle);

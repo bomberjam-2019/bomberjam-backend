@@ -1,7 +1,7 @@
 import { Client, Room } from 'colyseus.js';
-import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../../common/constants';
+import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../common/constants';
 import { Application, Texture } from 'pixi.js';
-import { IGameState, IJoinRoomOpts, IRoomMetadata } from '../../../../common/types';
+import { IGameState, IJoinRoomOpts, IRoomMetadata } from '../../../common/types';
 import { TextureRegistry } from './textureRegistry';
 import { BombermanRenderer } from './bombermanRenderer';
 import { AllTexturePaths } from './assets';

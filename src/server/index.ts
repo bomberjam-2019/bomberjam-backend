@@ -8,10 +8,15 @@ import { monitor } from '@colyseus/monitor';
 import history from 'connect-history-api-fallback';
 import path from 'path';
 
+const argv: any = require('minimist')(process.argv.slice(2));
+const frontendPath = path.resolve(__dirname, argv['frontend']);
+console.log(frontendPath + ': ' + frontendPath);
+
 const config = {
   serverName: 'localhost',
   serverPort: DEFAULT_SERVER_PORT
 };
+
 const expressApp = express();
 const httpServer = http.createServer(expressApp);
 const gameServer = new Server({ server: httpServer });
@@ -26,7 +31,7 @@ expressApp.use(
   })
 );
 
-expressApp.use(express.static(path.resolve(__dirname, './vue/dist')));
+expressApp.use(express.static(frontendPath));
 
 // Register colyseus monitor AFTER registering your room handlers
 expressApp.use('/colyseus', monitor(gameServer));
