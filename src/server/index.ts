@@ -7,10 +7,11 @@ import { BombermanRoom } from './bombermanRoom';
 import { monitor } from '@colyseus/monitor';
 import history from 'connect-history-api-fallback';
 import path from 'path';
+import fs from 'fs';
 
 const argv: any = require('minimist')(process.argv.slice(2));
-const frontendPath = path.resolve(__dirname, argv['frontend']);
-console.log(frontendPath + ': ' + frontendPath);
+const frontendPath = path.resolve(__dirname, argv['frontend'] || 'frontend');
+if (!fs.existsSync(frontendPath)) throw new Error('--frontend dir does not exists at ' + frontendPath);
 
 const config = {
   serverName: 'localhost',

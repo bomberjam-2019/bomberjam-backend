@@ -86,7 +86,7 @@ export default class Admin extends Vue {
   startAutoRefresh() {
     this.refreshInterval = window.setInterval(() => {
       this.refreshRooms();
-    }, 10000);
+    }, 5000);
   }
 
   stopAutoRefresh() {

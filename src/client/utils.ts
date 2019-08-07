@@ -1,22 +1,18 @@
 import path from 'path';
+import fs from 'fs';
 
 import { DEFAULT_SERVER_PORT } from '../constants';
 import { IGameState, IJoinRoomOpts, ISimpleGameState } from '../types';
 
 const argv: any = require('minimist')(process.argv.slice(2));
-const mode = argv['mode'];
-const configPath = argv['config'];
-const botsPath = argv['bot'];
 const execPath = process.cwd();
 
-console.log('exec path  = ' + execPath);
-console.log('mode       = ' + mode);
-console.log('configPath = ' + configPath);
-console.log('botsPath   = ' + botsPath);
-
 export function getJoinOptions(): IJoinRoomOpts {
-  // const configPath = path.resolve(__dirname, '../config.json');
-  const config: any = require(path.resolve(execPath, configPath));
+  const configFileName = argv['config'] || '';
+  const configPath = path.resolve(execPath, configFileName);
+  if (configFileName.length === 0 || !fs.existsSync(configPath))
+    throw new Error('Could not find specified --config json file at ' + configPath);
+  const config: any = require(configPath);
 
   const joinOpts: IJoinRoomOpts = {
     name: config.playerName,
@@ -26,8 +22,10 @@ export function getJoinOptions(): IJoinRoomOpts {
     serverPort: DEFAULT_SERVER_PORT
   };
 
+  const clientMode = argv['mode'] || '';
+
   // join a specific room when spectate or joining a match
-  if (mode === 'spectate' || mode === 'match') {
+  if (clientMode === 'spectate' || clientMode === 'match') {
     if (typeof config.roomId !== 'string' || config.roomId.length === 0) {
       throw new Error('Missing roomId in config.json');
     }
@@ -37,19 +35,24 @@ export function getJoinOptions(): IJoinRoomOpts {
     joinOpts.serverPort = config.serverPort;
 
     // join a specific room for a match
-    if (mode === 'spectate') {
+    if (clientMode === 'spectate') {
       joinOpts.spectate = true;
     }
-  } else if (mode === 'training') {
+  } else if (clientMode === 'training') {
     joinOpts.training = true;
     joinOpts.createNewRoom = true;
+  } else {
+    throw new Error('Invalid option --mode, values are training, match or spectate');
   }
 
   return joinOpts;
 }
 
 export function getFourBots(): Function[] {
-  const bot = require(path.resolve(execPath, botsPath));
+  const botsFileName = argv['bot'] || '';
+  const botsPath = path.resolve(execPath, botsFileName);
+  if (botsFileName.length === 0 || !fs.existsSync(botsPath)) throw new Error('Could not find specified --bot js file at ' + botsPath);
+  const bot = require(botsPath);
   const botType = typeof bot;
 
   if (botType === 'function') {
