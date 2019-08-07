@@ -7,11 +7,24 @@ import {
   DEFAULT_BOMB_RANGE,
   DEFAULT_LIVES,
   FIRE_BONUS_COUNT,
+  MAX_PLAYERS,
   SUDDEN_DEATH_STARTS_AT
-} from '../common/constants';
+} from '../constants';
 import { MapSchema, Schema, type } from '@colyseus/schema';
-import { ActionCode, Actions, BonusCode, IBomb, IBonus, IGameState, IHasPos, IPlayer, MoveCode, TileCode, Tiles } from '../common/types';
-import { replaceCharAt } from '../common/utils';
+import {
+  ActionCode,
+  Actions,
+  BonusCode,
+  IBomb,
+  IBonus,
+  IClientMessage,
+  IGameState,
+  IHasPos,
+  IPlayer,
+  MoveCode,
+  TileCode,
+  Tiles
+} from '../types';
 
 // prettier-ignore
 const defaultMap: string[] = [
@@ -117,6 +130,9 @@ export class GameState extends Schema implements IGameState {
   @type('string')
   roomId: string = '';
 
+  @type('string')
+  ownerId: string = '';
+
   @type('int8')
   state: -1 | 0 | 1 = -1;
 
@@ -149,6 +165,9 @@ export class GameState extends Schema implements IGameState {
 
   @type('boolean')
   suddenDeathEnabled: boolean = false;
+
+  @type('boolean')
+  isSimulationPaused: boolean = true;
 
   gameStartedAtTick: number = 0;
 
@@ -188,6 +207,10 @@ export class GameState extends Schema implements IGameState {
     }
   }
 
+  public isWaitingForPlayers(): boolean {
+    return this.state === -1;
+  }
+
   public isPlaying(): boolean {
     return this.state === 0;
   }
@@ -203,38 +226,61 @@ export class GameState extends Schema implements IGameState {
     return idx >= this.tiles.length;
   }
 
-  public getTileAt(x: number, y: number): TileCode {
+  private getTileAt(x: number, y: number): TileCode {
     if (this.isOutOfBound(x, y)) return Tiles.OutOfBound;
 
     const idx = this.coordToTileIndex(x, y);
     return this.tiles[idx] as TileCode;
   }
 
-  public setTileAt(x: number, y: number, newTile: TileCode): void {
+  private setTileAt(x: number, y: number, newTile: TileCode): void {
     if (this.isOutOfBound(x, y) || newTile.length !== 1) return;
 
     const idx = this.coordToTileIndex(x, y);
-    this.tiles = replaceCharAt(this.tiles, idx, newTile);
+    this.tiles = GameState.replaceCharAt(this.tiles, idx, newTile);
   }
 
-  public findActiveBombAt(x: number, y: number): IBomb | undefined {
+  private findActiveBombAt(x: number, y: number): IBomb | undefined {
     return _.find(this.bombs, b => b.countdown > 0 && b.x === x && b.y === y);
   }
 
-  public findAlivePlayerAt(x: number, y: number): IPlayer | undefined {
+  private findAlivePlayerAt(x: number, y: number): IPlayer | undefined {
     return _.find(this.players, p => p.alive && p.x === x && p.y === y);
   }
 
-  public findDroppedBonusIndexAt(x: number, y: number): string | undefined {
+  private findDroppedBonusIndexAt(x: number, y: number): string | undefined {
     for (const bonusId in this.bonuses) {
       const bonus: IBonus = this.bonuses[bonusId];
       if (bonus.x === x && bonus.y === y) return bonusId;
     }
   }
 
-  public refresh() {
-    this.unleashSuddenDeath();
-    this.computeBombCountdownAndPlayerBombsLeft();
+  public applyClientMessages(messages: IClientMessage[]) {
+    if (this.isPlaying()) {
+      if (this.isSimulationPaused) return;
+
+      this.unleashSuddenDeath();
+      this.computeBombCountdownAndPlayerBombsLeft();
+
+      for (const message of messages) {
+        const player = this.players[message.playerId];
+        if (player && player.connected && player.alive) {
+          if (message.action === Actions.Bomb) {
+            this.plantBomb(player);
+          } else {
+            this.movePlayer(player, message.action);
+          }
+        }
+      }
+
+      this.runBombs();
+      this.changeStateIfGameEnded();
+    } else if (this.isGameEnded()) {
+      // end game cleanup
+      for (const bombId in this.bombs) delete this.bombs[bombId];
+
+      if (this.explosions.length > 0) this.explosions = '';
+    }
   }
 
   private suddenDeathPos: IHasPos & { dir: MoveCode; iter: number } = {
@@ -251,7 +297,7 @@ export class GameState extends Schema implements IGameState {
       }
 
       const idx = this.coordToTileIndex(this.suddenDeathPos.x, this.suddenDeathPos.y);
-      this.tiles = replaceCharAt(this.tiles, idx, Tiles.Wall);
+      this.tiles = GameState.replaceCharAt(this.tiles, idx, Tiles.Wall);
 
       const victim = this.findAlivePlayerAt(this.suddenDeathPos.x, this.suddenDeathPos.y);
       if (victim) this.killPlayer(victim);
@@ -298,28 +344,7 @@ export class GameState extends Schema implements IGameState {
     }
   }
 
-  public addPlayer(id: string, name: string) {
-    const player = new Player();
-
-    player.id = id;
-    player.name = name;
-
-    const playerCount = Object.keys(this.players).length;
-    if (playerCount >= GameState.StartPositions.length) throw new Error('More players than starting spots');
-
-    const startPos = GameState.StartPositions[playerCount];
-    player.x = startPos.x;
-    player.y = startPos.y;
-
-    this.players[id] = player;
-  }
-
-  public startGame() {
-    this.state = 0;
-    this.gameStartedAtTick = this.tick;
-  }
-
-  public changeStateIfGameEnded() {
+  private changeStateIfGameEnded() {
     const alivePlayers: IPlayer[] = [];
 
     for (const playerId in this.players) {
@@ -337,7 +362,32 @@ export class GameState extends Schema implements IGameState {
     }
   }
 
-  public hitPlayer(player: IPlayer) {
+  public addPlayer(id: string, name: string) {
+    const player = new Player();
+
+    player.id = id;
+    player.name = name;
+
+    const playerCount = Object.keys(this.players).length;
+    if (playerCount >= GameState.StartPositions.length) throw new Error('More players than starting spots');
+
+    const startPos = GameState.StartPositions[playerCount];
+    player.x = startPos.x;
+    player.y = startPos.y;
+
+    this.players[id] = player;
+
+    if (playerCount + 1 >= MAX_PLAYERS) {
+      this.startGame();
+    }
+  }
+
+  public startGame() {
+    this.state = 0;
+    this.gameStartedAtTick = this.tick;
+  }
+
+  private hitPlayer(player: IPlayer) {
     if (!ARE_PLAYERS_INVINCIBLE) {
       if (player.lives > 0) {
         player.lives--;
@@ -358,7 +408,7 @@ export class GameState extends Schema implements IGameState {
     if (!player.hasWon) player.alive = false;
   }
 
-  public movePlayer(player: Player, movement: ActionCode) {
+  private movePlayer(player: Player, movement: ActionCode) {
     if (movement === Actions.Stay) return;
 
     const posIncrementer = positionIncrementers[movement];
@@ -399,7 +449,7 @@ export class GameState extends Schema implements IGameState {
     }
   }
 
-  public plantBomb(player: Player) {
+  private plantBomb(player: Player) {
     const hasEnoughBombs = player.bombsLeft > 0;
     if (!hasEnoughBombs) return;
 
@@ -421,7 +471,7 @@ export class GameState extends Schema implements IGameState {
     }
   }
 
-  public dropBonus(x: number, y: number, type: BonusCode) {
+  private dropBonus(x: number, y: number, type: BonusCode) {
     const bonus = new Bonus();
 
     bonus.x = x;
@@ -432,7 +482,7 @@ export class GameState extends Schema implements IGameState {
     this.bonuses[bonusId] = bonus;
   }
 
-  public runBombs() {
+  private runBombs() {
     const visitedBombs = new Set<IBomb>(); // avoid handling bombs twice
     const explosionChain: IBomb[] = []; // FIFO
     const deletedBombIds = new Set<string>();
@@ -545,5 +595,9 @@ export class GameState extends Schema implements IGameState {
     const y = Math.floor(idx / this.width);
 
     return [x, y];
+  }
+
+  private static replaceCharAt(text: string, idx: number, newChar: string): string {
+    return text.substr(0, idx) + newChar + text.substr(idx + 1);
   }
 }

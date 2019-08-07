@@ -28,6 +28,8 @@ export type TileCode = '' | '.' | '#' | '+';
 
 export type BonusCode = 'bomb' | 'fire';
 
+export type GameActionCode = 'increaseSpeed' | 'decreaseSpeed' | 'resumeGame' | 'pauseGame';
+
 export const Actions: { [key: string]: ActionCode } = {
   Up: 'up',
   Down: 'down',
@@ -42,6 +44,13 @@ export const Tiles: { [key: string]: TileCode } = {
   Empty: '.',
   Wall: '#',
   Block: '+'
+};
+
+export const GameActions: { [key: string]: GameActionCode } = {
+  ResumeGame: 'resumeGame',
+  PauseGame: 'pauseGame',
+  IncreaseSpeed: 'increaseSpeed',
+  DecreaseSpeed: 'decreaseSpeed'
 };
 
 export interface IClientMessage extends IHasTick {
@@ -95,12 +104,14 @@ export interface ISimpleGameState extends IHasTick {
 
 export interface IGameState extends ISimpleGameState {
   roomId: string;
+  ownerId: string;
   players: { [id: string]: IPlayer };
   bombs: { [id: string]: IBomb };
   bonuses: { [id: string]: IBonus };
   explosions: string;
   tickDuration: number;
   suddenDeathEnabled: boolean;
+  isSimulationPaused: boolean;
 }
 
 export interface IRoomMetadata {

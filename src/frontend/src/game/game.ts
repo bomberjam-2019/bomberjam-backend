@@ -1,7 +1,7 @@
 import { Client, Room } from 'colyseus.js';
-import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../common/constants';
+import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../constants';
 import { Application, Texture } from 'pixi.js';
-import { IGameState, IJoinRoomOpts, IRoomMetadata } from '../../../common/types';
+import { GameActions, IGameState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
 import { TextureRegistry } from './textureRegistry';
 import { BombermanRenderer } from './bombermanRenderer';
 import { AllTexturePaths } from './assets';
@@ -34,11 +34,13 @@ export function listRooms(): Promise<IRoomMetadata[]> {
 export interface IGameViewerController {
   roomId: string;
   stopViewer: () => void;
+  resumeGame: () => void;
+  pauseGame: () => void;
   increaseSpeed: () => void;
   decreaseSpeed: () => void;
 }
 
-export async function showGame(joinOpts: IJoinRoomOpts): Promise<IGameViewerController> {
+export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwner: boolean) => void): Promise<IGameViewerController> {
   const pixiApp = new Application({
     width: 256,
     height: 256,
@@ -57,7 +59,7 @@ export async function showGame(joinOpts: IJoinRoomOpts): Promise<IGameViewerCont
   joinOpts.spectate = true;
 
   const room = await joinRoomAsync<IGameState>(client, joinOpts);
-  console.log(`Room ${room.id} joined`);
+  console.log(`Room ${room.id} joined with session id ${room.sessionId}`);
 
   const pixiContainer = document.getElementById('pixi') as HTMLElement;
   const debugContainer = document.getElementById('debug') as HTMLElement;
@@ -75,6 +77,8 @@ export async function showGame(joinOpts: IJoinRoomOpts): Promise<IGameViewerCont
     if (stopped) return;
 
     debugContainer.innerHTML = JSON.stringify(state, null, 2);
+
+    isOwnerCallback(room.sessionId === state.ownerId);
 
     if (!initialized) {
       gameRenderer = new BombermanRenderer(room, pixiApp, textures);
@@ -101,15 +105,17 @@ export async function showGame(joinOpts: IJoinRoomOpts): Promise<IGameViewerCont
 
       cleanupPixiApp(pixiContainer, pixiApp, textures);
     },
+    resumeGame: () => {
+      if (room && room.hasJoined) room.send(GameActions.ResumeGame);
+    },
+    pauseGame: () => {
+      if (room && room.hasJoined) room.send(GameActions.PauseGame);
+    },
     increaseSpeed: () => {
-      if (room && room.hasJoined) {
-        room.send('increaseSpeed');
-      }
+      if (room && room.hasJoined) room.send(GameActions.IncreaseSpeed);
     },
     decreaseSpeed: () => {
-      if (room && room.hasJoined) {
-        room.send('decreaseSpeed');
-      }
+      if (room && room.hasJoined) room.send(GameActions.DecreaseSpeed);
     }
   };
 }

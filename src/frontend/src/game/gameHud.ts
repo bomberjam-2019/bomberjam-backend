@@ -1,6 +1,6 @@
 import { GameContainer } from './gameContainer';
 import { TextureRegistry } from './textureRegistry';
-import { IGameState, IPlayer } from '../../../common/types';
+import { IGameState, IPlayer } from '../../../types';
 import { Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 import { PlayerColor } from './playerColor';
 

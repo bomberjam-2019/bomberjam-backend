@@ -1,8 +1,7 @@
 import path from 'path';
 
-import { DEFAULT_SERVER_PORT } from '../common/constants';
-import { IGameState, IJoinRoomOpts, ISimpleGameState } from '../common/types';
-import { jsonClone } from '../common/utils';
+import { DEFAULT_SERVER_PORT } from '../constants';
+import { IGameState, IJoinRoomOpts, ISimpleGameState } from '../types';
 
 const argv: any = require('minimist')(process.argv.slice(2));
 const mode = argv['mode'];
@@ -50,7 +49,6 @@ export function getJoinOptions(): IJoinRoomOpts {
 }
 
 export function getFourBots(): Function[] {
-  //const bot = require('../bot/bot.js');
   const bot = require(path.resolve(execPath, botsPath));
   const botType = typeof bot;
 
@@ -111,13 +109,15 @@ export function createSanitizedStateCopyForBot(state: IGameState): ISimpleGameSt
   for (const bombId in state.bombs) {
     const b = state.bombs[bombId];
 
-    sgs.bombs[bombId] = {
-      x: b.x,
-      y: b.y,
-      playerId: b.playerId,
-      countdown: b.countdown,
-      range: b.range
-    };
+    if (b.countdown > 0) {
+      sgs.bombs[bombId] = {
+        x: b.x,
+        y: b.y,
+        playerId: b.playerId,
+        countdown: b.countdown,
+        range: b.range
+      };
+    }
   }
 
   for (const bonusId in state.bonuses) {
@@ -131,4 +131,8 @@ export function createSanitizedStateCopyForBot(state: IGameState): ISimpleGameSt
   }
 
   return sgs;
+}
+
+export function jsonClone<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
 }

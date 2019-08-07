@@ -1,5 +1,4 @@
-import { getFourBots, getJoinOptions, sleepAsync } from './utils';
-import { jsonClone } from '../common/utils';
+import { getFourBots, getJoinOptions, sleepAsync, jsonClone } from './utils';
 import { GameClient } from './gameClient';
 
 async function main(): Promise<void> {

@@ -1,10 +1,12 @@
 import _ from 'lodash';
 
-import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../common/constants';
-import { Actions, IClientMessage, IJoinRoomOpts, IPlayer, IRoomMetadata } from '../common/types';
+import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../constants';
+import { GameActionCode, GameActions, IClientMessage, IJoinRoomOpts, IPlayer, IRoomMetadata } from '../types';
 import { Client } from 'colyseus';
 import { GameState } from './state';
 import { TickBasedRoom } from './tickBasedRoom';
+
+const allGameActions = new Set<string>(Object.values(GameActions));
 
 export class BombermanRoom extends TickBasedRoom<GameState> {
   protected readonly maxPlayerCount: number = MAX_PLAYERS;
@@ -23,6 +25,7 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
 
     const state = new GameState();
     state.roomId = this.roomId;
+    if (options.training) state.isSimulationPaused = false;
     this.setState(state);
     this.computeState([]);
   }
@@ -42,6 +45,9 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
       return false;
     }
 
+    // game already started
+    if (this.state.state >= 0) return false;
+
     // too many players
     const playerCount = Object.keys(this.state.players).length;
     if (playerCount >= this.maxPlayerCount) return false;
@@ -59,51 +65,86 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
 
     if (isSpectator) {
       this.log(` - client ${client.sessionId} joined as spectator`);
+      if (this.state.ownerId.length === 0) {
+        this.state.ownerId = client.sessionId;
+      }
     } else {
       const playerCount = Object.keys(this.state.players).length;
       const name = typeof options.name === 'string' && options.name.length > 0 ? options.name : `Player${playerCount + 1}`;
 
       this.log(` - client ${name} (${client.sessionId}) joined as player`);
       this.state.addPlayer(client.sessionId, name);
-
-      // start game when all players are here
-      if (playerCount + 1 >= this.maxPlayerCount) {
-        this.state.startGame();
-
-        const playersStr = _.map(this.state.players, (p: IPlayer) => `${p.name} (${p.id})`).join(', ');
-        this.log(`game started with players: ${playersStr}`);
-      }
     }
   }
 
   public onLeave(client: Client, consented: boolean) {
     let player = this.state.players[client.sessionId];
-    if (!player) return;
-
-    player.connected = false;
-    this.state.killPlayer(player);
+    if (!player) {
+      if (client.sessionId === this.state.ownerId) {
+        this.state.ownerId = '';
+      }
+    } else {
+      player.connected = false;
+      this.state.killPlayer(player);
+    }
   }
 
   public onMessage(client: Client, message: IClientMessage) {
     if (typeof message === 'string') {
-      if (message === 'increaseSpeed') {
-        this.tickDurationMs = Math.max(10, this.tickDurationMs - 100);
-        this.maxResponseTimeMs = this.tickDurationMs;
+      this.applyGameAction(message);
+    } else {
+      super.onMessage(client, message);
+    }
+  }
 
-        this.setSimulationInterval(_.noop, this.tickDurationMs);
-        this.setPatchRate(this.tickDurationMs);
-      } else if (message === 'decreaseSpeed') {
-        this.tickDurationMs = this.tickDurationMs + 100;
-        this.maxResponseTimeMs = this.tickDurationMs;
+  public applyGameAction(str: string) {
+    if (!allGameActions.has(str)) return;
+    const action = str as GameActionCode;
 
-        this.setSimulationInterval(_.noop, this.tickDurationMs);
-        this.setPatchRate(this.tickDurationMs);
-      }
+    switch (action) {
+      case 'increaseSpeed':
+        this.increaseSpeed();
+        break;
+      case 'decreaseSpeed':
+        this.decreaseSpeed();
+        break;
+      case 'resumeGame':
+        this.resumeGame();
+        break;
+      case 'pauseGame':
+        this.pauseGame();
+        break;
+    }
+  }
 
-      return;
+  private increaseSpeed() {
+    this.tickDurationMs = Math.max(10, this.tickDurationMs - 100);
+    this.maxResponseTimeMs = this.tickDurationMs;
+    this.setSimulationInterval(_.noop, this.tickDurationMs);
+    this.setPatchRate(this.tickDurationMs);
+  }
+
+  private decreaseSpeed() {
+    this.tickDurationMs = this.tickDurationMs + 100;
+    this.maxResponseTimeMs = this.tickDurationMs;
+    this.setSimulationInterval(_.noop, this.tickDurationMs);
+    this.setPatchRate(this.tickDurationMs);
+  }
+
+  private resumeGame() {
+    if (this.state.isWaitingForPlayers()) {
+      this.state.startGame();
     }
 
-    super.onMessage(client, message);
+    if (this.state.isPlaying()) {
+      this.state.isSimulationPaused = false;
+    }
+  }
+
+  private pauseGame() {
+    if (this.state.isPlaying()) {
+      this.state.isSimulationPaused = true;
+    }
   }
 
   protected isValidMessage(message: IClientMessage): boolean {
@@ -117,32 +158,8 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
 
   protected computeState(queuedMessages: IClientMessage[]) {
     this.state.tickDuration = this.tickDurationMs;
-
-    if (this.state.isPlaying()) {
-      this.state.refresh();
-
-      for (const message of queuedMessages) {
-        const player = this.state.players[message.playerId];
-        if (player && player.connected && player.alive) {
-          if (message.action === Actions.Bomb) {
-            this.state.plantBomb(player);
-          } else {
-            this.state.movePlayer(player, message.action);
-          }
-        }
-      }
-
-      this.state.runBombs();
-      this.state.changeStateIfGameEnded();
-    } else if (this.state.isGameEnded()) {
-      // end game cleanup
-      for (const bombId in this.state.bombs) delete this.state.bombs[bombId];
-
-      if (this.state.explosions.length > 0) this.state.explosions = '';
-    }
-
+    this.state.applyClientMessages(queuedMessages);
     this.populateMetadata();
-
     this.log(JSON.stringify(this.state));
   }
 

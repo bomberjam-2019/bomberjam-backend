@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import { AnimatedSprite, Container, DisplayObject, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { TextureRegistry } from './textureRegistry';
-import { IBomb, IBonus, IGameState, IHasPos, IPlayer } from '../../../common/types';
+import { IBomb, IBonus, IGameState, IHasPos, IPlayer } from '../../../types';
 import { GameContainer } from './gameContainer';
 import { PlayerColor } from './playerColor';
 

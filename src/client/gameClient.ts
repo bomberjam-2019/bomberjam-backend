@@ -1,6 +1,6 @@
-import { IGameState, IJoinRoomOpts } from '../common/types';
+import { IGameState, IJoinRoomOpts } from '../types';
 import { Client, Room } from 'colyseus.js';
-import { APP_NAME } from '../common/constants';
+import { APP_NAME } from '../constants';
 import { createSanitizedStateCopyForBot, sleepAsync } from './utils';
 
 const open = require('open');
@@ -92,7 +92,7 @@ export class GameClient {
       return;
     }
 
-    if (this.isWaitingForPlayers(state)) {
+    if (this.isWaitingForPlayers(state) || state.isSimulationPaused) {
       return;
     }
 

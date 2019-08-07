@@ -1,6 +1,6 @@
 import { createSanitizedStateCopyForBot, getFourBots } from './utils';
 import { GameState } from '../server/state';
-import { ActionCode, Actions } from '../common/types';
+import { ActionCode, IClientMessage } from '../types';
 
 import path from 'path';
 import fs from 'fs';
@@ -12,6 +12,7 @@ async function main() {
   try {
     const maxIterations = 10000;
     const state = new GameState();
+    state.isSimulationPaused = false;
 
     let i = 0;
     const bots = getFourBots().map(botFunc => ({
@@ -24,33 +25,30 @@ async function main() {
       state.addPlayer(bot.id, bot.id);
     }
 
-    state.startGame();
-
     let iter = 0;
     while (state.isPlaying() && iter < maxIterations) {
       const sanitizedState = createSanitizedStateCopyForBot(state);
-      const shuffledBots = shuffle(bots);
 
-      state.refresh();
+      const playerMessages: IClientMessage[] = [];
 
-      for (const bot of shuffledBots) {
+      for (const bot of bots) {
         const player = state.players[bot.id];
 
-        if (player.alive) {
-          bot.action = bot.botFunc(sanitizedState, bot.id);
+        bot.action = bot.botFunc(sanitizedState, bot.id);
 
-          if (bot.action === Actions.Bomb) {
-            state.plantBomb(player);
-          } else {
-            state.movePlayer(player, bot.action);
-          }
-        } else {
-          bot.action = <any>'';
+        if (player.alive) {
+          playerMessages.push({
+            action: bot.action,
+            playerId: bot.id,
+            tick: state.tick,
+            elapsed: 0
+          });
         }
       }
 
-      state.runBombs();
-      state.changeStateIfGameEnded();
+      const shuffledPlayerMessages = shuffle(playerMessages);
+      state.applyClientMessages(shuffledPlayerMessages);
+      state.tick++;
 
       // dump state to file
       const step = {
@@ -58,16 +56,13 @@ async function main() {
         actions: {} as { [botId: string]: string }
       };
 
-      for (const bot of shuffledBots) {
+      for (const bot of bots) {
         step.actions[bot.id] = bot.action;
       }
-
-      step.actions = sortObjectByKeys(step.actions);
 
       const stepStr = JSON.stringify(step);
       writeStream.write(stepStr + os.EOL);
 
-      state.tick++;
       iter++;
     }
 

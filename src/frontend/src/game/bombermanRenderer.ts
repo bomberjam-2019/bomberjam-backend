@@ -1,10 +1,9 @@
 import { Room } from 'colyseus.js';
 import { Application } from 'pixi.js';
 import { TextureRegistry } from './textureRegistry';
-import { IBomb, IBonus, IGameState, IPlayer } from '../../../common/types';
+import { IBomb, IBonus, IGameState, IPlayer } from '../../../types';
 import { GameMap } from './gameMap';
 import { GameHud } from './gameHud';
-import { jsonClone } from '../../../common/utils';
 
 export class BombermanRenderer {
   private room: Room<IGameState>;
@@ -101,7 +100,7 @@ export class BombermanRenderer {
     this.map.onStateChanged(this.prevState);
     this.hud.onStateChanged(this.prevState);
 
-    this.prevState = jsonClone(this.room.state);
+    this.prevState = JSON.parse(JSON.stringify(this.room.state));
   }
 
   public onPixiFrameUpdated(delta: number): void {

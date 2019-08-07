@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import { ActionCode, Actions, IClientMessage, IHasTick } from '../common/types';
+import { ActionCode, Actions, IClientMessage, IHasTick } from '../types';
 import { Client, Room } from 'colyseus';
 
 const allActionCodes = new Set<ActionCode>(Object.values(Actions));

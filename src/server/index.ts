@@ -1,7 +1,7 @@
 import http from 'http';
 import express from 'express';
 
-import { APP_NAME, DEFAULT_SERVER_PORT } from '../common/constants';
+import { APP_NAME, DEFAULT_SERVER_PORT } from '../constants';
 import { Server } from 'colyseus';
 import { BombermanRoom } from './bombermanRoom';
 import { monitor } from '@colyseus/monitor';

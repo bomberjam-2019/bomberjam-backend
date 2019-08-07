@@ -4,17 +4,18 @@
   "description": "TODO",
   "scripts": {
     "clean": "rimraf .rpt2_cache/ dist/",
-    "build": "npm run clean && npm run build:server && npm run build:client && npm run build:simulator && npm run build:frontend",
+    "build": "npm run clean && npm run build:server && npm run build:client && npm run build:simulator && npm run build:frontend:production",
     "build:server": "rollup -c --environment APPNAME:server",
     "build:client": "rollup -c --environment APPNAME:client",
     "build:simulator": "rollup -c --environment APPNAME:simulator",
-    "build:frontend": "cd src/frontend/ && npm run build-production",
+    "build:frontend:development": "cd src/frontend/ && npm run build-development",
+    "build:frontend:production": "cd src/frontend/ && npm run build-production",
     "start:client:simulate": "ts-node src/client/simulator.ts  --bot=bot/bot.js",
     "start:client:training": "ts-node src/client/index.ts      --bot=bot/bot.js --config=config.json --mode=training",
     "start:client:spectate": "ts-node src/client/index.ts      --bot=bot/bot.js --config=config.json --mode=spectate",
     "start:client:match": "ts-node src/client/index.ts         --bot=bot/bot.js --config=config.json --mode=match",
     "start:frontend": "cd src/frontend/ && npm run serve",
-    "start:server": "npm run build:frontend && ts-node src/server/index.ts --frontend=../../dist/frontend"
+    "start:server": "npm run build:frontend:development && ts-node src/server/index.ts --frontend=../../dist/frontend"
   },
   "main": "dist/server.js",
   "files": [
