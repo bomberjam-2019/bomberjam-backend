@@ -1,16 +1,26 @@
 {
-  "name": "bomberman",
-  "version": "0.0.1",
-  "description": "",
-  "private": true,
+  "name": "bomberman-colyseus",
+  "version": "1.0.0",
+  "description": "TODO",
   "scripts": {
-    "postinstall": "cd server/vue/ && npm install",
-    "start-server": "cd server/vue/ && npm run build-development && cd ../../ && ts-node server/index.ts",
-    "start-client-training": "ts-node client/index.ts -t",
-    "start-client-spectate": "ts-node client/index.ts -s",
-    "start-client-match": "ts-node client/index.ts -m",
-    "start-client-export": "ts-node client/export.ts"
+    "clean": "rimraf .rpt2_cache/ dist/",
+    "build": "npm run clean && npm run build:server && npm run build:client && npm run build:simulator && npm run build:frontend:production",
+    "build:server": "rollup -c --environment APPNAME:server",
+    "build:client": "rollup -c --environment APPNAME:client",
+    "build:simulator": "rollup -c --environment APPNAME:simulator",
+    "build:frontend:development": "cd src/frontend/ && npm run build-development",
+    "build:frontend:production": "cd src/frontend/ && npm run build-production",
+    "start:client:simulate": "ts-node src/client/simulator.ts  --bot=bot/bot.js",
+    "start:client:training": "ts-node src/client/index.ts      --bot=bot/bot.js --config=config.json --mode=training",
+    "start:client:spectate": "ts-node src/client/index.ts      --bot=bot/bot.js --config=config.json --mode=spectate",
+    "start:client:match": "ts-node src/client/index.ts         --bot=bot/bot.js --config=config.json --mode=match",
+    "start:frontend": "cd src/frontend/ && npm run serve",
+    "start:server": "npm run build:frontend:development && ts-node src/server/index.ts --frontend=../../dist/frontend"
   },
+  "main": "dist/server.js",
+  "files": [
+    "dist/**/*"
+  ],
   "husky": {
     "hooks": {
       "pre-commit": "pretty-quick --staged"
@@ -18,15 +28,14 @@
   },
   "dependencies": {
     "@colyseus/monitor": "^0.10.0",
-    "@pixi/filter-drop-shadow": "^3.0.3",
+    "@colyseus/schema": "^0.4.44",
     "colyseus": "^0.10.7",
     "colyseus.js": "^0.10.8",
     "connect-history-api-fallback": "^1.6.0",
     "express": "^4.16.4",
     "lodash": "^4.17.15",
+    "minimist": "^1.2.0",
     "open": "^6.3.0",
-    "pixi-filters": "^3.0.3",
-    "pixi.js": "^5.0.4",
     "ws": "^7.0.0"
   },
   "devDependencies": {
@@ -36,9 +45,12 @@
     "copy-webpack-plugin": "^5.0.3",
     "file-loader": "^4.0.0",
     "husky": "^2.4.0",
-    "minimist": "^1.2.0",
     "prettier": "1.17.1",
     "pretty-quick": "^1.11.0",
+    "rimraf": "^2.6.3",
+    "rollup": "^1.19.2",
+    "rollup-plugin-terser": "^5.1.1",
+    "rollup-plugin-typescript2": "^0.22.1",
     "ts-loader": "^6.0.2",
     "ts-node": "^8.1.0",
     "typescript": "^3.5.1",

@@ -127,6 +127,8 @@ cmake-build-*/
 .DS_Store
 Thumbs.db
 
-/server/public-dist/
-/server/vue/dist/
 *.gamelog
+
+/dist
+/.tmp/
+/.rpt2_cache/
