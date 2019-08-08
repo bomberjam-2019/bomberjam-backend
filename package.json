@@ -11,7 +11,7 @@
     "build:frontend:development": "cd src/frontend/ && npm run build-development",
     "build:frontend:production": "cd src/frontend/ && npm run build-production",
     "start:client:simulate": "ts-node src/client/simulator.ts  --bot=bot/bot.js",
-    "start:client:training": "ts-node src/client/index.ts      --bot=bot/bot.js --config=config.json --mode=training",
+    "start:client:train": "ts-node src/client/trainer.ts       --bot=bot/bot.js",
     "start:client:spectate": "ts-node src/client/index.ts      --bot=bot/bot.js --config=config.json --mode=spectate",
     "start:client:match": "ts-node src/client/index.ts         --bot=bot/bot.js --config=config.json --mode=match",
     "start:frontend": "cd src/frontend/ && npm run serve",

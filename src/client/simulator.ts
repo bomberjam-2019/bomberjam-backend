@@ -6,8 +6,9 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 
-async function main() {
+async function main(): Promise<object[]> {
   const writeStream = await createWriteStream();
+  const game = [];
 
   try {
     const maxIterations = 10000;
@@ -62,6 +63,7 @@ async function main() {
 
       const stepStr = JSON.stringify(step);
       writeStream.write(stepStr + os.EOL);
+      game.push(step);
 
       iter++;
     }
@@ -76,6 +78,8 @@ async function main() {
 
     console.log(writeStream.path);
     console.log(winnerSentence);
+
+    return game;
   } finally {
     writeStream.end();
   }
@@ -112,4 +116,8 @@ async function createWriteStream(): Promise<fs.WriteStream> {
   });
 }
 
-main().catch(err => console.log(err));
+main().catch(err => console.log(`Simulator error: ${err}`));
+
+export async function simulation(): Promise<Object[]> {
+  return await main();
+}
