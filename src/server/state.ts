@@ -7,7 +7,6 @@ import {
   DEFAULT_BOMB_RANGE,
   DEFAULT_LIVES,
   FIRE_BONUS_COUNT,
-  MAX_PLAYERS,
   SUDDEN_DEATH_STARTS_AT
 } from '../constants';
 import { MapSchema, Schema, type } from '@colyseus/schema';
@@ -27,7 +26,7 @@ import {
 } from '../types';
 
 // prettier-ignore
-const defaultMap: string[] = [
+const defaultAsciiMap: string[] = [
   '..+++++++++..',
   '.#+#+#+#+#.#.',
   '++.+.++++++++',
@@ -117,16 +116,6 @@ const positionIncrementers: { [mov: string]: PosIncrementer } = {
 let objectCounter = 0;
 
 export class GameState extends Schema implements IGameState {
-  private static readonly DefaultWidth: number = defaultMap[0].length;
-  private static readonly DefaultHeight: number = defaultMap.length;
-
-  private static readonly StartPositions: Array<IHasPos> = [
-    { x: 0, y: 0 },
-    { x: GameState.DefaultWidth - 1, y: 0 },
-    { x: 0, y: GameState.DefaultHeight - 1 },
-    { x: GameState.DefaultWidth - 1, y: GameState.DefaultHeight - 1 }
-  ];
-
   @type('string')
   roomId: string = '';
 
@@ -155,10 +144,10 @@ export class GameState extends Schema implements IGameState {
   explosions: string = '';
 
   @type('int8')
-  width: number = GameState.DefaultWidth;
+  width: number = 0;
 
   @type('int8')
-  height: number = GameState.DefaultHeight;
+  height: number = 0;
 
   @type('int16')
   tickDuration: number = 0;
@@ -166,18 +155,40 @@ export class GameState extends Schema implements IGameState {
   @type('boolean')
   suddenDeathEnabled: boolean = false;
 
+  // TODO when simulation is pause, memorize the tick to ajust the sudden death activation
   @type('boolean')
   isSimulationPaused: boolean = true;
 
-  gameStartedAtTick: number = 0;
+  private startPositions: Array<IHasPos> = [];
+
+  private gameStartedAtTick: number = 0;
 
   private plannedBonuses: { [tileIndex: number]: BonusCode } = {};
 
-  constructor(...args: any[]) {
-    super(args);
+  constructor(asciiMap?: string[]) {
+    super();
 
-    this.tiles = defaultMap.join('');
+    if (!asciiMap || !GameState.isValidAsciiMap(asciiMap)) {
+      asciiMap = defaultAsciiMap;
+    }
+
+    this.tiles = asciiMap.join('');
+    this.width = asciiMap[0].length;
+    this.height = asciiMap.length;
+    this.startPositions = [
+      { x: 0, y: 0 },
+      { x: this.width - 1, y: 0 },
+      { x: 0, y: this.height - 1 },
+      { x: this.width - 1, y: this.height - 1 }
+    ];
+
     this.planBonusPositions();
+  }
+
+  private static isValidAsciiMap(asciiMap: string[]) {
+    if (!Array.isArray(asciiMap)) return false;
+    if (asciiMap.length <= 1) return false;
+    return !asciiMap.some(line => typeof line !== 'string' || line.length <= 1);
   }
 
   private planBonusPositions() {
@@ -190,17 +201,28 @@ export class GameState extends Schema implements IGameState {
       if (char === Tiles.Block) potentialBonusPositions.add(i);
     }
 
-    if (BOMB_BONUS_COUNT + FIRE_BONUS_COUNT > potentialBonusPositions.size) throw new Error('Too many bonuses');
+    let bombBonusCount = BOMB_BONUS_COUNT;
+    let fireBonusCount = FIRE_BONUS_COUNT;
+    let totalBonusCount = bombBonusCount + fireBonusCount;
+
+    // shrinking bonuses count to the size of the map
+    if (bombBonusCount + fireBonusCount > potentialBonusPositions.size) {
+      const bombBonusRatio = bombBonusCount / totalBonusCount;
+      const fireBonusRatio = fireBonusCount / totalBonusCount;
+
+      bombBonusCount = Math.floor(potentialBonusPositions.size * bombBonusRatio);
+      fireBonusCount = Math.floor(potentialBonusPositions.size * fireBonusRatio);
+    }
 
     // TODO fair bonus positioning instead of random
 
-    for (let i = 0; i < BOMB_BONUS_COUNT; i++) {
+    for (let i = 0; i < bombBonusCount; i++) {
       const idx = _.sample([...potentialBonusPositions]) as number;
       this.plannedBonuses[idx] = 'bomb';
       potentialBonusPositions.delete(idx);
     }
 
-    for (let i = 0; i < FIRE_BONUS_COUNT; i++) {
+    for (let i = 0; i < fireBonusCount; i++) {
       const idx = _.sample([...potentialBonusPositions]) as number;
       this.plannedBonuses[idx] = 'fire';
       potentialBonusPositions.delete(idx);
@@ -369,15 +391,15 @@ export class GameState extends Schema implements IGameState {
     player.name = name;
 
     const playerCount = Object.keys(this.players).length;
-    if (playerCount >= GameState.StartPositions.length) throw new Error('More players than starting spots');
+    if (playerCount >= this.startPositions.length) throw new Error('More players than starting spots');
 
-    const startPos = GameState.StartPositions[playerCount];
+    const startPos = this.startPositions[playerCount];
     player.x = startPos.x;
     player.y = startPos.y;
 
     this.players[id] = player;
 
-    if (playerCount + 1 >= MAX_PLAYERS) {
+    if (playerCount + 1 >= this.startPositions.length) {
       this.startGame();
     }
   }
@@ -590,6 +612,7 @@ export class GameState extends Schema implements IGameState {
     return y * this.width + x;
   }
 
+  // noinspection JSUnusedLocalSymbols
   private tileIndexToCoord(idx: number): number[] {
     const x = idx % this.width;
     const y = Math.floor(idx / this.width);
