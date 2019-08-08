@@ -1,5 +1,7 @@
 # bomberman-colyseus
 
+[![Build status](https://ci.appveyor.com/api/projects/status/5f9l3em0l7rcxep4/branch/master?svg=true)](https://ci.appveyor.com/project/asimmon/bomberman-colyseus/branch/master)
+
 First, install npm dependencies with `npm i && cd src && cd frontend && npm i && cd .. && cd ..`.
 
 ### Backend and frontend development
