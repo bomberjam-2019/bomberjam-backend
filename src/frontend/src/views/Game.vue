@@ -1,7 +1,7 @@
 <template>
   <div class="game">
     <div class="container">
-      <h2 class="my-4">Viewing game {{ theRoomId }}</h2>
+      <h2 class="my-4">Viewing game {{ roomId }}</h2>
 
       <section class="jumbotron text-center p-4 m-2">
         <div id="pixi" class="mx-auto"></div>
@@ -33,29 +33,24 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
+import Vue from 'vue';
 import { IGameViewerController, showGame } from '../game/game';
 import { IJoinRoomOpts } from '../../../types';
 
-@Component
-export default class Game extends Vue {
-  private roomId: string = '';
-  private isOwner: boolean = false;
-  private busyCounter: number = 0;
-  private gameViewerCtrl?: IGameViewerController;
-
-  get theRoomId(): string {
-    return this.roomId;
-  }
-
-  get isRoomOwner(): boolean {
-    return this.isOwner;
-  }
-
-  get isBusy(): boolean {
-    return this.busyCounter > 0;
-  }
-
+export default Vue.extend({
+  data() {
+    return {
+      roomId: '' as string,
+      isRoomOwner: false as boolean,
+      busyCounter: 0 as number,
+      gameViewerCtrl: null as IGameViewerController | null
+    };
+  },
+  computed: {
+    isBusy: function(): boolean {
+      return this.busyCounter > 0;
+    }
+  },
   async mounted(): Promise<void> {
     const roomId = this.$route.params.roomId as string;
 
@@ -76,7 +71,7 @@ export default class Game extends Vue {
 
       const originalRoomId = roomId;
       this.gameViewerCtrl = await showGame(joinOpts, isOwner => {
-        if (!this.isOwner && isOwner) this.isOwner = isOwner;
+        if (!this.isRoomOwner && isOwner) this.isRoomOwner = isOwner;
       });
 
       this.roomId = this.gameViewerCtrl.roomId;
@@ -90,53 +85,50 @@ export default class Game extends Vue {
     } catch (err) {
       console.log(err);
     }
-  }
-
-  resumeGame(): void {
-    if (!this.isBusy) {
-      if (this.gameViewerCtrl) {
-        this.busyCounter++;
-        this.gameViewerCtrl.resumeGame();
-        setTimeout(() => this.busyCounter--, 300);
-      }
-    }
-  }
-
-  pauseGame(): void {
-    if (!this.isBusy) {
-      if (this.gameViewerCtrl) {
-        this.busyCounter++;
-        this.gameViewerCtrl.pauseGame();
-        setTimeout(() => this.busyCounter--, 300);
-      }
-    }
-  }
-
-  increaseSpeed(): void {
-    if (!this.isBusy) {
-      if (this.gameViewerCtrl) {
-        this.busyCounter++;
-        this.gameViewerCtrl.increaseSpeed();
-        setTimeout(() => this.busyCounter--, 300);
-      }
-    }
-  }
-
-  decreaseSpeed(): void {
-    if (!this.isBusy) {
-      if (this.gameViewerCtrl) {
-        this.busyCounter++;
-        this.gameViewerCtrl.decreaseSpeed();
-        setTimeout(() => this.busyCounter--, 300);
-      }
-    }
-  }
-
+  },
   beforeDestroy(): void {
     if (this.gameViewerCtrl) {
       this.gameViewerCtrl.stopViewer();
-      this.gameViewerCtrl = undefined;
+      this.gameViewerCtrl = null;
+    }
+  },
+  methods: {
+    resumeGame(): void {
+      if (!this.isBusy) {
+        if (this.gameViewerCtrl) {
+          this.busyCounter++;
+          this.gameViewerCtrl.resumeGame();
+          setTimeout(() => this.busyCounter--, 300);
+        }
+      }
+    },
+    pauseGame(): void {
+      if (!this.isBusy) {
+        if (this.gameViewerCtrl) {
+          this.busyCounter++;
+          this.gameViewerCtrl.pauseGame();
+          setTimeout(() => this.busyCounter--, 300);
+        }
+      }
+    },
+    increaseSpeed(): void {
+      if (!this.isBusy) {
+        if (this.gameViewerCtrl) {
+          this.busyCounter++;
+          this.gameViewerCtrl.increaseSpeed();
+          setTimeout(() => this.busyCounter--, 300);
+        }
+      }
+    },
+    decreaseSpeed(): void {
+      if (!this.isBusy) {
+        if (this.gameViewerCtrl) {
+          this.busyCounter++;
+          this.gameViewerCtrl.decreaseSpeed();
+          setTimeout(() => this.busyCounter--, 300);
+        }
+      }
     }
   }
-}
+});
 </script>
