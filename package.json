@@ -11,9 +11,10 @@
     "build:frontend:development": "cd src/frontend/ && npm run build-development",
     "build:frontend:production": "cd src/frontend/ && npm run build-production",
     "start:client:simulate": "ts-node src/client/simulator.ts  --bot=bot/bot.js",
-    "start:client:train": "ts-node src/client/trainer.ts       --bot=bot/bot.js",
+    "start:client:train": "ts-node src/client/trainer.ts    --bot=bot/bot.js --ml=bot/ml.js       --model=bot/model.ai",
+    "start:client:test": "ts-node src/client/index.ts      --bot=bot/bot.js --config=config.json --mode=training",
     "start:client:spectate": "ts-node src/client/index.ts      --bot=bot/bot.js --config=config.json --mode=spectate",
-    "start:client:match": "ts-node src/client/index.ts         --bot=bot/bot.js --config=config.json --mode=match",
+    "start:client:play": "ts-node src/client/index.ts      --bot=bot/bot.js --config=config.json --mode=match",
     "start:frontend": "cd src/frontend/ && npm run serve",
     "start:server": "npm run build:frontend:development && ts-node src/server/index.ts --frontend=../../dist/frontend"
   },

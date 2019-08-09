@@ -120,3 +120,12 @@ export interface IRoomMetadata {
   state: -1 | 0 | 1;
   players: string[];
 }
+
+export interface IMachineLearningAgent {
+  init(model: string): IModel;
+  train(gameStates: Object[]): IModel;
+}
+
+export interface IModel {
+  dump(): string;
+}

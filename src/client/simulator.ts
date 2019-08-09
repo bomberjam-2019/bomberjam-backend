@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 
-async function main(): Promise<object[]> {
+async function main(model: Object): Promise<Object[]> {
   const writeStream = await createWriteStream();
   const game = [];
 
@@ -35,7 +35,7 @@ async function main(): Promise<object[]> {
       for (const bot of bots) {
         const player = state.players[bot.id];
 
-        bot.action = bot.botFunc(sanitizedState, bot.id);
+        bot.action = bot.botFunc(sanitizedState, bot.id, model);
 
         if (player.alive) {
           playerMessages.push({
@@ -116,8 +116,6 @@ async function createWriteStream(): Promise<fs.WriteStream> {
   });
 }
 
-main().catch(err => console.log(`Simulator error: ${err}`));
-
-export async function simulation(): Promise<Object[]> {
-  return await main();
+export async function simulation(model: Object): Promise<Object[]> {
+  return await main(model);
 }

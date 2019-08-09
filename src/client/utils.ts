@@ -1,18 +1,23 @@
+import fs from 'fs';
 import path from 'path';
 
 import { DEFAULT_SERVER_PORT } from '../constants';
-import { IGameState, IJoinRoomOpts, ISimpleGameState } from '../types';
+import { IGameState, IJoinRoomOpts, ISimpleGameState, IMachineLearningAgent } from '../types';
 
 const argv: any = require('minimist')(process.argv.slice(2));
+const execPath = process.cwd();
 const mode = argv['mode'];
 const configPath = argv['config'];
 const botsPath = argv['bot'];
-const execPath = process.cwd();
+const mlPath = argv['ml'];
+const modelPath = argv['model'];
 
-console.log('exec path  = ' + execPath);
-console.log('mode       = ' + mode);
-console.log('configPath = ' + configPath);
-console.log('botsPath   = ' + botsPath);
+console.log(`execPath   = ${execPath}`);
+console.log(`mode       = ${mode}`);
+console.log(`configPath = ${configPath}`);
+console.log(`botsPath   = ${botsPath}`);
+console.log(`mlPath     = ${mlPath}`);
+console.log(`modelPath  = ${modelPath}`);
 
 export function getJoinOptions(): IJoinRoomOpts {
   // const configPath = path.resolve(__dirname, '../config.json');
@@ -135,4 +140,16 @@ export function createSanitizedStateCopyForBot(state: IGameState): ISimpleGameSt
 
 export function jsonClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
+}
+
+export function getMachineLearningAgent(): IMachineLearningAgent {
+  return require(path.resolve(execPath, mlPath));
+}
+
+export function getSavedModel(): string {
+  return fs.readFileSync(getSavedModelPath(), 'utf8');
+}
+
+export function getSavedModelPath(): string {
+  return path.resolve(execPath, modelPath);
 }
