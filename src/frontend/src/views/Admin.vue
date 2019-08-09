@@ -32,7 +32,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="room in allRooms" v-bind:key="room.roomId">
+            <tr v-for="room in rooms" v-bind:key="room.roomId">
               <td>
                 <router-link class="btn btn-primary btn-sm" :to="{ name: 'game', params: { roomId: room.roomId } }">{{
                   room.roomId
@@ -42,7 +42,7 @@
               <td>{{ room.tick }}</td>
               <td>{{ room.state }}</td>
             </tr>
-            <tr v-show="allRooms.length === 0">
+            <tr v-show="rooms.length === 0">
               <td colspan="4">No games found</td>
             </tr>
           </tbody>
@@ -53,7 +53,7 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
+import Vue from 'vue';
 import { listRooms } from '../game/game';
 
 interface IVueRoomMetadata {
@@ -63,78 +63,72 @@ interface IVueRoomMetadata {
   playerNames: string;
 }
 
-@Component
-export default class Admin extends Vue {
-  private rooms: IVueRoomMetadata[] = [];
-  private refreshInterval: number = 0;
-  private tickDurationMs: string = '';
-
-  get allRooms(): IVueRoomMetadata[] {
-    return this.rooms;
-  }
-
+export default Vue.extend({
+  data() {
+    return {
+      rooms: [] as IVueRoomMetadata[],
+      refreshInterval: 0 as number,
+      tickDurationMs: '' as string
+    };
+  },
   async mounted(): Promise<void> {
     this.tickDurationMs = '500';
     await this.refreshRooms();
     this.startAutoRefresh();
-  }
-
+  },
   beforeDestroy(): void {
     this.stopAutoRefresh();
-  }
+  },
+  methods: {
+    startAutoRefresh(): void {
+      this.refreshInterval = window.setInterval(() => {
+        this.refreshRooms();
+      }, 5000);
+    },
+    stopAutoRefresh() {
+      if (this.refreshInterval) {
+        clearInterval(this.refreshInterval);
+        this.refreshInterval = 0;
+      }
+    },
+    async refreshRooms(): Promise<void> {
+      try {
+        const rooms = await listRooms();
+        const availableRooms: IVueRoomMetadata[] = rooms.map(r => ({
+          roomId: r.roomId,
+          tick: r.tick,
+          state: this.getStateName(r.state),
+          playerNames: r.players.length > 0 ? r.players.join(', ') : 'No players yet'
+        }));
 
-  startAutoRefresh() {
-    this.refreshInterval = window.setInterval(() => {
-      this.refreshRooms();
-    }, 5000);
-  }
+        this.rooms.length = 0;
+        this.rooms.push(...availableRooms);
+      } catch (err) {
+        console.log(err);
+        this.stopAutoRefresh();
+      }
+    },
+    createNewGame() {
+      let roomId = 'new';
+      if (!Number.isNaN(Number(this.tickDurationMs))) {
+        const tickDurationMs: number = Math.ceil(Number(this.tickDurationMs));
+        if (tickDurationMs > 0) roomId += '-' + tickDurationMs;
+      }
 
-  stopAutoRefresh() {
-    if (this.refreshInterval) {
-      clearInterval(this.refreshInterval);
-      this.refreshInterval = 0;
+      this.$router.push({ name: 'game', params: { roomId: roomId } });
+    },
+    getStateName(state: -1 | 0 | 1): string {
+      switch (state) {
+        case -1:
+          return 'Waiting for players';
+        case 0:
+          return 'Playing';
+        case 1:
+          return 'Finished';
+        default:
+          return 'Unknown';
+      }
     }
   }
-
-  async refreshRooms(): Promise<void> {
-    try {
-      const rooms = await listRooms();
-      const availableRooms: IVueRoomMetadata[] = rooms.map(r => ({
-        roomId: r.roomId,
-        tick: r.tick,
-        state: Admin.getStateName(r.state),
-        playerNames: r.players.length > 0 ? r.players.join(', ') : 'No players yet'
-      }));
-
-      this.rooms.length = 0;
-      this.rooms.push(...availableRooms);
-    } catch (err) {
-      console.log(err);
-      this.stopAutoRefresh();
-    }
-  }
-
-  createNewGame() {
-    let roomId = 'new';
-    if (!Number.isNaN(Number(this.tickDurationMs))) {
-      const tickDurationMs: number = Math.ceil(Number(this.tickDurationMs));
-      if (tickDurationMs > 0) roomId += '-' + tickDurationMs;
-    }
-
-    this.$router.push({ name: 'game', params: { roomId: roomId } });
-  }
-
-  private static getStateName(state: -1 | 0 | 1): string {
-    switch (state) {
-      case -1:
-        return 'Waiting for players';
-      case 0:
-        return 'Playing';
-      case 1:
-        return 'Finished';
-      default:
-        return 'Unknown';
-    }
-  }
-}
+});
 </script>
