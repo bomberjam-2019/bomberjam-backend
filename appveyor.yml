@@ -1,7 +1,7 @@
 version: 1.0.{build}
 image: Visual Studio 2019
 environment:
-  nodejs_version: 10.16.1
+  nodejs_version: lts
 install:
   - ps: Install-Product node $env:nodejs_version
   - cmd: npm ci && cd src && cd frontend && npm ci && cd .. && cd ..
