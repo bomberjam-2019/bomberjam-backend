@@ -53,6 +53,7 @@ export default Vue.extend({
   },
   async mounted(): Promise<void> {
     const roomId = this.$route.params.roomId as string;
+    const shufflePlayersParam = this.$route.params.shufflePlayers as string;
 
     try {
       const joinOpts: IJoinRoomOpts = {
@@ -67,6 +68,10 @@ export default Vue.extend({
         }
       } else {
         joinOpts.roomId = roomId;
+      }
+
+      if (typeof shufflePlayersParam === 'string') {
+        joinOpts.shufflePlayers = shufflePlayersParam.toLowerCase() == 'true';
       }
 
       const originalRoomId = roomId;

@@ -9,6 +9,7 @@ export interface IJoinRoomOpts {
   training?: boolean;
   createNewRoom?: boolean;
   tickDurationMs?: number;
+  shufflePlayers?: boolean;
 }
 
 export interface IHasTick {
