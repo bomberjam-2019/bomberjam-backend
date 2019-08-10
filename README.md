@@ -1,7 +1,9 @@
 # bomberman-colyseus
 
-[![Ubuntu build status](https://travis-ci.org/asimmon/bomberman-colyseus.svg?branch=master)](https://travis-ci.org/asimmon/bomberman-colyseus)
-[![Windows build status](https://ci.appveyor.com/api/projects/status/github/asimmon/bomberman-colyseus?svg=true&branch=master)](https://ci.appveyor.com/project/asimmon/bomberman-colyseus)
+| OS | Build status |
+| - | - |
+| Windows | [![Windows build status](https://ci.appveyor.com/api/projects/status/github/asimmon/bomberman-colyseus?svg=true&branch=master)](https://ci.appveyor.com/project/asimmon/bomberman-colyseus) |
+| Ubuntu | [![Ubuntu build status](https://travis-ci.org/asimmon/bomberman-colyseus.svg?branch=master)](https://travis-ci.org/asimmon/bomberman-colyseus) |
 
 First, install npm dependencies with `npm i && cd src && cd frontend && npm i && cd .. && cd ..`.
 
