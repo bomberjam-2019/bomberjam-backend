@@ -1,0 +1,12 @@
+language: node_js
+node_js:
+  - '10'
+cache: npm
+install:
+  - npm ci && cd src && frontend && npm ci && cd .. && cd ..
+script:
+  - npm run test
+  - npm run build
+  - npm pack --dry-run
+notifications:
+  email: false
