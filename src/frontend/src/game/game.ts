@@ -1,10 +1,11 @@
-import { Client, Room } from 'colyseus.js';
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../constants';
 import { Application, Texture } from 'pixi.js';
+import { Client, Room } from 'colyseus.js';
 import { GameActions, IGameState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
-import { TextureRegistry } from './textureRegistry';
-import { BombermanRenderer } from './bombermanRenderer';
+
 import { AllTexturePaths } from './assets';
+import { BombermanRenderer } from './bombermanRenderer';
+import { TextureRegistry } from './textureRegistry';
 
 export function listRooms(): Promise<IRoomMetadata[]> {
   return new Promise<IRoomMetadata[]>((resolve, reject) => {
@@ -42,8 +43,6 @@ export interface IGameViewerController {
 
 export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwner: boolean) => void): Promise<IGameViewerController> {
   const pixiApp = new Application({
-    width: 256,
-    height: 256,
     antialias: true,
     backgroundColor: 0xffffff,
     resolution: 1
