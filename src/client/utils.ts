@@ -3,7 +3,6 @@ import fs from 'fs';
 
 import { DEFAULT_SERVER_PORT } from '../constants';
 import { IGameState, IJoinRoomOpts, ISimpleGameState } from '../types';
-import { boolean } from '@colyseus/schema/lib/encoding/decode';
 
 const argv: any = require('minimist')(process.argv.slice(2));
 const execPath = process.cwd();
