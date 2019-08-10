@@ -1,10 +1,12 @@
-import { IResourceDictionary, Texture } from 'pixi.js';
+import { IResourceDictionary, Texture, Spritesheet } from 'pixi.js';
 import { Sprites } from './assets';
 
 export class TextureRegistry {
-  public readonly floor: Texture;
-  public readonly wall: Texture;
-  public readonly block: Texture;
+  private readonly spritesheet: Spritesheet;
+
+  public readonly floor: Texture[];
+  public readonly wall: Texture[];
+  public readonly block: Texture[];
   public readonly player: {
     front: Texture[];
     back: Texture[];
@@ -13,40 +15,52 @@ export class TextureRegistry {
   };
   public readonly bomb: Texture[];
   public readonly flame: Texture[];
-  public readonly fireBonus: Texture;
-  public readonly bombBonus: Texture;
+  public readonly fireBonus: Texture[];
+  public readonly bombBonus: Texture[];
   public readonly tileSize: number = 32;
   public readonly spriteRatio: number;
 
   constructor(resources: IResourceDictionary) {
-    this.floor = resources[Sprites.floor].texture;
-    this.wall = resources[Sprites.wall].texture;
-    this.block = resources[Sprites.block].texture;
-    this.player = {
-      front: Sprites.player.front.map(path => resources[path].texture),
-      back: Sprites.player.back.map(path => resources[path].texture),
-      left: Sprites.player.left.map(path => resources[path].texture),
-      right: Sprites.player.right.map(path => resources[path].texture)
-    };
-    this.bomb = Sprites.bomb.map(path => resources[path].texture);
-    this.flame = Sprites.flame.map(path => resources[path].texture);
-    this.fireBonus = resources[Sprites.bonuses.fire].texture;
-    this.bombBonus = resources[Sprites.bonuses.bomb].texture;
+    const spritesheet = resources[Sprites.spritesheet].spritesheet;
+    if (!spritesheet) throw new Error('Could not load spritesheet ' + Sprites.spritesheet);
+    this.spritesheet = spritesheet;
 
-    this.spriteRatio = this.tileSize / this.floor.width;
+    for (let id in this.spritesheet.textures) {
+      if (this.spritesheet.textures.hasOwnProperty(id)) {
+        this.spritesheet.textures[id].defaultAnchor.set(0, 0);
+      }
+    }
+
+    this.floor = this.spritesheet.animations[Sprites.floor];
+    this.wall = this.spritesheet.animations[Sprites.wall];
+    this.block = this.spritesheet.animations[Sprites.block];
+    this.player = {
+      front: this.spritesheet.animations[Sprites.player.front],
+      back: this.spritesheet.animations[Sprites.player.back],
+      left: this.spritesheet.animations[Sprites.player.left],
+      right: this.spritesheet.animations[Sprites.player.right]
+    };
+    this.bomb = this.spritesheet.animations[Sprites.bomb];
+    this.flame = this.spritesheet.animations[Sprites.flame];
+    this.fireBonus = this.spritesheet.animations[Sprites.bonuses.flame];
+    this.bombBonus = this.spritesheet.animations[Sprites.bonuses.bomb];
+
+    this.spriteRatio = this.tileSize / this.floor[0].width;
   }
 
   destroy() {
-    this.floor.destroy(true);
-    this.wall.destroy(true);
-    this.block.destroy(true);
+    this.floor.forEach(t => t.destroy(true));
+    this.wall.forEach(t => t.destroy(true));
+    this.block.forEach(t => t.destroy(true));
     this.player.front.forEach(t => t.destroy(true));
     this.player.back.forEach(t => t.destroy(true));
     this.player.left.forEach(t => t.destroy(true));
     this.player.right.forEach(t => t.destroy(true));
     this.bomb.forEach(t => t.destroy(true));
     this.flame.forEach(t => t.destroy(true));
-    this.fireBonus.destroy(true);
-    this.bombBonus.destroy(true);
+    this.fireBonus.forEach(t => t.destroy(true));
+    this.bombBonus.forEach(t => t.destroy(true));
+
+    this.spritesheet.destroy(true);
   }
 }
