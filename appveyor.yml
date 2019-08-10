@@ -4,8 +4,6 @@ environment:
   nodejs_version: 10
 install:
   - ps: Install-Product node $env:nodejs_version
-  - cmd: node --version
-  - cmd: npm --version
   - cmd: npm ci && cd src && cd frontend && npm ci && cd .. && cd ..
 build_script:
   - cmd: npm run build
@@ -15,7 +13,3 @@ test_script:
 artifacts:
   - path: dist
     name: dist
-cache:
-  - node_modules
-  - src\frontend\node_modules
-  - '%APPDATA%\npm-cache'
