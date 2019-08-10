@@ -1,11 +1,11 @@
 const allActions = ['up', 'down', 'left', 'right', 'stay', 'bomb'];
 
-function yourBot(state, myPlayerId, model) {
-  return model.getBestAction(state);
+function yourBot(state, myPlayerId, agent) {
+  return agent.getBestAction(state, myPlayerId);
 }
 
 function dumbBot(state, myPlayerId) {
-  return 'stay';
+  return 'right';
 }
 
-module.exports = [yourBot, dumbBot, dumbBot, dumbBot];
+module.exports = [yourBot, yourBot, yourBot, yourBot];

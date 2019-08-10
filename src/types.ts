@@ -122,10 +122,7 @@ export interface IRoomMetadata {
 }
 
 export interface IMachineLearningAgent {
-  init(model: string): IModel;
-  train(gameStates: Object[]): IModel;
-}
-
-export interface IModel {
+  init(model: string): void;
+  train(gameStates: Object[]): void;
   dump(): string;
 }

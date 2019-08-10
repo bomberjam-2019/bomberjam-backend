@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 
-async function main(model: Object): Promise<Object[]> {
+async function main(agent: Object): Promise<Object[]> {
   const writeStream = await createWriteStream();
   const game = [];
 
@@ -35,7 +35,7 @@ async function main(model: Object): Promise<Object[]> {
       for (const bot of bots) {
         const player = state.players[bot.id];
 
-        bot.action = bot.botFunc(sanitizedState, bot.id, model);
+        bot.action = bot.botFunc(sanitizedState, bot.id, agent);
 
         if (player.alive) {
           playerMessages.push({
@@ -76,7 +76,7 @@ async function main(model: Object): Promise<Object[]> {
       winnerSentence = `Bot ${winner[0]} wins after ${state.tick} ticks`;
     }
 
-    console.log(writeStream.path);
+    // console.log(writeStream.path);
     console.log(winnerSentence);
 
     return game;
@@ -121,6 +121,6 @@ async function createWriteStream(): Promise<fs.WriteStream> {
   });
 }
 
-export async function simulation(model: Object): Promise<Object[]> {
-  return await main(model);
+export async function simulation(agent: Object): Promise<Object[]> {
+  return await main(agent);
 }

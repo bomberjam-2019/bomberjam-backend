@@ -1,0 +1,34 @@
+For the output
+--------------
+one of 6 actions
+
+For the input
+--------------
+13 * 11 = 143 tiles
+6 * 5 = 30 naturally blocked tiles
+13 * 11 - 6 * 5  = 113 free tiles
+
+143 tiles
+- type (free, blocked, destroyable)
+4 players
+- id
+- x
+- y
+- bombsLeft
+- maxBombs
+- bombRange
+- alive
+- lives
+113 bombs
+- x
+- y
+- countdown
+- range
+113 bonuses
+- x
+- y
+- type
+currentPlayerId
+
+Total input size:
+143 + 4 * 8 + 113 * 4 + 113 * 3 + 1 = 967

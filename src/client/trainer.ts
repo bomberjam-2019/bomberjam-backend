@@ -4,15 +4,16 @@ import { getMachineLearningAgent, getSavedModel, getSavedModelPath } from './uti
 
 async function main() {
   const agent = getMachineLearningAgent();
-  let model = agent.init(getSavedModel());
-  for (let i = 1; i <= 10; i++) {
-    console.log(`Game ${i} started!`);
-    const gameStates = await simulation(model);
-    model = agent.train(gameStates);
+  agent.init(getSavedModel());
+
+  for (let i = 1; i <= 1000; i++) {
+    console.log(`\nGame ${i} started!`);
+    const gameStates = await simulation(agent);
+    agent.train(gameStates);
   }
 
   console.log('Training done! Saving model to file...');
-  fs.writeFile(getSavedModelPath(), model.dump(), handleWriteError);
+  fs.writeFile(getSavedModelPath(), agent.dump(), handleWriteError);
 }
 
 main().catch(err => console.log(`Trainer error: ${err}`));
