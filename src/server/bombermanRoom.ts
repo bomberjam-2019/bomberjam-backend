@@ -1,10 +1,10 @@
-import _ from 'lodash';
-
-import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../constants';
 import { GameActionCode, GameActions, IClientMessage, IJoinRoomOpts, IPlayer, IRoomMetadata } from '../types';
+import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../constants';
+
 import { Client } from 'colyseus';
 import { GameState } from './state';
 import { TickBasedRoom } from './tickBasedRoom';
+import _ from 'lodash';
 
 const allGameActions = new Set<string>(Object.values(GameActions));
 
@@ -24,6 +24,11 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
     }
 
     const state = new GameState();
+
+    if (options.shufflePlayers === true) {
+      state.shuffleStartPositions();
+    }
+
     state.roomId = this.roomId;
     if (options.training) state.isSimulationPaused = false;
     this.setState(state);

@@ -13,6 +13,11 @@
             <input v-model="tickDurationMs" type="text" class="form-control m-2" size="5" maxlength="4" id="tickDurationMs" />
           </div>
 
+          <div class="form-group">
+            <label for="shufflePlayers">Shuffle starting positions</label>
+            <input v-model="shufflePlayers" type="checkbox" class="form-control m-2" id="shufflePlayers" />
+          </div>
+
           <a href="#" v-on:click.stop.prevent="createNewGame" class="btn btn-primary m-2 mr-3">Create new game</a>
 
           <a href="#" v-on:click.stop.prevent="refreshRooms" class="btn btn-link m-2 ml-3">Refresh game list</a>
@@ -68,11 +73,13 @@ export default Vue.extend({
     return {
       rooms: [] as IVueRoomMetadata[],
       refreshInterval: 0 as number,
-      tickDurationMs: '' as string
+      tickDurationMs: '' as string,
+      shufflePlayers: false as boolean
     };
   },
   async mounted(): Promise<void> {
     this.tickDurationMs = '500';
+    this.shufflePlayers = false;
     await this.refreshRooms();
     this.startAutoRefresh();
   },
@@ -115,7 +122,7 @@ export default Vue.extend({
         if (tickDurationMs > 0) roomId += '-' + tickDurationMs;
       }
 
-      this.$router.push({ name: 'game', params: { roomId: roomId } });
+      this.$router.push({ name: 'game', params: { roomId: roomId, shufflePlayers: this.shufflePlayers.toString() } });
     },
     getStateName(state: -1 | 0 | 1): string {
       switch (state) {

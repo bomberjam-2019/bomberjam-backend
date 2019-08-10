@@ -19,7 +19,8 @@ export function getJoinOptions(): IJoinRoomOpts {
     roomId: '',
     spectate: false,
     serverName: 'localhost',
-    serverPort: DEFAULT_SERVER_PORT
+    serverPort: DEFAULT_SERVER_PORT,
+    shufflePlayers: false
   };
 
   const clientMode = argv['mode'] || '';
@@ -43,6 +44,10 @@ export function getJoinOptions(): IJoinRoomOpts {
     joinOpts.createNewRoom = true;
   } else {
     throw new Error('Invalid option --mode, values are training, match or spectate');
+  }
+
+  if (typeof config.shufflePlayers === 'boolean') {
+    joinOpts.shufflePlayers = config.shufflePlayers;
   }
 
   return joinOpts;
