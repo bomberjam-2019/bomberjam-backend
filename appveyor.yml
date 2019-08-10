@@ -15,3 +15,7 @@ test_script:
 artifacts:
   - path: dist
     name: dist
+cache:
+  - node_modules
+  - src\frontend\node_modules
+  - '%APPDATA%\npm-cache'
