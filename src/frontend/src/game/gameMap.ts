@@ -37,11 +37,11 @@ export class GameMap extends GameContainer {
       height: this.state.height * this.textures.tileSize
     };
 
-    const wallTilingSprite = new TilingSprite(this.textures.wall, containerSize.width, containerSize.height);
+    const wallTilingSprite = new TilingSprite(this.textures.wall[0], containerSize.width, containerSize.height);
     wallTilingSprite.tileScale.set(this.textures.spriteRatio, this.textures.spriteRatio);
     this.container.addChild(wallTilingSprite);
 
-    const floorTilingSprite = new TilingSprite(this.textures.floor, mapSize.width, mapSize.height);
+    const floorTilingSprite = new TilingSprite(this.textures.floor[0], mapSize.width, mapSize.height);
     floorTilingSprite.tileScale.set(this.textures.spriteRatio, this.textures.spriteRatio);
     this.mapContainer.position.set(this.textures.tileSize, this.textures.tileSize);
     this.mapContainer.addChild(floorTilingSprite);
@@ -183,7 +183,7 @@ export class GameMap extends GameContainer {
 
   private registerBonus(bonusId: string, bonus: IBonus) {
     const texture = bonus.type === 'bomb' ? this.textures.bombBonus : this.textures.fireBonus;
-    const sprite = this.makeStaticSprite(texture, bonus, 'bonus', true);
+    const sprite = this.makeAnimatedSprite(texture, bonus, 'bonus', true);
     sprite.anchor.set(0.5, 0.5);
     this.bonusesSprites[bonusId] = sprite;
     this.mapContainer.addChild(sprite);
@@ -225,10 +225,10 @@ export class GameMap extends GameContainer {
         if (char === '+' || char === '#') {
           let sprite: Sprite;
           if (char === '+') {
-            sprite = this.makeStaticSprite(this.textures.block, { x: x, y: y }, 'block', false);
+            sprite = this.makeAnimatedSprite(this.textures.block, { x: x, y: y }, 'block', false);
             this.blockSprites.push(sprite);
           } else {
-            sprite = this.makeStaticSprite(this.textures.wall, { x: x, y: y }, 'wall', false);
+            sprite = this.makeAnimatedSprite(this.textures.wall, { x: x, y: y }, 'wall', false);
             this.wallSprites.push(sprite);
           }
 
@@ -270,26 +270,6 @@ export class GameMap extends GameContainer {
     sprite.type = type;
 
     sprite.play();
-
-    return sprite;
-  }
-
-  private makeStaticSprite(texture: Texture, pos: IHasPos, type: SpriteType, centered: boolean): Sprite {
-    const sprite = new Sprite(texture);
-
-    if (centered) {
-      sprite.position.set(
-        pos.x * this.textures.tileSize + this.textures.tileSize / 2.0,
-        pos.y * this.textures.tileSize + this.textures.tileSize / 2.0
-      );
-    } else {
-      sprite.position.set(pos.x * this.textures.tileSize, pos.y * this.textures.tileSize);
-    }
-
-    sprite.scale.set(this.textures.spriteRatio, this.textures.spriteRatio);
-    sprite.vx = 0;
-    sprite.vy = 0;
-    sprite.type = type;
 
     return sprite;
   }

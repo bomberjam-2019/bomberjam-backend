@@ -3,8 +3,8 @@ import { Application, Texture } from 'pixi.js';
 import { Client, Room } from 'colyseus.js';
 import { GameActions, IGameState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
 
-import { AllTexturePaths } from './assets';
 import { BombermanRenderer } from './bombermanRenderer';
+import { Sprites } from './assets';
 import { TextureRegistry } from './textureRegistry';
 
 export function listRooms(): Promise<IRoomMetadata[]> {
@@ -126,7 +126,7 @@ function createClient(): Client {
 function loadTexturesAsync(pixiApp: Application): Promise<TextureRegistry> {
   return new Promise<TextureRegistry>((resolve, reject) => {
     try {
-      pixiApp.loader.add(AllTexturePaths).load(() => {
+      pixiApp.loader.add(Sprites.spritesheet).load(() => {
         const textures = new TextureRegistry(pixiApp.loader.resources);
         resolve(textures);
       });
