@@ -107,7 +107,12 @@ function sortObjectByKeys(unordered: { [p: string]: string }): { [p: string]: st
 
 async function createWriteStream(): Promise<fs.WriteStream> {
   return new Promise<fs.WriteStream>(resolve => {
-    const filename = path.resolve(process.cwd(), `${Date.now()}.gamelog`);
+    const gamelogFolder = path.resolve(process.cwd(), 'gamelog');
+    if (!fs.existsSync(gamelogFolder)) {
+      fs.mkdirSync(gamelogFolder);
+    }
+
+    const filename = path.resolve(gamelogFolder, `${Date.now()}.gamelog`);
 
     const stream = fs.createWriteStream(filename);
     stream.once('open', () => {

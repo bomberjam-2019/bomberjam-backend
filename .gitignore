@@ -127,8 +127,9 @@ cmake-build-*/
 .DS_Store
 Thumbs.db
 
-*.gamelog
-
 /dist
 /.tmp/
 /.rpt2_cache/
+
+/gamelog
+*.gamelog
