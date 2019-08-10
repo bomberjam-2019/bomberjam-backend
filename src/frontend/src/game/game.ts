@@ -4,7 +4,7 @@ import { Application, Texture } from 'pixi.js';
 import { GameActions, IGameState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
 import { TextureRegistry } from './textureRegistry';
 import { BombermanRenderer } from './bombermanRenderer';
-import { AllTexturePaths } from './assets';
+import { Sprites } from './assets';
 
 export function listRooms(): Promise<IRoomMetadata[]> {
   return new Promise<IRoomMetadata[]>((resolve, reject) => {
@@ -127,7 +127,7 @@ function createClient(): Client {
 function loadTexturesAsync(pixiApp: Application): Promise<TextureRegistry> {
   return new Promise<TextureRegistry>((resolve, reject) => {
     try {
-      pixiApp.loader.add(AllTexturePaths).load(() => {
+      pixiApp.loader.add(Sprites.spritesheet).load(() => {
         const textures = new TextureRegistry(pixiApp.loader.resources);
         resolve(textures);
       });
