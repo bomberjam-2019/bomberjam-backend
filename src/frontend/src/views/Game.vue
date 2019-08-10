@@ -9,7 +9,7 @@
           <div class="col-auto">
             <button type="button" v-on:click.stop.prevent="toggleFullscreen" class="btn btn-primary btn-sm m-2 mr-3">
               <template v-if="isFullscreen">
-                Exit Fullscreen<font-awesome-icon icon="compress-arrows-alt" />
+                Exit Fullscreen <font-awesome-icon icon="compress-arrows-alt" />
               </template>
               <template v-else>
                 Fullscreen <font-awesome-icon icon="expand-arrows-alt" />
