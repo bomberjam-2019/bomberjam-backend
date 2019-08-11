@@ -16,3 +16,22 @@ export const Sprites = {
     bomb: 'bonus_bomb'
   }
 };
+
+export const Musics = {
+  level: '../assets/level.mp3',
+  waiting: '../assets/waiting.mp3',
+  victory: '../assets/victory.mp3'
+};
+
+export const Sounds = {
+  coin: '../assets/coin.mp3',
+  error: '../assets/error.mp3',
+  explosion: '../assets/explosion.mp3',
+  footsteps: '../assets/footsteps.mp3',
+  powerup: '../assets/powerup.mp3',
+  death: '../assets/death.mp3',
+  bomb: '../assets/bomb.mp3',
+  pause: '../assets/pause.mp3',
+  unpause: '../assets/unpause.mp3',
+  stomp: '../assets/stomp.mp3'
+};

@@ -1,26 +1,30 @@
-import { Room } from 'colyseus.js';
-import { Application } from 'pixi.js';
-import { TextureRegistry } from './textureRegistry';
 import { IBomb, IBonus, IGameState, IPlayer } from '../../../types';
-import { GameMap } from './gameMap';
+
+import { Application } from 'pixi.js';
 import { GameHud } from './gameHud';
+import { GameMap } from './gameMap';
+import { Room } from 'colyseus.js';
+import { SoundRegistry } from './soundRegistry';
+import { TextureRegistry } from './textureRegistry';
 
 export class BombermanRenderer {
   private room: Room<IGameState>;
   private pixiApp: Application;
   private textures: TextureRegistry;
+  private sounds: SoundRegistry;
   private prevState: IGameState;
 
   private readonly map: GameMap;
   private readonly hud: GameHud;
 
-  constructor(room: Room<IGameState>, pixiApp: Application, textures: TextureRegistry) {
+  constructor(room: Room<IGameState>, pixiApp: Application, textures: TextureRegistry, sounds: SoundRegistry) {
     this.room = room;
     this.pixiApp = pixiApp;
     this.textures = textures;
+    this.sounds = sounds;
 
     this.prevState = this.room.state;
-    this.map = new GameMap(room.state, textures);
+    this.map = new GameMap(room.state, textures, sounds);
     this.hud = new GameHud(room.state, textures);
 
     this.initialize();
@@ -37,6 +41,11 @@ export class BombermanRenderer {
     this.registerStateChangeHandlers();
 
     this.pixiApp.renderer.resize(this.pixiApp.stage.width, this.pixiApp.stage.height);
+    if (this.room.state.state === 0) {
+      this.sounds.level.play();
+    } else {
+      this.sounds.waiting.play();
+    }
   }
 
   public registerStateChangeHandlers() {
