@@ -161,7 +161,7 @@ export class GameState extends Schema implements IGameState {
 
   private startPositions: Array<IHasPos> = [];
 
-  private gameStartedAtTick: number = 0;
+  private suddenDeathCountdown: number = SUDDEN_DEATH_STARTS_AT;
 
   private plannedBonuses: { [tileIndex: number]: BonusCode } = {};
 
@@ -317,7 +317,11 @@ export class GameState extends Schema implements IGameState {
   };
 
   private unleashSuddenDeath() {
-    if (this.isPlaying() && this.tick >= this.gameStartedAtTick + SUDDEN_DEATH_STARTS_AT) {
+    this.suddenDeathCountdown--;
+
+    if (this.suddenDeathCountdown <= 0) {
+      this.suddenDeathCountdown = 0;
+
       if (!this.suddenDeathEnabled) {
         this.suddenDeathEnabled = true;
       }
@@ -410,7 +414,6 @@ export class GameState extends Schema implements IGameState {
 
   public startGame() {
     this.state = 0;
-    this.gameStartedAtTick = this.tick;
   }
 
   private hitPlayer(player: IPlayer) {
