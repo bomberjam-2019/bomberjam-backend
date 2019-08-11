@@ -131,11 +131,7 @@ export class GameMap extends GameContainer {
         // Game ended
         if (prevState.state === 0 && this.state.state === 1) {
           this.sounds.level.stop();
-          this.sounds.victory.play({
-            complete: () => {
-              this.sounds.waiting.play();
-            }
-          });
+          this.sounds.victory.play();
         }
       }
     }
@@ -158,12 +154,22 @@ export class GameMap extends GameContainer {
 
       if (!player.alive && !player.hasWon && playerSprite) {
         playerSprite.visible = false;
-        this.sounds.death.play();
+
+        if (prevState.players[playerId].alive !== player.alive) {
+          this.sounds.death.play();
+        }
       }
     }
 
     this.displayFlames();
+
+    let previousWallCount = this.wallSprites.length;
     this.displayWallsAndBlocks();
+
+    // New wall has dropped.
+    if (previousWallCount !== this.wallSprites.length) {
+      this.sounds.stomp.play();
+    }
 
     // z-ordering
     this.mapContainer.children.sort((s1: DisplayObject, s2: DisplayObject) => {

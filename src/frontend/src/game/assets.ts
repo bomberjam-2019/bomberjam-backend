@@ -32,5 +32,6 @@ export const Sounds = {
   death: '../assets/death.mp3',
   bomb: '../assets/bomb.mp3',
   pause: '../assets/pause.mp3',
-  unpause: '../assets/unpause.mp3'
+  unpause: '../assets/unpause.mp3',
+  stomp: '../assets/stomp.mp3'
 };

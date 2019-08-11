@@ -17,6 +17,7 @@ export class SoundRegistry {
   public readonly bomb: sound.Sound;
   public readonly pause: sound.Sound;
   public readonly unpause: sound.Sound;
+  public readonly stomp: sound.Sound;
 
   constructor(resources: IResourceDictionary) {
     this.waiting = resources.waiting.sound;
@@ -39,9 +40,10 @@ export class SoundRegistry {
     this.bomb = resources.bomb.sound;
     this.pause = resources.pause.sound;
     this.unpause = resources.unpause.sound;
+    this.stomp = resources.stomp.sound;
 
     this.footsteps = resources.footsteps.sound;
-    this.footsteps.volume = 0.2;
+    this.footsteps.volume = 0.5;
   }
 
   public pauseAll() {
@@ -66,6 +68,7 @@ export class SoundRegistry {
     loader.add('bomb', Sounds.bomb);
     loader.add('pause', Sounds.pause);
     loader.add('unpause', Sounds.unpause);
+    loader.add('stomp', Sounds.stomp);
   }
 
   destroy() {
