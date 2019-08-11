@@ -21,12 +21,15 @@ export class SoundRegistry {
   constructor(resources: IResourceDictionary) {
     this.waiting = resources.waiting.sound;
     this.waiting.loop = true;
+    this.waiting.singleInstance = true;
 
     this.level = resources.level.sound;
     this.level.loop = true;
-    this.level.volume = 0.1;
+    this.level.volume = 0.5;
+    this.level.singleInstance = true;
 
     this.victory = resources.victory.sound;
+    this.victory.singleInstance = true;
 
     this.coin = resources.coin.sound;
     this.error = resources.error.sound;
@@ -42,11 +45,11 @@ export class SoundRegistry {
   }
 
   public pauseAll() {
-    sound.pauseAll();
+    sound.muteAll();
   }
 
   public resumeAll() {
-    sound.resumeAll();
+    sound.unmuteAll();
   }
 
   static loadResources(loader: Loader) {

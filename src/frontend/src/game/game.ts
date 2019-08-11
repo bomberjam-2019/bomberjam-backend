@@ -110,14 +110,19 @@ export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwne
     },
     resumeGame: () => {
       if (room && room.hasJoined) {
+        sounds.resumeAll();
+        sounds.unpause.play();
         room.send(GameActions.ResumeGame);
-        sounds.pause.play();
       }
     },
     pauseGame: () => {
       if (room && room.hasJoined) {
         room.send(GameActions.PauseGame);
-        sounds.unpause.play();
+        sounds.pause.play({
+          complete: () => {
+            sounds.pauseAll();
+          }
+        });
       }
     },
     increaseSpeed: () => {
