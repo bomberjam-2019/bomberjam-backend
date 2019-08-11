@@ -1,30 +1,45 @@
 <template>
   <div class="game">
-    <div class="container">
-      <h2 class="my-4">Viewing game {{ roomId }}</h2>
-
-      <section class="jumbotron text-center p-4 m-2">
-        <div id="pixi" class="mx-auto"></div>
-      </section>
-
-      <div v-show="isRoomOwner" class="text-center m-2">
-        <button v-on:click.stop.prevent="resumeGame" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
-          Play
-        </button>
-
-        <button v-on:click.stop.prevent="pauseGame" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
-          Pause
-        </button>
-
-        <button v-on:click.stop.prevent="increaseSpeed" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
-          Increase speed
-        </button>
-
-        <button v-on:click.stop.prevent="decreaseSpeed" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
-          Decrease speed
-        </button>
+    <div v-bind:class="{ container: !isFullscreen, fullscreen: isFullscreen }">
+      <div v-bind:class="{ container: !isFullscreen }">
+        <div class="row align-items-center">
+          <div class="col-auto mr-auto">
+            <h2 class="my-4">Viewing game {{ roomId }}</h2>
+          </div>
+          <div class="col-auto">
+            <button type="button" v-on:click.stop.prevent="toggleFullscreen" class="btn btn-primary btn-sm m-2 mr-3">
+              <template v-if="isFullscreen">
+                Exit Fullscreen <font-awesome-icon icon="compress-arrows-alt" />
+              </template>
+              <template v-else>
+                Fullscreen <font-awesome-icon icon="expand-arrows-alt" />
+              </template>
+            </button>
+          </div>
+        </div>
       </div>
+      <div id="pixi" class="mx-auto"></div>
+      <div class="container">
+        <div v-show="isRoomOwner" class="text-center m-2">
+          <button v-on:click.stop.prevent="resumeGame" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
+            Play
+          </button>
 
+          <button v-on:click.stop.prevent="pauseGame" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
+            Pause
+          </button>
+
+          <button v-on:click.stop.prevent="increaseSpeed" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
+            Increase speed
+          </button>
+
+          <button v-on:click.stop.prevent="decreaseSpeed" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
+            Decrease speed
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="container">
       <section class="jumbotron p-4 m-2">
         <pre id="debug" class="m-0"></pre>
       </section>
@@ -34,6 +49,7 @@
 
 <script lang="ts">
 import Vue from 'vue';
+import * as screenfull from 'screenfull';
 import { IGameViewerController, showGame } from '../game/game';
 import { IJoinRoomOpts } from '../../../types';
 
@@ -43,7 +59,8 @@ export default Vue.extend({
       roomId: '' as string,
       isRoomOwner: false as boolean,
       busyCounter: 0 as number,
-      gameViewerCtrl: null as IGameViewerController | null
+      gameViewerCtrl: null as IGameViewerController | null,
+      isFullscreen: false as boolean
     };
   },
   computed: {
@@ -51,8 +68,16 @@ export default Vue.extend({
       return this.busyCounter > 0;
     }
   },
+  created: function() {
+    if (screenfull && screenfull.enabled) {
+      screenfull.on('change', () => {
+        this.isFullscreen = screenfull && screenfull.isFullscreen;
+      });
+    }
+  },
   async mounted(): Promise<void> {
     const roomId = this.$route.params.roomId as string;
+    const shufflePlayersParam = this.$route.params.shufflePlayers as string;
 
     try {
       const joinOpts: IJoinRoomOpts = {
@@ -67,6 +92,10 @@ export default Vue.extend({
         }
       } else {
         joinOpts.roomId = roomId;
+      }
+
+      if (typeof shufflePlayersParam === 'string') {
+        joinOpts.shufflePlayers = shufflePlayersParam.toLowerCase() == 'true';
       }
 
       const originalRoomId = roomId;
@@ -127,6 +156,11 @@ export default Vue.extend({
           this.gameViewerCtrl.decreaseSpeed();
           setTimeout(() => this.busyCounter--, 300);
         }
+      }
+    },
+    toggleFullscreen(): void {
+      if (screenfull && screenfull.enabled) {
+        screenfull.toggle();
       }
     }
   }

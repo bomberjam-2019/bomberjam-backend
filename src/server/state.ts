@@ -1,5 +1,3 @@
-import _ from 'lodash';
-
 import {
   ARE_PLAYERS_INVINCIBLE,
   BOMB_BONUS_COUNT,
@@ -9,7 +7,6 @@ import {
   FIRE_BONUS_COUNT,
   SUDDEN_DEATH_STARTS_AT
 } from '../constants';
-import { MapSchema, Schema, type } from '@colyseus/schema';
 import {
   ActionCode,
   Actions,
@@ -24,6 +21,9 @@ import {
   TileCode,
   Tiles
 } from '../types';
+import { MapSchema, Schema, type } from '@colyseus/schema';
+
+import _ from 'lodash';
 
 // prettier-ignore
 const defaultAsciiMap: string[] = [
@@ -239,6 +239,10 @@ export class GameState extends Schema implements IGameState {
 
   public isGameEnded(): boolean {
     return this.state === 1;
+  }
+
+  public shuffleStartPositions() {
+    this.startPositions = _.shuffle(this.startPositions);
   }
 
   private isOutOfBound(x: number, y: number): boolean {

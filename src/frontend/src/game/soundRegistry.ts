@@ -41,6 +41,14 @@ export class SoundRegistry {
     this.footsteps.volume = 0.2;
   }
 
+  public pauseAll() {
+    sound.pauseAll();
+  }
+
+  public resumeAll() {
+    sound.resumeAll();
+  }
+
   static loadResources(loader: Loader) {
     loader.add('level', Musics.level);
     loader.add('waiting', Musics.waiting);

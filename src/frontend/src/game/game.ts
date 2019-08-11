@@ -1,5 +1,5 @@
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../constants';
-import { Application, Texture, sound } from 'pixi.js';
+import { Application, Texture } from 'pixi.js';
 import { Client, Room } from 'colyseus.js';
 import { GameActions, IGameState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
 
@@ -44,8 +44,6 @@ export interface IGameViewerController {
 
 export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwner: boolean) => void): Promise<IGameViewerController> {
   const pixiApp = new Application({
-    width: 256,
-    height: 256,
     antialias: true,
     backgroundColor: 0xffffff,
     resolution: 1
@@ -113,18 +111,13 @@ export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwne
     resumeGame: () => {
       if (room && room.hasJoined) {
         room.send(GameActions.ResumeGame);
-        sound.pauseAll();
         sounds.pause.play();
       }
     },
     pauseGame: () => {
       if (room && room.hasJoined) {
         room.send(GameActions.PauseGame);
-        sounds.unpause.play({
-          complete: () => {
-            sound.resumeAll();
-          }
-        });
+        sounds.unpause.play();
       }
     },
     increaseSpeed: () => {
