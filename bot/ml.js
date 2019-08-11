@@ -24,28 +24,31 @@ const BONUS_NUMBERS = {
   bomb: 1
 };
 
+const MAX_TICKS = 1100;
+
 class MachineLearningAgent {
   init(modelStr) {
-    const model = JSON.parse(modelStr);
+    //const model = JSON.parse(modelStr);
     //console.log(Object.keys(model));
     //console.log(Object.keys(model.model));
     //console.log(Object.keys(model.agent));
+
+    const inputLayerSize = STATE_SIZE;
+    const outputLayerSize = ACTIONS.length;
+    const hiddenLayer1Size = Math.floor(inputLayerSize / 4);
+    const hiddenLayer2Size = Math.floor(outputLayerSize * 4);
 
     this.model = Sequential({
       optimizer: SGD(0.01),
       loss: MSE()
     });
 
-    const inputLayerSize = STATE_SIZE;
-    const outputLayerSize = ACTIONS.length;
-    const hiddenLayersSizes = [Math.floor(inputLayerSize / 4), Math.floor(outputLayerSize * 4)];
-
     this.model
-      .add(Linear(inputLayerSize, hiddenLayersSizes[0]))
+      .add(Linear(inputLayerSize, hiddenLayer1Size))
       .add(ReLU())
-      .add(Linear(hiddenLayersSizes[0], hiddenLayersSizes[1]))
+      .add(Linear(hiddenLayer1Size, hiddenLayer2Size))
       .add(ReLU())
-      .add(Linear(hiddenLayersSizes[1], outputLayerSize));
+      .add(Linear(hiddenLayer2Size, outputLayerSize));
 
     this.agent = DQN({
       model: this.model,
@@ -53,7 +56,12 @@ class MachineLearningAgent {
     });
   }
 
-  train(gameStates) {
+  train(gameStates, playerNumber) {
+    const currentPlayerId = Object.keys(gameStates[0].state.players)[playerNumber];
+    const lastStateForPlayer =
+      gameStates.find(gameState => !gameState.state.players[currentPlayerId].alive) || gameStates[gameStates.length - 1];
+    this.getBestAction(lastStateForPlayer.state, currentPlayerId, true);
+
     const loss = this.agent.learn();
     console.log(`Loss: ${loss}`);
   }
@@ -65,17 +73,15 @@ class MachineLearningAgent {
     });
   }
 
-  getBestAction(gameState, currentPlayerId) {
-    const state = toModelInput(gameState, currentPlayerId);
-    const reward = getReward(gameState, currentPlayerId);
-    const done = gameState.players[currentPlayerId].alive;
-
-    const actionNumber = this.agent.step(state, reward, done);
-    if (actionNumber >= ACTIONS.length) {
-      console.log(`Invalid action number: ${actionNumber}`);
+  getBestAction(gameState, currentPlayerId, done = false) {
+    if (!gameState.players[currentPlayerId].alive && !done) {
+      return ACTIONS[0]; // Doesn't matter, you're dead
     }
 
-    return ACTIONS[actionNumber];
+    const state = toModelInput(gameState, currentPlayerId);
+    const reward = getReward(gameState, currentPlayerId);
+
+    return ACTIONS[this.agent.step(state, reward, done)];
   }
 }
 
@@ -135,17 +141,18 @@ function getReward(gameState, currentPlayerId) {
   const currentPlayer = gameState.players[currentPlayerId];
   const players = Object.values(gameState.players);
   const otherPlayers = players.filter(player => player.id !== currentPlayerId);
+  const otherPlayersMaximumLifeCount = MAX_LIFE * otherPlayers.length;
   const otherPlayersLifeCount = otherPlayers.reduce((lives, player) => lives + player.lives, 0);
-  const maximumLifeCount = MAX_LIFE * players.length;
+  const otherAlivePlayers = otherPlayers.filter(player => player.alive);
 
-  // Being dead is bad
-  if (!currentPlayer.alive) {
-    return -1 * players.length;
+  // If you won, get points based on how fast you won
+  if (!otherAlivePlayers) {
+    console.log('I win!');
+    return MAX_TICKS - gameState.ticks;
   }
 
-  // Having life is good
-  // When other players lose life it's good too
-  return currentPlayer.lives + maximumLifeCount - otherPlayersLifeCount;
+  // Try to stay as healthy as possible
+  return currentPlayer.lives / MAX_LIFE;
 }
 
 function getPlayerNumber(players, currentPlayerId) {
@@ -154,4 +161,4 @@ function getPlayerNumber(players, currentPlayerId) {
   }, 0);
 }
 
-module.exports = new MachineLearningAgent();
+module.exports = [new MachineLearningAgent(), new MachineLearningAgent(), new MachineLearningAgent(), new MachineLearningAgent()];

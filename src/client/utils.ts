@@ -142,7 +142,7 @@ export function jsonClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
 }
 
-export function getMachineLearningAgent(): IMachineLearningAgent {
+export function getMachineLearningAgents(): IMachineLearningAgent[] {
   return require(path.resolve(execPath, mlPath));
 }
 

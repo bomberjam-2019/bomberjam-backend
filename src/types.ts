@@ -123,6 +123,6 @@ export interface IRoomMetadata {
 
 export interface IMachineLearningAgent {
   init(model: string): void;
-  train(gameStates: Object[]): void;
+  train(gameStates: Object[], playerNumber: number): void;
   dump(): string;
 }

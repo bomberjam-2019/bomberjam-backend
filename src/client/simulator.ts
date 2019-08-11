@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 
-async function main(agent: Object): Promise<Object[]> {
+async function main(agents: Object[]): Promise<Object[]> {
   const writeStream = await createWriteStream();
   const game = [];
 
@@ -15,11 +15,11 @@ async function main(agent: Object): Promise<Object[]> {
     const state = new GameState();
     state.isSimulationPaused = false;
 
-    let i = 0;
-    const bots = getFourBots().map(botFunc => ({
-      id: `bot-${i++}`,
+    const bots = getFourBots().map((botFunc, i) => ({
+      id: `bot-${i}`,
       botFunc: botFunc,
-      action: 'stay' as ActionCode
+      action: 'stay' as ActionCode,
+      agent: agents[i]
     }));
 
     for (const bot of bots) {
@@ -35,7 +35,7 @@ async function main(agent: Object): Promise<Object[]> {
       for (const bot of bots) {
         const player = state.players[bot.id];
 
-        bot.action = bot.botFunc(sanitizedState, bot.id, agent);
+        bot.action = bot.botFunc(sanitizedState, bot.id, bot.agent);
 
         if (player.alive) {
           playerMessages.push({
@@ -121,6 +121,6 @@ async function createWriteStream(): Promise<fs.WriteStream> {
   });
 }
 
-export async function simulation(agent: Object): Promise<Object[]> {
-  return await main(agent);
+export async function simulation(agents: Object[]): Promise<Object[]> {
+  return await main(agents);
 }

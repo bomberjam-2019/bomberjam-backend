@@ -5,7 +5,7 @@ function yourBot(state, myPlayerId, agent) {
 }
 
 function dumbBot(state, myPlayerId) {
-  return 'right';
+  return 'stay';
 }
 
 module.exports = [yourBot, yourBot, yourBot, yourBot];
