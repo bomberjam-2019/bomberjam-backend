@@ -29,7 +29,7 @@ export type TileCode = '' | '.' | '#' | '+';
 
 export type BonusCode = 'bomb' | 'fire';
 
-export type GameActionCode = 'increaseSpeed' | 'decreaseSpeed' | 'resumeGame' | 'pauseGame';
+export type GameActionCode = 'increaseSpeed' | 'decreaseSpeed' | 'resumeGame' | 'pauseGame' | 'becomePlayer';
 
 export const Actions: { [key: string]: ActionCode } = {
   Up: 'up',
@@ -51,7 +51,8 @@ export const GameActions: { [key: string]: GameActionCode } = {
   ResumeGame: 'resumeGame',
   PauseGame: 'pauseGame',
   IncreaseSpeed: 'increaseSpeed',
-  DecreaseSpeed: 'decreaseSpeed'
+  DecreaseSpeed: 'decreaseSpeed',
+  BecomePlayer: 'becomePlayer'
 };
 
 export interface IClientMessage extends IHasTick {

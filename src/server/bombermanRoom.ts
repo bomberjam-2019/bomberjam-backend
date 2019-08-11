@@ -1,8 +1,8 @@
 import { GameActionCode, GameActions, IClientMessage, IJoinRoomOpts, IPlayer, IRoomMetadata } from '../types';
+import { GameState, Player } from './state';
 import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../constants';
 
 import { Client } from 'colyseus';
-import { GameState } from './state';
 import { TickBasedRoom } from './tickBasedRoom';
 import _ from 'lodash';
 
@@ -96,13 +96,13 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
 
   public onMessage(client: Client, message: IClientMessage) {
     if (typeof message === 'string') {
-      this.applyGameAction(message);
+      this.applyGameAction(client, message);
     } else {
       super.onMessage(client, message);
     }
   }
 
-  public applyGameAction(str: string) {
+  public applyGameAction(client: Client, str: string) {
     if (!allGameActions.has(str)) return;
     const action = str as GameActionCode;
 
@@ -118,6 +118,9 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
         break;
       case 'pauseGame':
         this.pauseGame();
+        break;
+      case 'becomePlayer':
+        this.becomePlayer(client);
         break;
     }
   }
@@ -150,6 +153,10 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
     if (this.state.isPlaying()) {
       this.state.isSimulationPaused = true;
     }
+  }
+
+  private becomePlayer(client: Client) {
+    this.state.addPlayer(client.sessionId, 'Toto');
   }
 
   protected isValidMessage(message: IClientMessage): boolean {

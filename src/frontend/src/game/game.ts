@@ -39,6 +39,7 @@ export interface IGameViewerController {
   pauseGame: () => void;
   increaseSpeed: () => void;
   decreaseSpeed: () => void;
+  becomePlayer: () => void;
 }
 
 export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwner: boolean) => void): Promise<IGameViewerController> {
@@ -115,6 +116,10 @@ export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwne
     },
     decreaseSpeed: () => {
       if (room && room.hasJoined) room.send(GameActions.DecreaseSpeed);
+    },
+    becomePlayer: () => {
+      console.log('beocme player - game.ts');
+      if (room && room.hasJoined) room.send(GameActions.BecomePlayer);
     }
   };
 }

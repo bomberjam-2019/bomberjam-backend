@@ -37,6 +37,9 @@
             Decrease speed
           </button>
         </div>
+        <button v-on:click.stop.prevent="becomePlayer" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
+          Join as Player
+        </button>
       </div>
     </div>
     <div class="container">
@@ -161,6 +164,12 @@ export default Vue.extend({
     toggleFullscreen(): void {
       if (screenfull && screenfull.enabled) {
         screenfull.toggle();
+      }
+    },
+    becomePlayer(): void {
+      if (this.gameViewerCtrl) {
+        console.log('becomePlayer - game.vue');
+        this.gameViewerCtrl.becomePlayer();
       }
     }
   }
