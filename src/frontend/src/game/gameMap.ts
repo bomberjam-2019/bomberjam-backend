@@ -2,6 +2,7 @@ import _ from 'lodash';
 
 import { AnimatedSprite, Container, DisplayObject, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { TextureRegistry } from './textureRegistry';
+import { SoundRegistry } from './soundRegistry';
 import { IBomb, IBonus, IGameState, IHasPos, IPlayer } from '../../../types';
 import { GameContainer } from './gameContainer';
 import { PlayerColor } from './playerColor';
@@ -10,6 +11,7 @@ type SpriteType = 'player' | 'bomb' | 'flame' | 'bonus' | 'block' | 'wall';
 
 export class GameMap extends GameContainer {
   private readonly textures: TextureRegistry;
+  private readonly sounds: SoundRegistry;
   private readonly mapContainer: Container;
 
   private wallSprites: Sprite[] = [];
@@ -19,10 +21,11 @@ export class GameMap extends GameContainer {
   private bonusesSprites: { [bonusId: string]: Sprite } = {};
   private flameSprites: Sprite[] = [];
 
-  constructor(state: IGameState, textures: TextureRegistry) {
+  constructor(state: IGameState, textures: TextureRegistry, sounds: SoundRegistry) {
     super(state);
 
     this.textures = textures;
+    this.sounds = sounds;
     this.mapContainer = new Container();
   }
 
@@ -51,14 +54,17 @@ export class GameMap extends GameContainer {
 
   onPlayerAdded(playerId: string, player: IPlayer): void {
     this.registerPlayer(playerId, player);
+    this.sounds.coin.play();
   }
 
   onPlayerRemoved(playerId: string, player: IPlayer): void {
     this.unregisterObjectSprite(this.playerSprites, playerId);
+    this.sounds.error.play();
   }
 
   onBombAdded(bombId: string, bomb: IBomb): void {
     this.registerBomb(bombId, bomb);
+    this.sounds.bomb.play();
   }
 
   onBombRemoved(bombId: string, bomb: IBomb): void {
@@ -71,6 +77,14 @@ export class GameMap extends GameContainer {
 
   onBonusRemoved(bonusId: string, bonus: IBonus): void {
     this.unregisterObjectSprite(this.bonusesSprites, bonusId);
+
+    // If player got Bonus
+    for (const playerId in this.state.players) {
+      const player: IPlayer = this.state.players[playerId];
+      if (bonus.x === player.x && bonus.y === player.y) {
+        this.sounds.powerup.play();
+      }
+    }
   }
 
   public onStateChanged(prevState: IGameState) {
@@ -107,6 +121,22 @@ export class GameMap extends GameContainer {
           sprite.vx = 0;
           sprite.vy = 0;
         }
+
+        // Game started
+        if (prevState.state === -1 && this.state.state === 0) {
+          this.sounds.waiting.stop();
+          this.sounds.level.play();
+        }
+
+        // Game ended
+        if (prevState.state === 0 && this.state.state === 1) {
+          this.sounds.level.stop();
+          this.sounds.victory.play({
+            complete: () => {
+              this.sounds.waiting.play();
+            }
+          });
+        }
       }
     }
 
@@ -115,7 +145,10 @@ export class GameMap extends GameContainer {
       const bomb: IBomb = this.state.bombs[bombId];
       const bombSprite: Sprite = this.bombSprites[bombId];
 
-      if (bomb.countdown <= 0 && bombSprite) bombSprite.visible = false;
+      if (bomb.countdown <= 0 && bombSprite) {
+        bombSprite.visible = false;
+        this.sounds.explosion.play();
+      }
     }
 
     // Hide dead players
@@ -123,7 +156,10 @@ export class GameMap extends GameContainer {
       const player: IPlayer = this.state.players[playerId];
       const playerSprite: Sprite = this.playerSprites[playerId];
 
-      if (!player.alive && !player.hasWon && playerSprite) playerSprite.visible = false;
+      if (!player.alive && !player.hasWon && playerSprite) {
+        playerSprite.visible = false;
+        this.sounds.death.play();
+      }
     }
 
     this.displayFlames();
@@ -169,6 +205,7 @@ export class GameMap extends GameContainer {
       PlayerColor.colorize(playerId, sprite);
       this.playerSprites[playerId] = sprite;
       this.mapContainer.addChild(sprite);
+      this.sounds.footsteps.play();
     }
   }
 

@@ -1,10 +1,12 @@
-import { Client, Room } from 'colyseus.js';
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../constants';
-import { Application, Texture } from 'pixi.js';
+import { Application, Texture, sound } from 'pixi.js';
+import { Client, Room } from 'colyseus.js';
 import { GameActions, IGameState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
-import { TextureRegistry } from './textureRegistry';
+
 import { BombermanRenderer } from './bombermanRenderer';
+import { SoundRegistry } from './soundRegistry';
 import { Sprites } from './assets';
+import { TextureRegistry } from './textureRegistry';
 
 export function listRooms(): Promise<IRoomMetadata[]> {
   return new Promise<IRoomMetadata[]>((resolve, reject) => {
@@ -52,6 +54,9 @@ export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwne
   const textures = await loadTexturesAsync(pixiApp);
   console.log('Game textures loaded');
 
+  const sounds = await loadSoundsAsync(pixiApp);
+  console.log('Game sounds loaded');
+
   const client = createClient();
   await openColyseusClientAsync(client);
   console.log('Client connected');
@@ -81,7 +86,7 @@ export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwne
     isOwnerCallback(room.sessionId === state.ownerId);
 
     if (!initialized) {
-      gameRenderer = new BombermanRenderer(room, pixiApp, textures);
+      gameRenderer = new BombermanRenderer(room, pixiApp, textures, sounds);
       pixiContainer.appendChild(pixiApp.view);
       pixiApp.ticker.add(() => gameRenderer.onPixiFrameUpdated(pixiApp.ticker.elapsedMS));
       initialized = true;
@@ -103,13 +108,24 @@ export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwne
         client.close();
       } catch {}
 
-      cleanupPixiApp(pixiContainer, pixiApp, textures);
+      cleanupPixiApp(pixiContainer, pixiApp, textures, sounds);
     },
     resumeGame: () => {
-      if (room && room.hasJoined) room.send(GameActions.ResumeGame);
+      if (room && room.hasJoined) {
+        room.send(GameActions.ResumeGame);
+        sound.pauseAll();
+        sounds.pause.play();
+      }
     },
     pauseGame: () => {
-      if (room && room.hasJoined) room.send(GameActions.PauseGame);
+      if (room && room.hasJoined) {
+        room.send(GameActions.PauseGame);
+        sounds.unpause.play({
+          complete: () => {
+            sound.resumeAll();
+          }
+        });
+      }
     },
     increaseSpeed: () => {
       if (room && room.hasJoined) room.send(GameActions.IncreaseSpeed);
@@ -130,6 +146,23 @@ function loadTexturesAsync(pixiApp: Application): Promise<TextureRegistry> {
       pixiApp.loader.add(Sprites.spritesheet).load(() => {
         const textures = new TextureRegistry(pixiApp.loader.resources);
         resolve(textures);
+      });
+    } catch (err) {
+      try {
+        pixiApp.loader.reset();
+      } catch {}
+      reject(err);
+    }
+  });
+}
+
+function loadSoundsAsync(pixiApp: Application): Promise<SoundRegistry> {
+  return new Promise<SoundRegistry>((resolve, reject) => {
+    try {
+      SoundRegistry.loadResources(pixiApp.loader);
+      pixiApp.loader.load(() => {
+        const sounds = new SoundRegistry(pixiApp.loader.resources);
+        resolve(sounds);
       });
     } catch (err) {
       try {
@@ -171,7 +204,7 @@ function joinRoomAsync<TState>(client: Client, joinOpts: IJoinRoomOpts): Promise
   });
 }
 
-function cleanupPixiApp(pixiContainer: HTMLElement, pixiApp: Application, textures: TextureRegistry) {
+function cleanupPixiApp(pixiContainer: HTMLElement, pixiApp: Application, textures: TextureRegistry, sounds: SoundRegistry) {
   // Omg so much code to clear the pixi gpu texture cache
   // Some instructions might not be effective but overall it seems to work
   try {
@@ -181,6 +214,8 @@ function cleanupPixiApp(pixiContainer: HTMLElement, pixiApp: Application, textur
     pixiApp.stop();
 
     textures.destroy();
+
+    sounds.destroy();
 
     for (const id in pixiApp.loader.resources) {
       const texture: Texture = pixiApp.loader.resources[id].texture;
