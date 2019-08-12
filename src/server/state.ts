@@ -5,7 +5,7 @@ import {
   DEFAULT_BOMB_RANGE,
   DEFAULT_LIVES,
   FIRE_BONUS_COUNT,
-  SUDDEN_DEATH_STARTS_AT
+  SUDDEN_DEATH_COUNTDOWN
 } from '../constants';
 import {
   ActionCode,
@@ -152,16 +152,16 @@ export class GameState extends Schema implements IGameState {
   @type('int16')
   tickDuration: number = 0;
 
+  @type('int16')
+  suddenDeathCountdown: number = SUDDEN_DEATH_COUNTDOWN;
+
   @type('boolean')
   suddenDeathEnabled: boolean = false;
 
-  // TODO when simulation is pause, memorize the tick to ajust the sudden death activation
   @type('boolean')
   isSimulationPaused: boolean = true;
 
   private startPositions: Array<IHasPos> = [];
-
-  private suddenDeathCountdown: number = SUDDEN_DEATH_STARTS_AT;
 
   private plannedBonuses: { [tileIndex: number]: BonusCode } = {};
 
@@ -282,6 +282,8 @@ export class GameState extends Schema implements IGameState {
   }
 
   public applyClientMessages(messages: IClientMessage[]) {
+    this.tick++;
+
     if (this.isPlaying()) {
       if (this.isSimulationPaused) return;
 
@@ -317,11 +319,11 @@ export class GameState extends Schema implements IGameState {
   };
 
   private unleashSuddenDeath() {
-    this.suddenDeathCountdown--;
+    if (this.suddenDeathCountdown > 0) {
+      this.suddenDeathCountdown--;
+    }
 
     if (this.suddenDeathCountdown <= 0) {
-      this.suddenDeathCountdown = 0;
-
       if (!this.suddenDeathEnabled) {
         this.suddenDeathEnabled = true;
       }

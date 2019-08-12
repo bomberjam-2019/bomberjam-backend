@@ -34,8 +34,6 @@ export abstract class TickBasedRoom<TState extends IHasTick> extends Room<TState
 
   // This method is the one that send the state patch at each tick
   protected broadcastPatch(): boolean {
-    this.state.tick++;
-
     this.queuedMessages.sort((m1, m2) => m1.elapsed - m2.elapsed);
     this.computeState(this.queuedMessages);
     this.queuedMessages.length = 0;

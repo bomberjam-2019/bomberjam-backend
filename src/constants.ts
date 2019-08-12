@@ -12,6 +12,6 @@ export const DEFAULT_BOMB_COUNTDOWN = 8;
 export const DEFAULT_LIVES = 3;
 export const BOMB_BONUS_COUNT = 8;
 export const FIRE_BONUS_COUNT = 8;
-export const SUDDEN_DEATH_STARTS_AT = 1000;
+export const SUDDEN_DEATH_COUNTDOWN = 1000;
 
 export const ARE_PLAYERS_INVINCIBLE = true;

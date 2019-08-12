@@ -100,6 +100,7 @@ export interface ISimpleGameState extends IHasTick {
   bonuses: { [id: string]: ISimpleBonus };
   width: number;
   height: number;
+  suddenDeathCountdown: number;
   suddenDeathEnabled: boolean;
 }
 
@@ -111,7 +112,6 @@ export interface IGameState extends ISimpleGameState {
   bonuses: { [id: string]: IBonus };
   explosions: string;
   tickDuration: number;
-  suddenDeathEnabled: boolean;
   isSimulationPaused: boolean;
 }
 

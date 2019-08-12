@@ -1,6 +1,6 @@
 import { ActionCode, Actions, IClientMessage, IPlayer } from '../src/types';
 import { GameState } from '../src/server/state';
-import { SUDDEN_DEATH_STARTS_AT } from '../src/constants';
+import { SUDDEN_DEATH_COUNTDOWN } from '../src/constants';
 import _ from 'lodash';
 
 const assert = require('assert');
@@ -63,11 +63,13 @@ describe('GameState', () => {
       gameState.isSimulationPaused = false;
 
       const tileCount = gameState.width * gameState.height;
-      for (let i = 0; i < SUDDEN_DEATH_STARTS_AT + tileCount; i++) {
+      for (let i = 0; i < SUDDEN_DEATH_COUNTDOWN + tileCount; i++) {
         simulateTick({});
       }
 
       assert.strictEqual(gameState.state, 1);
+      assert.strictEqual(gameState.suddenDeathEnabled, true);
+      assert.strictEqual(gameState.suddenDeathCountdown, 0);
 
       const playersAliveCount = _.filter(gameState.players, (p: IPlayer) => p.alive).length;
       assert.strictEqual(playersAliveCount, 1);
@@ -75,21 +77,22 @@ describe('GameState', () => {
 
     it('sudden death is delayed when game is paused', () => {
       gameState.isSimulationPaused = false;
-      for (let i = 0; i < SUDDEN_DEATH_STARTS_AT / 4; i++) {
+      for (let i = 0; i < SUDDEN_DEATH_COUNTDOWN / 4; i++) {
         simulateTick({});
       }
 
       gameState.isSimulationPaused = true;
-      for (let i = 0; i < SUDDEN_DEATH_STARTS_AT * 2; i++) {
+      for (let i = 0; i < SUDDEN_DEATH_COUNTDOWN * 2; i++) {
         simulateTick({});
       }
 
       gameState.isSimulationPaused = false;
-      for (let i = 0; i < SUDDEN_DEATH_STARTS_AT / 4; i++) {
+      for (let i = 0; i < SUDDEN_DEATH_COUNTDOWN / 4; i++) {
         simulateTick({});
       }
 
-      assert.strictEqual(0, gameState.state);
+      assert.strictEqual(gameState.state, 0);
+      assert.strictEqual(gameState.suddenDeathEnabled, false);
     });
   });
 
@@ -112,6 +115,5 @@ describe('GameState', () => {
     }
 
     gameState.applyClientMessages(messages);
-    gameState.tick++;
   }
 });

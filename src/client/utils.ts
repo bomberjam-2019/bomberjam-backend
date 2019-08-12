@@ -96,6 +96,7 @@ export function createSanitizedStateCopyForBot(state: IGameState): ISimpleGameSt
     bonuses: {},
     width: state.width,
     height: state.height,
+    suddenDeathCountdown: state.suddenDeathCountdown,
     suddenDeathEnabled: state.suddenDeathEnabled
   };
 
