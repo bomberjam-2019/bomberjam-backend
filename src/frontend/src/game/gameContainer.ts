@@ -1,13 +1,18 @@
 import { Container } from 'pixi.js';
 import { IBomb, IBonus, IGameState, IPlayer } from '../../../types';
+import { IHasState } from '../game/bombermanRenderer';
 
 export abstract class GameContainer {
-  public readonly state: IGameState;
+  public readonly stateProvider: IHasState;
   public readonly container: Container;
 
-  protected constructor(state: IGameState) {
-    this.state = state;
+  protected constructor(stateProvider: IHasState) {
+    this.stateProvider = stateProvider;
     this.container = new Container();
+  }
+
+  protected get state(): IGameState {
+    return this.stateProvider.state;
   }
 
   public initialize(): void {}

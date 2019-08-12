@@ -51,7 +51,7 @@ async function main() {
 
       // dump state to file
       const step = {
-        state: createSanitizedStateCopyForBot(state),
+        state: JSON.parse(JSON.stringify(state)),
         actions: {} as { [botId: string]: string }
       };
 
@@ -86,18 +86,6 @@ function shuffle<T>(a: T[]): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
-}
-
-function sortObjectByKeys(unordered: { [p: string]: string }): { [p: string]: string } {
-  const ordered: { [p: string]: string } = {};
-
-  Object.keys(unordered)
-    .sort()
-    .forEach((key: string) => {
-      ordered[key] = unordered[key];
-    });
-
-  return ordered;
 }
 
 async function createWriteStream(): Promise<fs.WriteStream> {

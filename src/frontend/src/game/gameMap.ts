@@ -1,11 +1,10 @@
-import _ from 'lodash';
-
 import { AnimatedSprite, Container, DisplayObject, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { TextureRegistry } from './textureRegistry';
 import { SoundRegistry } from './soundRegistry';
 import { IBomb, IBonus, IGameState, IHasPos, IPlayer } from '../../../types';
 import { GameContainer } from './gameContainer';
 import { PlayerColor } from './playerColor';
+import { IHasState } from '../game/bombermanRenderer';
 
 type SpriteType = 'player' | 'bomb' | 'flame' | 'bonus' | 'block' | 'wall';
 
@@ -21,8 +20,8 @@ export class GameMap extends GameContainer {
   private bonusesSprites: { [bonusId: string]: Sprite } = {};
   private flameSprites: Sprite[] = [];
 
-  constructor(state: IGameState, textures: TextureRegistry, sounds: SoundRegistry) {
-    super(state);
+  constructor(stateProvider: IHasState, textures: TextureRegistry, sounds: SoundRegistry) {
+    super(stateProvider);
 
     this.textures = textures;
     this.sounds = sounds;
@@ -190,12 +189,17 @@ export class GameMap extends GameContainer {
   }
 
   public onPixiFrameUpdated(delta: number): void {
+    if (typeof this.state.tickDuration !== 'number' || this.state.tickDuration <= 0)
+      throw new Error('Expected positive state tick duration');
+
     const progress = delta / this.state.tickDuration;
 
-    _.forEach(this.playerSprites, (sprite: Sprite) => {
+    for (const playerId in this.playerSprites) {
+      const sprite: Sprite = this.playerSprites[playerId];
+
       sprite.x += sprite.vx * progress;
       sprite.y += sprite.vy * progress;
-    });
+    }
   }
 
   private registerPlayer(playerId: string, player: IPlayer, orientation: 'left' | 'right' | 'front' | 'back' = 'front'): void {
@@ -239,17 +243,19 @@ export class GameMap extends GameContainer {
 
     this.flameSprites.length = 0;
 
-    (this.state.explosions as string)
-      .split(';')
-      .filter(str => str.length > 0)
-      .forEach(str => {
-        const [x, y] = str.split(':').map(Number);
+    if (this.state.explosions) {
+      this.state.explosions
+        .split(';')
+        .filter(str => str.length > 0)
+        .forEach(str => {
+          const [x, y] = str.split(':').map(Number);
 
-        const sprite = this.makeAnimatedSprite(this.textures.flame, { x: x, y: y }, 'flame', true);
-        sprite.anchor.set(0.5, 0.5);
-        this.mapContainer.addChild(sprite);
-        this.flameSprites.push(sprite);
-      });
+          const sprite = this.makeAnimatedSprite(this.textures.flame, { x: x, y: y }, 'flame', true);
+          sprite.anchor.set(0.5, 0.5);
+          this.mapContainer.addChild(sprite);
+          this.flameSprites.push(sprite);
+        });
+    }
   }
 
   private displayWallsAndBlocks() {

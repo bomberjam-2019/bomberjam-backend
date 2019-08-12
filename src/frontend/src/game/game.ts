@@ -1,9 +1,9 @@
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../constants';
 import { Application, Texture } from 'pixi.js';
 import { Client, Room } from 'colyseus.js';
-import { GameActions, IGameState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
+import { GameActions, IGameState, IJoinRoomOpts, IRoomMetadata, ISimpleGameState } from '../../../types';
 
-import { BombermanRenderer } from './bombermanRenderer';
+import { BombermanRenderer, IHasState } from './bombermanRenderer';
 import { SoundRegistry } from './soundRegistry';
 import { Sprites } from './assets';
 import { TextureRegistry } from './textureRegistry';
@@ -42,6 +42,51 @@ export interface IGameViewerController {
   decreaseSpeed: () => void;
 }
 
+export async function replayGame(states: IGameState[]) {
+  const pixiApp = new Application({
+    antialias: true,
+    backgroundColor: 0xffffff,
+    resolution: 1
+  });
+
+  const textures = await loadTexturesAsync(pixiApp);
+  const sounds = await loadSoundsAsync(pixiApp);
+  const pixiContainer = document.getElementById('pixi') as HTMLElement;
+  const debugContainer = document.getElementById('debug') as HTMLElement;
+  const stateProvider: IHasState = {
+    state: states[0]
+  };
+
+  let initialized = false;
+  let stopped = false;
+  let gameRenderer: BombermanRenderer;
+  let tickDuration = 200;
+
+  for (let i = 0; i < states.length; i++) {
+    stateProvider.state = states[i];
+    stateProvider.state.tickDuration = tickDuration;
+    onStateChanged(stateProvider.state);
+    await sleepAsync(tickDuration);
+  }
+
+  function onStateChanged(state: IGameState) {
+    // Sometimes, when we receive the state for the first time, plenty of properties are missing, so skip it
+    if (typeof state.tick === 'undefined') return;
+    if (stopped) return;
+
+    debugContainer.innerHTML = JSON.stringify(state, null, 2);
+
+    if (!initialized) {
+      gameRenderer = new BombermanRenderer(stateProvider, pixiApp, textures, sounds, true);
+      pixiContainer.appendChild(pixiApp.view);
+      pixiApp.ticker.add(() => gameRenderer.onPixiFrameUpdated(pixiApp.ticker.elapsedMS));
+      initialized = true;
+    }
+
+    gameRenderer.onStateChanged();
+  }
+}
+
 export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwner: boolean) => void): Promise<IGameViewerController> {
   const pixiApp = new Application({
     antialias: true,
@@ -50,12 +95,9 @@ export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwne
   });
 
   const textures = await loadTexturesAsync(pixiApp);
-  console.log('Game textures loaded');
-
   const sounds = await loadSoundsAsync(pixiApp);
-  console.log('Game sounds loaded');
-
   const client = createClient();
+
   await openColyseusClientAsync(client);
   console.log('Client connected');
 
@@ -236,4 +278,8 @@ function cleanupPixiApp(pixiContainer: HTMLElement, pixiApp: Application, textur
       baseTexture: true
     });
   } catch {}
+}
+
+async function sleepAsync(milliseconds: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
 }

@@ -3,12 +3,15 @@ import { IBomb, IBonus, IGameState, IPlayer } from '../../../types';
 import { Application } from 'pixi.js';
 import { GameHud } from './gameHud';
 import { GameMap } from './gameMap';
-import { Room } from 'colyseus.js';
 import { SoundRegistry } from './soundRegistry';
 import { TextureRegistry } from './textureRegistry';
 
+export interface IHasState {
+  state: IGameState;
+}
+
 export class BombermanRenderer {
-  private room: Room<IGameState>;
+  private stateProvider: IHasState;
   private pixiApp: Application;
   private textures: TextureRegistry;
   private sounds: SoundRegistry;
@@ -16,16 +19,18 @@ export class BombermanRenderer {
 
   private readonly map: GameMap;
   private readonly hud: GameHud;
+  private readonly isReplay: boolean;
 
-  constructor(room: Room<IGameState>, pixiApp: Application, textures: TextureRegistry, sounds: SoundRegistry) {
-    this.room = room;
+  constructor(stateProvider: IHasState, pixiApp: Application, textures: TextureRegistry, sounds: SoundRegistry, isReplay: boolean = false) {
+    this.stateProvider = stateProvider;
     this.pixiApp = pixiApp;
     this.textures = textures;
     this.sounds = sounds;
+    this.isReplay = isReplay;
 
-    this.prevState = this.room.state;
-    this.map = new GameMap(room.state, textures, sounds);
-    this.hud = new GameHud(room.state, textures);
+    this.prevState = this.stateProvider.state;
+    this.map = new GameMap(stateProvider, textures, sounds);
+    this.hud = new GameHud(stateProvider, textures);
 
     this.initialize();
   }
@@ -41,7 +46,7 @@ export class BombermanRenderer {
     this.registerStateChangeHandlers();
 
     this.pixiApp.renderer.resize(this.pixiApp.stage.width, this.pixiApp.stage.height);
-    if (this.room.state.state === 0) {
+    if (this.stateProvider.state.state === 0) {
       this.sounds.level.play();
     } else {
       this.sounds.waiting.play();
@@ -55,61 +60,122 @@ export class BombermanRenderer {
   }
 
   private addPlayerListeners() {
-    (this.room.state.players as any).onAdd = (player: IPlayer, playerId: string) => {
-      this.map.onPlayerAdded(playerId, player);
-      this.hud.onPlayerAdded(playerId, player);
-    };
+    if (!this.isReplay) {
+      (this.stateProvider.state.players as any).onAdd = (player: IPlayer, playerId: string) => {
+        this.map.onPlayerAdded(playerId, player);
+        this.hud.onPlayerAdded(playerId, player);
+      };
 
-    (this.room.state.players as any).onRemove = (player: IPlayer, playerId: string) => {
-      this.map.onPlayerRemoved(playerId, player);
-      this.hud.onPlayerRemoved(playerId, player);
-    };
+      (this.stateProvider.state.players as any).onRemove = (player: IPlayer, playerId: string) => {
+        this.map.onPlayerRemoved(playerId, player);
+        this.hud.onPlayerRemoved(playerId, player);
+      };
+    }
 
-    for (const playerId in this.room.state.players) {
-      this.map.onPlayerAdded(playerId, this.room.state.players[playerId]);
-      this.hud.onPlayerAdded(playerId, this.room.state.players[playerId]);
+    for (const playerId in this.stateProvider.state.players) {
+      this.map.onPlayerAdded(playerId, this.stateProvider.state.players[playerId]);
+      this.hud.onPlayerAdded(playerId, this.stateProvider.state.players[playerId]);
     }
   }
 
   private addBombsListeners() {
-    (this.room.state.bombs as any).onAdd = (bomb: IBomb, bombId: string) => {
-      this.map.onBombAdded(bombId, bomb);
-      this.hud.onBombAdded(bombId, bomb);
-    };
+    if (!this.isReplay) {
+      (this.stateProvider.state.bombs as any).onAdd = (bomb: IBomb, bombId: string) => {
+        this.map.onBombAdded(bombId, bomb);
+        this.hud.onBombAdded(bombId, bomb);
+      };
 
-    (this.room.state.bombs as any).onRemove = (bomb: IBomb, bombId: string) => {
-      this.map.onBombRemoved(bombId, bomb);
-      this.hud.onBombRemoved(bombId, bomb);
-    };
+      (this.stateProvider.state.bombs as any).onRemove = (bomb: IBomb, bombId: string) => {
+        this.map.onBombRemoved(bombId, bomb);
+        this.hud.onBombRemoved(bombId, bomb);
+      };
+    }
 
-    for (const bombId in this.room.state.bombs) {
-      this.map.onBombAdded(bombId, this.room.state.bombs[bombId]);
-      this.hud.onBombAdded(bombId, this.room.state.bombs[bombId]);
+    for (const bombId in this.stateProvider.state.bombs) {
+      this.map.onBombAdded(bombId, this.stateProvider.state.bombs[bombId]);
+      this.hud.onBombAdded(bombId, this.stateProvider.state.bombs[bombId]);
     }
   }
 
   private addBonusesListeners() {
-    (this.room.state.bonuses as any).onAdd = (bonus: IBonus, bonusId: string) => {
-      this.map.onBonusAdded(bonusId, bonus);
-      this.hud.onBonusAdded(bonusId, bonus);
-    };
+    if (!this.isReplay) {
+      (this.stateProvider.state.bonuses as any).onAdd = (bonus: IBonus, bonusId: string) => {
+        this.map.onBonusAdded(bonusId, bonus);
+        this.hud.onBonusAdded(bonusId, bonus);
+      };
 
-    (this.room.state.bonuses as any).onRemove = (bonus: IBonus, bonusId: string) => {
-      this.map.onBonusRemoved(bonusId, bonus);
-      this.hud.onBonusRemoved(bonusId, bonus);
-    };
+      (this.stateProvider.state.bonuses as any).onRemove = (bonus: IBonus, bonusId: string) => {
+        this.map.onBonusRemoved(bonusId, bonus);
+        this.hud.onBonusRemoved(bonusId, bonus);
+      };
+    }
 
-    for (const bonusId in this.room.state.bonuses) {
-      this.map.onBonusAdded(bonusId, this.room.state.bonuses[bonusId]);
-      this.hud.onBonusAdded(bonusId, this.room.state.bonuses[bonusId]);
+    for (const bonusId in this.stateProvider.state.bonuses) {
+      this.map.onBonusAdded(bonusId, this.stateProvider.state.bonuses[bonusId]);
+      this.hud.onBonusAdded(bonusId, this.stateProvider.state.bonuses[bonusId]);
     }
   }
 
   public onStateChanged() {
-    this.map.onStateChanged(this.prevState);
-    this.hud.onStateChanged(this.prevState);
+    if (this.prevState) {
+      if (this.isReplay) {
+        this.addNewAndRemoveOldBombsForReplay();
+        this.addNewAndRemoveOldBonusesForReplay();
+      }
 
-    this.prevState = JSON.parse(JSON.stringify(this.room.state));
+      this.map.onStateChanged(this.prevState);
+      this.hud.onStateChanged(this.prevState);
+    }
+
+    this.prevState = JSON.parse(JSON.stringify(this.stateProvider.state));
+  }
+
+  private removedBombIds = new Set<string>();
+
+  private addNewAndRemoveOldBombsForReplay() {
+    this.removedBombIds.clear();
+
+    for (const bombId in this.prevState.bombs) {
+      this.removedBombIds.add(bombId);
+    }
+
+    for (const bombId in this.stateProvider.state.bombs) {
+      if (this.removedBombIds.has(bombId)) {
+        this.removedBombIds.delete(bombId);
+      } else {
+        this.map.onBombAdded(bombId, this.stateProvider.state.bombs[bombId]);
+        this.hud.onBombAdded(bombId, this.stateProvider.state.bombs[bombId]);
+      }
+    }
+
+    for (const removedBombId of this.removedBombIds) {
+      this.map.onBombRemoved(removedBombId, this.prevState.bombs[removedBombId]);
+      this.hud.onBombRemoved(removedBombId, this.prevState.bombs[removedBombId]);
+    }
+  }
+
+  private removedBonusIds = new Set<string>();
+
+  private addNewAndRemoveOldBonusesForReplay() {
+    this.removedBonusIds.clear();
+
+    for (const bonusId in this.prevState.bonuses) {
+      this.removedBonusIds.add(bonusId);
+    }
+
+    for (const bonusId in this.stateProvider.state.bonuses) {
+      if (this.removedBonusIds.has(bonusId)) {
+        this.removedBonusIds.delete(bonusId);
+      } else {
+        this.map.onBonusAdded(bonusId, this.stateProvider.state.bonuses[bonusId]);
+        this.hud.onBonusAdded(bonusId, this.stateProvider.state.bonuses[bonusId]);
+      }
+    }
+
+    for (const removedBonusId of this.removedBonusIds) {
+      this.map.onBonusRemoved(removedBonusId, this.prevState.bonuses[removedBonusId]);
+      this.hud.onBonusRemoved(removedBonusId, this.prevState.bonuses[removedBonusId]);
+    }
   }
 
   public onPixiFrameUpdated(delta: number): void {

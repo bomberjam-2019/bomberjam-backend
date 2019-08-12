@@ -4,6 +4,7 @@ import Admin from './views/Admin.vue';
 import App from './App.vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import Game from './views/Game.vue';
+import Replay from './views/Replay.vue';
 import Router from 'vue-router';
 import Vue from 'vue';
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -28,6 +29,11 @@ const router = new Router({
       path: '/games/:roomId',
       name: 'game',
       component: Game
+    },
+    {
+      path: '/replay',
+      name: 'replay',
+      component: Replay
     }
   ]
 });
