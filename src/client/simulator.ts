@@ -48,7 +48,6 @@ async function main() {
 
       const shuffledPlayerMessages = shuffle(playerMessages);
       state.applyClientMessages(shuffledPlayerMessages);
-      state.tick++;
 
       // dump state to file
       const step = {
