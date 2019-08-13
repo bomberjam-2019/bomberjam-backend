@@ -20,7 +20,7 @@
               </li>
               <li class="nav-item">
                 <router-link class="nav-link" :to="{ name: 'replay' }">
-                  Gamelog player
+                  Replay
                 </router-link>
               </li>
             </ul>

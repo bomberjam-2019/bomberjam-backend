@@ -10,6 +10,7 @@ build_script:
   - cmd: npm pack --dry-run
 test_script:
   - cmd: npm run test
+  - cmd: npm run start:client:simulate
 artifacts:
   - path: dist
     name: dist

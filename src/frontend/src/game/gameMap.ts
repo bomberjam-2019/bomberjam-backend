@@ -120,19 +120,23 @@ export class GameMap extends GameContainer {
           sprite.vx = 0;
           sprite.vy = 0;
         }
-
-        // Game started
-        if (prevState.state === -1 && this.state.state === 0) {
-          this.sounds.waiting.stop();
-          this.sounds.level.play();
-        }
-
-        // Game ended
-        if (prevState.state === 0 && this.state.state === 1) {
-          this.sounds.level.stop();
-          this.sounds.victory.play();
-        }
       }
+    }
+
+    // Game started
+    if (prevState.state === -1 && this.state.state === 0) {
+      this.sounds.waiting.stop();
+      this.sounds.level.play();
+    }
+    // Game ended
+    else if (prevState.state === 0 && this.state.state === 1) {
+      this.sounds.level.stop();
+      this.sounds.victory.play();
+    }
+    // Game was ended but the replay started the game again
+    else if (prevState.state === 1 && this.state.state === 0) {
+      this.sounds.victory.stop();
+      this.sounds.level.play();
     }
 
     // Hide bombs that just exploded
@@ -157,6 +161,8 @@ export class GameMap extends GameContainer {
         if (prevState.players[playerId].alive !== player.alive) {
           this.sounds.death.play();
         }
+      } else {
+        playerSprite.visible = true;
       }
     }
 

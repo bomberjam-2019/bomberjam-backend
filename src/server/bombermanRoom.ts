@@ -103,6 +103,8 @@ export class BombermanRoom extends TickBasedRoom<GameState> {
   }
 
   public applyGameAction(str: string) {
+    console.log(str);
+
     if (!allGameActions.has(str)) return;
     const action = str as GameActionCode;
 

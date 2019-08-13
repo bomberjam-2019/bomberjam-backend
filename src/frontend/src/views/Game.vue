@@ -21,20 +21,20 @@
       <div id="pixi" class="mx-auto"></div>
       <div class="container">
         <div v-show="isRoomOwner" class="text-center m-2">
-          <button v-on:click.stop.prevent="resumeGame" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
-            Play
+          <button v-on:click.stop.prevent="resumeGame" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-2">
+            <font-awesome-icon icon="play" />
           </button>
 
-          <button v-on:click.stop.prevent="pauseGame" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
-            Pause
+          <button v-on:click.stop.prevent="pauseGame" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-2">
+            <font-awesome-icon icon="pause" />
           </button>
 
-          <button v-on:click.stop.prevent="increaseSpeed" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
-            Increase speed
+          <button v-on:click.stop.prevent="decreaseSpeed" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-2">
+            Speed -
           </button>
 
-          <button v-on:click.stop.prevent="decreaseSpeed" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-3">
-            Decrease speed
+          <button v-on:click.stop.prevent="increaseSpeed" v-bind:disabled="isBusy" class="btn btn-primary btn-sm m-2 mr-2">
+            Speed +
           </button>
         </div>
       </div>
@@ -50,7 +50,7 @@
 <script lang="ts">
 import Vue from 'vue';
 import * as screenfull from 'screenfull';
-import { IGameViewerController, showGame } from '../game/game';
+import { ILiveGameController, showGame } from '../game/game';
 import { IJoinRoomOpts } from '../../../types';
 
 export default Vue.extend({
@@ -59,7 +59,7 @@ export default Vue.extend({
       roomId: '' as string,
       isRoomOwner: false as boolean,
       busyCounter: 0 as number,
-      gameViewerCtrl: null as IGameViewerController | null,
+      gameViewerCtrl: null as ILiveGameController | null,
       isFullscreen: false as boolean
     };
   },
@@ -141,6 +141,8 @@ export default Vue.extend({
       }
     },
     increaseSpeed(): void {
+      console.log(this.isBusy);
+
       if (!this.isBusy) {
         if (this.gameViewerCtrl) {
           this.busyCounter++;

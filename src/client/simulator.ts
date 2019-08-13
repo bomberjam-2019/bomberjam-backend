@@ -51,7 +51,7 @@ async function main() {
 
       // dump state to file
       const step = {
-        state: JSON.parse(JSON.stringify(state)),
+        state: state,
         actions: {} as { [botId: string]: string }
       };
 

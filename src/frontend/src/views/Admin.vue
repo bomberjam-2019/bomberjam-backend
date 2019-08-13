@@ -10,7 +10,7 @@
         <form class="form-inline justify-content-center">
           <div class="form-group">
             <label for="tickDurationMs">Tick duration (ms)</label>
-            <input v-model="tickDurationMs" type="text" class="form-control m-2" size="5" maxlength="4" id="tickDurationMs" />
+            <input v-model="tickDurationMs" type="number" class="form-control m-2" size="5" maxlength="4" id="tickDurationMs" />
           </div>
 
           <div class="form-group">

@@ -11,10 +11,10 @@ export interface IHasState {
 }
 
 export class BombermanRenderer {
-  private stateProvider: IHasState;
-  private pixiApp: Application;
-  private textures: TextureRegistry;
-  private sounds: SoundRegistry;
+  private readonly stateProvider: IHasState;
+  private readonly pixiApp: Application;
+  private readonly textures: TextureRegistry;
+  private readonly sounds: SoundRegistry;
   private prevState: IGameState;
 
   private readonly map: GameMap;
@@ -60,6 +60,7 @@ export class BombermanRenderer {
   }
 
   private addPlayerListeners() {
+    // onAdd and onRemove are only available on Colyseus State derivatives
     if (!this.isReplay) {
       (this.stateProvider.state.players as any).onAdd = (player: IPlayer, playerId: string) => {
         this.map.onPlayerAdded(playerId, player);

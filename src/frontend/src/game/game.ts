@@ -1,7 +1,7 @@
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../constants';
 import { Application, Texture } from 'pixi.js';
 import { Client, Room } from 'colyseus.js';
-import { GameActions, IGameState, IJoinRoomOpts, IRoomMetadata, ISimpleGameState } from '../../../types';
+import { GameActions, IGameState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
 
 import { BombermanRenderer, IHasState } from './bombermanRenderer';
 import { SoundRegistry } from './soundRegistry';
@@ -33,16 +33,16 @@ export function listRooms(): Promise<IRoomMetadata[]> {
   });
 }
 
-export interface IGameViewerController {
-  roomId: string;
+export interface IReplayGameController {
   stopViewer: () => void;
   resumeGame: () => void;
   pauseGame: () => void;
   increaseSpeed: () => void;
   decreaseSpeed: () => void;
+  goToTick: (tick: number) => void;
 }
 
-export async function replayGame(states: IGameState[]) {
+export async function replayGame(states: IGameState[], tickChangedCallback: (tick: number) => void): Promise<IReplayGameController> {
   const pixiApp = new Application({
     antialias: true,
     backgroundColor: 0xffffff,
@@ -53,21 +53,37 @@ export async function replayGame(states: IGameState[]) {
   const sounds = await loadSoundsAsync(pixiApp);
   const pixiContainer = document.getElementById('pixi') as HTMLElement;
   const debugContainer = document.getElementById('debug') as HTMLElement;
-  const stateProvider: IHasState = {
-    state: states[0]
-  };
 
   let initialized = false;
   let stopped = false;
+  let paused = false;
   let gameRenderer: BombermanRenderer;
-  let tickDuration = 200;
+  let tickDuration = 300;
+  let currentTick = 0;
 
-  for (let i = 0; i < states.length; i++) {
-    stateProvider.state = states[i];
-    stateProvider.state.tickDuration = tickDuration;
-    onStateChanged(stateProvider.state);
-    await sleepAsync(tickDuration);
-  }
+  const stateProvider: IHasState = {
+    state: states[currentTick]
+  };
+
+  // hack: does not block function exit so we can return the controller
+  window.setTimeout(async () => {
+    while (!stopped) {
+      if (!paused) {
+        stateProvider.state = states[currentTick];
+        stateProvider.state.tickDuration = tickDuration;
+        onStateChanged(stateProvider.state);
+
+        currentTick++;
+        if (currentTick >= states.length) {
+          currentTick = states.length - 1;
+        }
+
+        tickChangedCallback(currentTick);
+      }
+
+      await sleepAsync(tickDuration);
+    }
+  }, 0);
 
   function onStateChanged(state: IGameState) {
     // Sometimes, when we receive the state for the first time, plenty of properties are missing, so skip it
@@ -85,9 +101,38 @@ export async function replayGame(states: IGameState[]) {
 
     gameRenderer.onStateChanged();
   }
+
+  return {
+    increaseSpeed: () => (tickDuration = tickDuration > 110 ? tickDuration - 100 : 10),
+    decreaseSpeed: () => (tickDuration += 100),
+    pauseGame: () => {
+      paused = true;
+      pixiApp.ticker.stop();
+    },
+    resumeGame: () => {
+      paused = false;
+      pixiApp.ticker.start();
+    },
+    goToTick: (tick: number) => {
+      if (tick >= 0 && tick < states.length) currentTick = tick;
+    },
+    stopViewer: () => {
+      stopped = true;
+      cleanupPixiApp(pixiContainer, pixiApp, textures, sounds);
+    }
+  };
 }
 
-export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwner: boolean) => void): Promise<IGameViewerController> {
+export interface ILiveGameController {
+  roomId: string;
+  stopViewer: () => void;
+  resumeGame: () => void;
+  pauseGame: () => void;
+  increaseSpeed: () => void;
+  decreaseSpeed: () => void;
+}
+
+export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwner: boolean) => void): Promise<ILiveGameController> {
   const pixiApp = new Application({
     antialias: true,
     backgroundColor: 0xffffff,
