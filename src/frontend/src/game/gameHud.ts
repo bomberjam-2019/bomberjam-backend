@@ -1,9 +1,8 @@
 import { GameContainer } from './gameContainer';
 import { TextureRegistry } from './textureRegistry';
-import { IGameState, IPlayer } from '../../../types';
+import { IGameState, IHasState, IPlayer } from '../../../types';
 import { Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 import { PlayerColor } from './playerColor';
-import { IHasState } from '../game/bombermanRenderer';
 
 export class GameHud extends GameContainer {
   private static readonly TextStyle = new TextStyle({

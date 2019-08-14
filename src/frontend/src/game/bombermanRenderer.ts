@@ -1,14 +1,10 @@
-import { IBomb, IBonus, IGameState, IPlayer } from '../../../types';
+import { IBomb, IBonus, IGameState, IHasState, IPlayer } from '../../../types';
 
 import { Application } from 'pixi.js';
 import { GameHud } from './gameHud';
 import { GameMap } from './gameMap';
 import { SoundRegistry } from './soundRegistry';
 import { TextureRegistry } from './textureRegistry';
-
-export interface IHasState {
-  state: IGameState;
-}
 
 export class BombermanRenderer {
   private readonly stateProvider: IHasState;

@@ -1,10 +1,9 @@
 import { AnimatedSprite, Container, DisplayObject, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { TextureRegistry } from './textureRegistry';
 import { SoundRegistry } from './soundRegistry';
-import { IBomb, IBonus, IGameState, IHasPos, IPlayer } from '../../../types';
+import { IBomb, IBonus, IGameState, IHasPos, IHasState, IPlayer } from '../../../types';
 import { GameContainer } from './gameContainer';
 import { PlayerColor } from './playerColor';
-import { IHasState } from '../game/bombermanRenderer';
 
 type SpriteType = 'player' | 'bomb' | 'flame' | 'bonus' | 'block' | 'wall';
 
@@ -154,9 +153,13 @@ export class GameMap extends GameContainer {
       const bomb: IBomb = this.state.bombs[bombId];
       const bombSprite: Sprite = this.bombSprites[bombId];
 
-      if (bomb.countdown <= 0 && bombSprite) {
-        bombSprite.visible = false;
-        this.sounds.explosion.play();
+      if (bombSprite) {
+        if (bomb.countdown <= 0) {
+          bombSprite.visible = false;
+          this.sounds.explosion.play();
+        } else {
+          bombSprite.visible = true;
+        }
       }
     }
 
