@@ -28,7 +28,7 @@
       <div id="pixi" class="mx-auto"></div>
 
       <div class="row my-4" v-show="replayStarted">
-        <div class="col-sm-5">
+        <div class="col-md-5">
           <input
             type="range"
             class="custom-range mx-2"
@@ -41,7 +41,7 @@
           />
         </div>
 
-        <div class="col-sm-3">
+        <div class="col-md-3">
           <div class="form-inline">
             <input type="text" class="form-control form-control-sm mr-2" v-model="selectedStateIdx" style="width:55px" readonly />
             /
@@ -49,7 +49,7 @@
           </div>
         </div>
 
-        <div class="col-sm-4">
+        <div class="col-md-4">
           <div class="text-right">
             <button v-on:click.stop.prevent="resumeGame" v-bind:disabled="isBusy" class="btn btn-primary btn-sm mx-2">
               <font-awesome-icon icon="play" />
