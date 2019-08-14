@@ -84,6 +84,8 @@ import { IGameState } from '../../../types';
 import { IReplayGameController, replayGame } from '../game/game';
 import { SUDDEN_DEATH_COUNTDOWN } from '../../../constants';
 
+const maxUploadSize = 2097152; // 2mb
+
 export default Vue.extend({
   data() {
     return {
@@ -122,7 +124,13 @@ export default Vue.extend({
     async loadGamelogFile(): Promise<void> {
       const input = this.$refs.fileInput as HTMLInputElement;
       if (input && input.files && input.files.length && input.files[0].name.endsWith('.gamelog')) {
-        const contents = await this.readFileAsTextAsync(input.files[0]);
+        const file = input.files[0];
+        if (!file.size || file.size > maxUploadSize) {
+          alert(`Invalid file size. Max ${maxUploadSize} bytes`);
+          return;
+        }
+
+        const contents = await this.readFileAsTextAsync(file);
         const states = this.parseStatesFromText(contents);
 
         this.states.length = 0;
