@@ -1,7 +1,7 @@
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../constants';
 import { Application, Texture } from 'pixi.js';
 import { Client, Room } from 'colyseus.js';
-import { GameActions, IGameState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
+import { GameActions, IGameState, IHasState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
 
 import { BombermanRenderer } from './bombermanRenderer';
 import { SoundRegistry } from './soundRegistry';
@@ -33,7 +33,108 @@ export function listRooms(): Promise<IRoomMetadata[]> {
   });
 }
 
-export interface IGameViewerController {
+export interface IReplayGameController {
+  stopViewer: () => void;
+  resumeGame: () => void;
+  pauseGame: () => void;
+  increaseSpeed: () => void;
+  decreaseSpeed: () => void;
+  goToStateIdx: (newStateIdx: number) => void;
+}
+
+export async function replayGame(
+  states: IGameState[],
+  stateChangedCallback: (stateIdx: number, state: IGameState) => void
+): Promise<IReplayGameController> {
+  const pixiApp = new Application({
+    antialias: true,
+    backgroundColor: 0xffffff,
+    resolution: 1
+  });
+
+  const textures = await loadTexturesAsync(pixiApp);
+  const sounds = await loadSoundsAsync(pixiApp);
+  const pixiContainer = document.getElementById('pixi') as HTMLElement;
+
+  let initialized = false;
+  let stopped = false;
+  let paused = false;
+  let gameRenderer: BombermanRenderer;
+  let tickDuration = 300;
+  let stateIdx = 0;
+
+  const stateProvider: IHasState = {
+    state: states[stateIdx]
+  };
+
+  // hack: does not block function exit so we can return the controller
+  window.setTimeout(async () => {
+    while (!stopped) {
+      displayState(stateIdx);
+
+      if (!paused) {
+        stateIdx++;
+        if (stateIdx >= states.length) stateIdx = states.length - 1;
+      }
+
+      await sleepAsync(tickDuration);
+    }
+  }, 0);
+
+  function displayState(stateIdx: number) {
+    stateProvider.state = states[stateIdx];
+    stateProvider.state.tickDuration = tickDuration;
+    stateChangedCallback(stateIdx, stateProvider.state);
+
+    onStateChanged(stateProvider.state);
+  }
+
+  function onStateChanged(state: IGameState) {
+    // Sometimes, when we receive the state for the first time, plenty of properties are missing, so skip it
+    if (typeof state.tick === 'undefined') return;
+    if (stopped) return;
+
+    if (!initialized) {
+      gameRenderer = new BombermanRenderer(stateProvider, pixiApp, textures, sounds, true);
+      pixiContainer.appendChild(pixiApp.view);
+      pixiApp.ticker.add(() => gameRenderer.onPixiFrameUpdated(pixiApp.ticker.elapsedMS));
+      initialized = true;
+    }
+
+    gameRenderer.onStateChanged();
+  }
+
+  return {
+    increaseSpeed: () => (tickDuration = tickDuration > 110 ? tickDuration - 100 : 10),
+    decreaseSpeed: () => (tickDuration += 100),
+    pauseGame: () => {
+      gameRenderer.resetPlayerPositions();
+      paused = true;
+      sounds.pause.play({
+        complete: () => {
+          sounds.pauseAll();
+        }
+      });
+    },
+    resumeGame: () => {
+      sounds.resumeAll();
+      sounds.unpause.play();
+      paused = false;
+    },
+    goToStateIdx: (newStateIdx: number) => {
+      if (gameRenderer && stateIdx >= 0 && stateIdx < states.length) {
+        stateIdx = newStateIdx;
+        displayState(stateIdx);
+      }
+    },
+    stopViewer: () => {
+      stopped = true;
+      cleanupPixiApp(pixiContainer, pixiApp, textures, sounds);
+    }
+  };
+}
+
+export interface ILiveGameController {
   roomId: string;
   stopViewer: () => void;
   resumeGame: () => void;
@@ -42,7 +143,10 @@ export interface IGameViewerController {
   decreaseSpeed: () => void;
 }
 
-export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwner: boolean) => void): Promise<IGameViewerController> {
+export async function showGame(
+  joinOpts: IJoinRoomOpts,
+  stateChangedCallback: (newState: IGameState, isOwner: boolean) => void
+): Promise<ILiveGameController> {
   const pixiApp = new Application({
     antialias: true,
     backgroundColor: 0xffffff,
@@ -50,12 +154,9 @@ export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwne
   });
 
   const textures = await loadTexturesAsync(pixiApp);
-  console.log('Game textures loaded');
-
   const sounds = await loadSoundsAsync(pixiApp);
-  console.log('Game sounds loaded');
-
   const client = createClient();
+
   await openColyseusClientAsync(client);
   console.log('Client connected');
 
@@ -65,7 +166,6 @@ export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwne
   console.log(`Room ${room.id} joined with session id ${room.sessionId}`);
 
   const pixiContainer = document.getElementById('pixi') as HTMLElement;
-  const debugContainer = document.getElementById('debug') as HTMLElement;
 
   let initialized = false;
   let stopped = false;
@@ -79,9 +179,7 @@ export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwne
     if (typeof state.tick === 'undefined') return;
     if (stopped) return;
 
-    debugContainer.innerHTML = JSON.stringify(state, null, 2);
-
-    isOwnerCallback(room.sessionId === state.ownerId);
+    stateChangedCallback(state, room.sessionId === state.ownerId);
 
     if (!initialized) {
       gameRenderer = new BombermanRenderer(room, pixiApp, textures, sounds);
@@ -216,10 +314,12 @@ function cleanupPixiApp(pixiContainer: HTMLElement, pixiApp: Application, textur
     sounds.destroy();
 
     for (const id in pixiApp.loader.resources) {
-      const texture: Texture = pixiApp.loader.resources[id].texture;
-      if (texture) {
-        texture.destroy(true);
-        delete pixiApp.loader.resources[id];
+      if (pixiApp.loader.resources.hasOwnProperty(id)) {
+        const texture: Texture = pixiApp.loader.resources[id].texture;
+        if (texture) {
+          texture.destroy(true);
+          delete pixiApp.loader.resources[id];
+        }
       }
     }
 
@@ -236,4 +336,8 @@ function cleanupPixiApp(pixiContainer: HTMLElement, pixiApp: Application, textur
       baseTexture: true
     });
   } catch {}
+}
+
+async function sleepAsync(milliseconds: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
 }

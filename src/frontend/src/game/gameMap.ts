@@ -1,9 +1,7 @@
-import _ from 'lodash';
-
 import { AnimatedSprite, Container, DisplayObject, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { TextureRegistry } from './textureRegistry';
 import { SoundRegistry } from './soundRegistry';
-import { IBomb, IBonus, IGameState, IHasPos, IPlayer } from '../../../types';
+import { IBomb, IBonus, IGameState, IHasPos, IHasState, IPlayer } from '../../../types';
 import { GameContainer } from './gameContainer';
 import { PlayerColor } from './playerColor';
 
@@ -21,8 +19,8 @@ export class GameMap extends GameContainer {
   private bonusesSprites: { [bonusId: string]: Sprite } = {};
   private flameSprites: Sprite[] = [];
 
-  constructor(state: IGameState, textures: TextureRegistry, sounds: SoundRegistry) {
-    super(state);
+  constructor(stateProvider: IHasState, textures: TextureRegistry, sounds: SoundRegistry) {
+    super(stateProvider);
 
     this.textures = textures;
     this.sounds = sounds;
@@ -106,34 +104,48 @@ export class GameMap extends GameContainer {
           this.unregisterObjectSprite(this.playerSprites, playerId);
           this.registerPlayer(playerId, oldPlayer, 'back');
         } else {
-          (<AnimatedSprite>this.playerSprites[playerId]).stop();
+          this.playerSprites[playerId].stop();
         }
 
         const sprite: Sprite = this.playerSprites[playerId];
 
-        sprite.x = oldPlayer.x * this.textures.tileSize;
-        sprite.y = oldPlayer.y * this.textures.tileSize;
+        // On replay mode, you can skip multiple ticks so we don't want to animate players in that case
+        const diffTickCount = Math.abs(this.state.tick - prevState.tick);
+        if (diffTickCount === 1) {
+          sprite.x = oldPlayer.x * this.textures.tileSize;
+          sprite.y = oldPlayer.y * this.textures.tileSize;
 
-        sprite.vx = oldPlayer.x === newPlayer.x ? 0 : newPlayer.x - oldPlayer.x > 0 ? this.textures.tileSize : -this.textures.tileSize;
-        sprite.vy = oldPlayer.y === newPlayer.y ? 0 : newPlayer.y - oldPlayer.y > 0 ? this.textures.tileSize : -this.textures.tileSize;
+          sprite.vx = oldPlayer.x === newPlayer.x ? 0 : newPlayer.x - oldPlayer.x > 0 ? this.textures.tileSize : -this.textures.tileSize;
+          sprite.vy = oldPlayer.y === newPlayer.y ? 0 : newPlayer.y - oldPlayer.y > 0 ? this.textures.tileSize : -this.textures.tileSize;
+        } else {
+          sprite.x = newPlayer.x * this.textures.tileSize;
+          sprite.y = newPlayer.y * this.textures.tileSize;
+
+          sprite.vx = 0;
+          sprite.vy = 0;
+        }
 
         if (this.state.state === 1) {
           sprite.vx = 0;
           sprite.vy = 0;
         }
-
-        // Game started
-        if (prevState.state === -1 && this.state.state === 0) {
-          this.sounds.waiting.stop();
-          this.sounds.level.play();
-        }
-
-        // Game ended
-        if (prevState.state === 0 && this.state.state === 1) {
-          this.sounds.level.stop();
-          this.sounds.victory.play();
-        }
       }
+    }
+
+    // Game started
+    if (prevState.state === -1 && this.state.state === 0) {
+      this.sounds.waiting.stop();
+      this.sounds.level.play();
+    }
+    // Game ended
+    else if (prevState.state === 0 && this.state.state === 1) {
+      this.sounds.level.stop();
+      this.sounds.victory.play();
+    }
+    // Game was ended but the replay started the game again
+    else if (prevState.state === 1 && this.state.state === 0) {
+      this.sounds.victory.stop();
+      this.sounds.level.play();
     }
 
     // Hide bombs that just exploded
@@ -141,9 +153,13 @@ export class GameMap extends GameContainer {
       const bomb: IBomb = this.state.bombs[bombId];
       const bombSprite: Sprite = this.bombSprites[bombId];
 
-      if (bomb.countdown <= 0 && bombSprite) {
-        bombSprite.visible = false;
-        this.sounds.explosion.play();
+      if (bombSprite) {
+        if (bomb.countdown <= 0) {
+          bombSprite.visible = false;
+          this.sounds.explosion.play();
+        } else {
+          bombSprite.visible = true;
+        }
       }
     }
 
@@ -152,11 +168,15 @@ export class GameMap extends GameContainer {
       const player: IPlayer = this.state.players[playerId];
       const playerSprite: Sprite = this.playerSprites[playerId];
 
-      if (!player.alive && !player.hasWon && playerSprite) {
-        playerSprite.visible = false;
+      if (playerSprite) {
+        if (!player.alive && !player.hasWon) {
+          playerSprite.visible = false;
 
-        if (prevState.players[playerId].alive !== player.alive) {
-          this.sounds.death.play();
+          if (prevState.players[playerId].alive !== player.alive) {
+            this.sounds.death.play();
+          }
+        } else {
+          playerSprite.visible = true;
         }
       }
     }
@@ -172,47 +192,44 @@ export class GameMap extends GameContainer {
     }
 
     // z-ordering
+    this.fixZOrdering();
+  }
+
+  private fixZOrdering(): void {
     this.mapContainer.children.sort((s1: DisplayObject, s2: DisplayObject) => {
       const y1 = Math.floor(s1.y / this.textures.tileSize);
       const y2 = Math.floor(s2.y / this.textures.tileSize);
-
-      if (y1 === y2) {
-        const x1 = Math.floor(s1.x / this.textures.tileSize);
-        const x2 = Math.floor(s2.x / this.textures.tileSize);
-
-        if (x1 === x2) {
-          // TODO sort sprites at the same location based on their type (bomb behind player for example)
-        }
-      }
-
       return y1 - y2;
     });
   }
 
   public onPixiFrameUpdated(delta: number): void {
+    if (typeof this.state.tickDuration !== 'number' || this.state.tickDuration <= 0)
+      throw new Error('Expected positive state tick duration');
+
     const progress = delta / this.state.tickDuration;
 
-    _.forEach(this.playerSprites, (sprite: Sprite) => {
+    for (const playerId in this.playerSprites) {
+      const sprite: Sprite = this.playerSprites[playerId];
+
       sprite.x += sprite.vx * progress;
       sprite.y += sprite.vy * progress;
-    });
+    }
   }
 
   private registerPlayer(playerId: string, player: IPlayer, orientation: 'left' | 'right' | 'front' | 'back' = 'front'): void {
-    if (player.alive || player.hasWon) {
-      let textures: Texture[] = this.textures.player.front;
-      if (orientation === 'left') textures = this.textures.player.left;
-      else if (orientation === 'right') textures = this.textures.player.right;
-      else if (orientation === 'front') textures = this.textures.player.front;
-      else if (orientation === 'back') textures = this.textures.player.back;
+    let textures: Texture[] = this.textures.player.front;
+    if (orientation === 'left') textures = this.textures.player.left;
+    else if (orientation === 'right') textures = this.textures.player.right;
+    else if (orientation === 'front') textures = this.textures.player.front;
+    else if (orientation === 'back') textures = this.textures.player.back;
 
-      const sprite = this.makeAnimatedSprite(textures, player, 'player', false);
-      sprite.anchor.set(0, 0.5);
-      PlayerColor.colorize(playerId, sprite);
-      this.playerSprites[playerId] = sprite;
-      this.mapContainer.addChild(sprite);
-      this.sounds.footsteps.play();
-    }
+    const sprite = this.makeAnimatedSprite(textures, player, 'player', false);
+    sprite.anchor.set(0, 0.5);
+    PlayerColor.colorize(playerId, sprite);
+    this.playerSprites[playerId] = sprite;
+    this.mapContainer.addChild(sprite);
+    this.sounds.footsteps.play();
   }
 
   private registerBomb(bombId: string, bomb: IBomb) {
@@ -239,17 +256,19 @@ export class GameMap extends GameContainer {
 
     this.flameSprites.length = 0;
 
-    (this.state.explosions as string)
-      .split(';')
-      .filter(str => str.length > 0)
-      .forEach(str => {
-        const [x, y] = str.split(':').map(Number);
+    if (this.state.explosions) {
+      this.state.explosions
+        .split(';')
+        .filter(str => str.length > 0)
+        .forEach(str => {
+          const [x, y] = str.split(':').map(Number);
 
-        const sprite = this.makeAnimatedSprite(this.textures.flame, { x: x, y: y }, 'flame', true);
-        sprite.anchor.set(0.5, 0.5);
-        this.mapContainer.addChild(sprite);
-        this.flameSprites.push(sprite);
-      });
+          const sprite = this.makeAnimatedSprite(this.textures.flame, { x: x, y: y }, 'flame', true);
+          sprite.anchor.set(0.5, 0.5);
+          this.mapContainer.addChild(sprite);
+          this.flameSprites.push(sprite);
+        });
+    }
   }
 
   private displayWallsAndBlocks() {
@@ -315,5 +334,19 @@ export class GameMap extends GameContainer {
     sprite.play();
 
     return sprite;
+  }
+
+  public resetPlayerPositions() {
+    for (const playerId in this.playerSprites) {
+      const player = this.state.players[playerId];
+      const sprite: Sprite = this.playerSprites[playerId];
+
+      sprite.x = player.x * this.textures.tileSize;
+      sprite.y = player.y * this.textures.tileSize;
+      sprite.vx = 0;
+      sprite.vy = 0;
+    }
+
+    this.fixZOrdering();
   }
 }

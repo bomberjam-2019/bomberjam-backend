@@ -18,6 +18,11 @@
                   Administration
                 </router-link>
               </li>
+              <li class="nav-item">
+                <router-link class="nav-link" :to="{ name: 'replay' }">
+                  Replay
+                </router-link>
+              </li>
             </ul>
           </div>
         </div>

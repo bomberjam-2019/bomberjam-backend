@@ -21,6 +21,10 @@ export interface IHasPos {
   y: number;
 }
 
+export interface IHasState {
+  state: IGameState;
+}
+
 export type MoveCode = 'up' | 'down' | 'left' | 'right' | 'stay';
 
 export type ActionCode = MoveCode | 'bomb';

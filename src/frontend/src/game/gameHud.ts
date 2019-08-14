@@ -1,6 +1,6 @@
 import { GameContainer } from './gameContainer';
 import { TextureRegistry } from './textureRegistry';
-import { IGameState, IPlayer } from '../../../types';
+import { IGameState, IHasState, IPlayer } from '../../../types';
 import { Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 import { PlayerColor } from './playerColor';
 
@@ -12,8 +12,8 @@ export class GameHud extends GameContainer {
 
   private readonly textures: TextureRegistry;
 
-  constructor(state: IGameState, textures: TextureRegistry) {
-    super(state);
+  constructor(stateProvider: IHasState, textures: TextureRegistry) {
+    super(stateProvider);
     this.textures = textures;
   }
 
@@ -33,20 +33,6 @@ export class GameHud extends GameContainer {
     }
 
     this.reserveSpaceForHud();
-  }
-
-  private reserveSpaceForHud() {
-    const container = new Container();
-    const padding = new Graphics();
-
-    padding.beginFill(0xff0000);
-    padding.drawRect(0, 0, 400, 1);
-    padding.endFill();
-    padding.alpha = 0;
-
-    container.addChild(padding);
-
-    this.container.addChild(container);
   }
 
   private cleanup() {
@@ -114,5 +100,19 @@ export class GameHud extends GameContainer {
     sprite.vy = 0;
 
     return sprite;
+  }
+
+  private reserveSpaceForHud() {
+    const container = new Container();
+    const padding = new Graphics();
+
+    padding.beginFill(0xff0000);
+    padding.drawRect(0, 0, 400, 1);
+    padding.endFill();
+    padding.alpha = 0;
+
+    container.addChild(padding);
+
+    this.container.addChild(container);
   }
 }
