@@ -3,7 +3,15 @@
     <div v-bind:class="{ container: !isFullscreen, fullscreen: isFullscreen }">
       <div class="row align-items-center">
         <div class="col-auto mr-auto">
-          <h2 class="my-4">Replay a gamelog file</h2>
+          <h2 class="my-4">
+            <template v-if="replayStarted">
+              Replay {{ fileName }}
+              <small class="text-muted">{{ roomId }}</small>
+            </template>
+            <template v-else>
+              Replay a gamelog file
+            </template>
+          </h2>
         </div>
 
         <div class="col-auto">
@@ -90,6 +98,8 @@ export default Vue.extend({
   data() {
     return {
       replayStarted: false as boolean,
+      fileName: '' as string,
+      roomId: '' as string,
       states: [] as IGameState[],
       selectedStateIdx: 0 as number,
       minStateIdx: 0 as number,
@@ -143,6 +153,9 @@ export default Vue.extend({
 
           this.stateJsonStr = JSON.stringify(newState, null, 2);
         });
+
+        this.fileName = file.name;
+        this.roomId = states[0].roomId;
 
         this.minStateIdx = 0;
         this.maxStateIdx = this.states.length - 1;
