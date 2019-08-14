@@ -131,7 +131,7 @@ export class BombermanRenderer {
     this.prevState = JSON.parse(JSON.stringify(this.stateProvider.state));
   }
 
-  private removedBombIds = new Set<string>();
+  private readonly removedBombIds = new Set<string>();
 
   private addNewAndRemoveOldBombsForReplay() {
     this.removedBombIds.clear();
@@ -155,7 +155,7 @@ export class BombermanRenderer {
     }
   }
 
-  private removedBonusIds = new Set<string>();
+  private readonly removedBonusIds = new Set<string>();
 
   private addNewAndRemoveOldBonusesForReplay() {
     this.removedBonusIds.clear();

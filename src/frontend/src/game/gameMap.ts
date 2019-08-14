@@ -105,7 +105,7 @@ export class GameMap extends GameContainer {
           this.unregisterObjectSprite(this.playerSprites, playerId);
           this.registerPlayer(playerId, oldPlayer, 'back');
         } else {
-          (<AnimatedSprite>this.playerSprites[playerId]).stop();
+          this.playerSprites[playerId].stop();
         }
 
         const sprite: Sprite = this.playerSprites[playerId];
@@ -113,8 +113,15 @@ export class GameMap extends GameContainer {
         sprite.x = oldPlayer.x * this.textures.tileSize;
         sprite.y = oldPlayer.y * this.textures.tileSize;
 
-        sprite.vx = oldPlayer.x === newPlayer.x ? 0 : newPlayer.x - oldPlayer.x > 0 ? this.textures.tileSize : -this.textures.tileSize;
-        sprite.vy = oldPlayer.y === newPlayer.y ? 0 : newPlayer.y - oldPlayer.y > 0 ? this.textures.tileSize : -this.textures.tileSize;
+        // On replay mode, you can skip multiple ticks so we don't want to animate players in that case
+        const diffTickCount = Math.abs(this.state.tick - prevState.tick);
+        if (diffTickCount === 1) {
+          sprite.vx = oldPlayer.x === newPlayer.x ? 0 : newPlayer.x - oldPlayer.x > 0 ? this.textures.tileSize : -this.textures.tileSize;
+          sprite.vy = oldPlayer.y === newPlayer.y ? 0 : newPlayer.y - oldPlayer.y > 0 ? this.textures.tileSize : -this.textures.tileSize;
+        } else {
+          sprite.vx = 0;
+          sprite.vy = 0;
+        }
 
         if (this.state.state === 1) {
           sprite.vx = 0;
@@ -155,14 +162,16 @@ export class GameMap extends GameContainer {
       const player: IPlayer = this.state.players[playerId];
       const playerSprite: Sprite = this.playerSprites[playerId];
 
-      if (!player.alive && !player.hasWon && playerSprite) {
-        playerSprite.visible = false;
+      if (playerSprite) {
+        if (!player.alive && !player.hasWon) {
+          playerSprite.visible = false;
 
-        if (prevState.players[playerId].alive !== player.alive) {
-          this.sounds.death.play();
+          if (prevState.players[playerId].alive !== player.alive) {
+            this.sounds.death.play();
+          }
+        } else {
+          playerSprite.visible = true;
         }
-      } else {
-        playerSprite.visible = true;
       }
     }
 
@@ -180,16 +189,6 @@ export class GameMap extends GameContainer {
     this.mapContainer.children.sort((s1: DisplayObject, s2: DisplayObject) => {
       const y1 = Math.floor(s1.y / this.textures.tileSize);
       const y2 = Math.floor(s2.y / this.textures.tileSize);
-
-      if (y1 === y2) {
-        const x1 = Math.floor(s1.x / this.textures.tileSize);
-        const x2 = Math.floor(s2.x / this.textures.tileSize);
-
-        if (x1 === x2) {
-          // TODO sort sprites at the same location based on their type (bomb behind player for example)
-        }
-      }
-
       return y1 - y2;
     });
   }
@@ -209,20 +208,18 @@ export class GameMap extends GameContainer {
   }
 
   private registerPlayer(playerId: string, player: IPlayer, orientation: 'left' | 'right' | 'front' | 'back' = 'front'): void {
-    if (player.alive || player.hasWon) {
-      let textures: Texture[] = this.textures.player.front;
-      if (orientation === 'left') textures = this.textures.player.left;
-      else if (orientation === 'right') textures = this.textures.player.right;
-      else if (orientation === 'front') textures = this.textures.player.front;
-      else if (orientation === 'back') textures = this.textures.player.back;
+    let textures: Texture[] = this.textures.player.front;
+    if (orientation === 'left') textures = this.textures.player.left;
+    else if (orientation === 'right') textures = this.textures.player.right;
+    else if (orientation === 'front') textures = this.textures.player.front;
+    else if (orientation === 'back') textures = this.textures.player.back;
 
-      const sprite = this.makeAnimatedSprite(textures, player, 'player', false);
-      sprite.anchor.set(0, 0.5);
-      PlayerColor.colorize(playerId, sprite);
-      this.playerSprites[playerId] = sprite;
-      this.mapContainer.addChild(sprite);
-      this.sounds.footsteps.play();
-    }
+    const sprite = this.makeAnimatedSprite(textures, player, 'player', false);
+    sprite.anchor.set(0, 0.5);
+    PlayerColor.colorize(playerId, sprite);
+    this.playerSprites[playerId] = sprite;
+    this.mapContainer.addChild(sprite);
+    this.sounds.footsteps.play();
   }
 
   private registerBomb(bombId: string, bomb: IBomb) {

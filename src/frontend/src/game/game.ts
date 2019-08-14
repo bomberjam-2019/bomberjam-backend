@@ -39,10 +39,13 @@ export interface IReplayGameController {
   pauseGame: () => void;
   increaseSpeed: () => void;
   decreaseSpeed: () => void;
-  goToTick: (tick: number) => void;
+  goToStateIdx: (newStateIdx: number) => void;
 }
 
-export async function replayGame(states: IGameState[], tickChangedCallback: (tick: number) => void): Promise<IReplayGameController> {
+export async function replayGame(
+  states: IGameState[],
+  stateChangedCallback: (stateIdx: number, state: IGameState) => void
+): Promise<IReplayGameController> {
   const pixiApp = new Application({
     antialias: true,
     backgroundColor: 0xffffff,
@@ -52,33 +55,32 @@ export async function replayGame(states: IGameState[], tickChangedCallback: (tic
   const textures = await loadTexturesAsync(pixiApp);
   const sounds = await loadSoundsAsync(pixiApp);
   const pixiContainer = document.getElementById('pixi') as HTMLElement;
-  const debugContainer = document.getElementById('debug') as HTMLElement;
 
   let initialized = false;
   let stopped = false;
   let paused = false;
   let gameRenderer: BombermanRenderer;
   let tickDuration = 300;
-  let currentTick = 0;
+  let stateIdx = 0;
 
   const stateProvider: IHasState = {
-    state: states[currentTick]
+    state: states[stateIdx]
   };
 
   // hack: does not block function exit so we can return the controller
   window.setTimeout(async () => {
     while (!stopped) {
       if (!paused) {
-        stateProvider.state = states[currentTick];
+        stateProvider.state = states[stateIdx];
         stateProvider.state.tickDuration = tickDuration;
+        stateChangedCallback(stateIdx, stateProvider.state);
+
         onStateChanged(stateProvider.state);
 
-        currentTick++;
-        if (currentTick >= states.length) {
-          currentTick = states.length - 1;
+        stateIdx++;
+        if (stateIdx >= states.length) {
+          stateIdx = states.length - 1;
         }
-
-        tickChangedCallback(currentTick);
       }
 
       await sleepAsync(tickDuration);
@@ -89,8 +91,6 @@ export async function replayGame(states: IGameState[], tickChangedCallback: (tic
     // Sometimes, when we receive the state for the first time, plenty of properties are missing, so skip it
     if (typeof state.tick === 'undefined') return;
     if (stopped) return;
-
-    debugContainer.innerHTML = JSON.stringify(state, null, 2);
 
     if (!initialized) {
       gameRenderer = new BombermanRenderer(stateProvider, pixiApp, textures, sounds, true);
@@ -108,13 +108,20 @@ export async function replayGame(states: IGameState[], tickChangedCallback: (tic
     pauseGame: () => {
       paused = true;
       pixiApp.ticker.stop();
+      sounds.pause.play({
+        complete: () => {
+          sounds.pauseAll();
+        }
+      });
     },
     resumeGame: () => {
+      sounds.resumeAll();
+      sounds.unpause.play();
       paused = false;
       pixiApp.ticker.start();
     },
-    goToTick: (tick: number) => {
-      if (tick >= 0 && tick < states.length) currentTick = tick;
+    goToStateIdx: (newStateIdx: number) => {
+      if (stateIdx >= 0 && stateIdx < states.length) stateIdx = newStateIdx;
     },
     stopViewer: () => {
       stopped = true;
@@ -132,7 +139,10 @@ export interface ILiveGameController {
   decreaseSpeed: () => void;
 }
 
-export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwner: boolean) => void): Promise<ILiveGameController> {
+export async function showGame(
+  joinOpts: IJoinRoomOpts,
+  stateChangedCallback: (newState: IGameState, isOwner: boolean) => void
+): Promise<ILiveGameController> {
   const pixiApp = new Application({
     antialias: true,
     backgroundColor: 0xffffff,
@@ -152,7 +162,6 @@ export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwne
   console.log(`Room ${room.id} joined with session id ${room.sessionId}`);
 
   const pixiContainer = document.getElementById('pixi') as HTMLElement;
-  const debugContainer = document.getElementById('debug') as HTMLElement;
 
   let initialized = false;
   let stopped = false;
@@ -166,9 +175,7 @@ export async function showGame(joinOpts: IJoinRoomOpts, isOwnerCallback: (isOwne
     if (typeof state.tick === 'undefined') return;
     if (stopped) return;
 
-    debugContainer.innerHTML = JSON.stringify(state, null, 2);
-
-    isOwnerCallback(room.sessionId === state.ownerId);
+    stateChangedCallback(state, room.sessionId === state.ownerId);
 
     if (!initialized) {
       gameRenderer = new BombermanRenderer(room, pixiApp, textures, sounds);
@@ -303,10 +310,12 @@ function cleanupPixiApp(pixiContainer: HTMLElement, pixiApp: Application, textur
     sounds.destroy();
 
     for (const id in pixiApp.loader.resources) {
-      const texture: Texture = pixiApp.loader.resources[id].texture;
-      if (texture) {
-        texture.destroy(true);
-        delete pixiApp.loader.resources[id];
+      if (pixiApp.loader.resources.hasOwnProperty(id)) {
+        const texture: Texture = pixiApp.loader.resources[id].texture;
+        if (texture) {
+          texture.destroy(true);
+          delete pixiApp.loader.resources[id];
+        }
       }
     }
 

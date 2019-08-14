@@ -5,6 +5,7 @@
         <div class="col-auto mr-auto">
           <h2 class="my-4">Replay a gamelog file</h2>
         </div>
+
         <div class="col-auto">
           <button type="button" v-on:click.stop.prevent="toggleFullscreen" class="btn btn-primary btn-sm m-2 mr-3">
             <template v-if="isFullscreen">
@@ -31,18 +32,20 @@
           <input
             type="range"
             class="custom-range mx-2"
-            v-model="selectedTick"
-            v-bind:min="minTick"
-            v-bind:max="maxTick"
+            v-model="selectedStateIdx"
+            v-bind:min="minStateIdx"
+            v-bind:max="maxStateIdx"
             v-on:change="onSelectedTickChanged"
+            v-on:mousedown="tickRangeMouseDown"
+            v-on:mouseup="tickRangeMouseUp"
           />
         </div>
 
         <div class="col-sm-3">
           <div class="form-inline">
-            <input type="text" class="form-control form-control-sm mr-2" v-model="selectedTick" style="width:55px" readonly />
+            <input type="text" class="form-control form-control-sm mr-2" v-model="selectedStateIdx" style="width:55px" readonly />
             /
-            <input type="text" class="form-control form-control-sm ml-2" v-model="maxTick" style="width:55px" readonly />
+            <input type="text" class="form-control form-control-sm ml-2" v-model="maxStateIdx" style="width:55px" readonly />
           </div>
         </div>
 
@@ -68,7 +71,7 @@
       </div>
 
       <section class="jumbotron p-4" v-show="replayStarted">
-        <pre id="debug" class="m-0"></pre>
+        <pre id="debug" class="m-0">{{ stateJsonStr }}</pre>
       </section>
     </div>
   </div>
@@ -86,13 +89,15 @@ export default Vue.extend({
     return {
       replayStarted: false as boolean,
       states: [] as IGameState[],
-      selectedTick: 0 as number,
-      minTick: 0 as number,
-      maxTick: 10 as number,
+      selectedStateIdx: 0 as number,
+      minStateIdx: 0 as number,
+      maxStateIdx: 10 as number,
       tickDuration: 300 as number,
       busyCounter: 0 as number,
       isFullscreen: false as boolean,
-      replayCtrl: null as IReplayGameController | null
+      replayCtrl: null as IReplayGameController | null,
+      stateJsonStr: '' as string,
+      canChangeRangeValue: true as boolean
     };
   },
   computed: {
@@ -123,10 +128,16 @@ export default Vue.extend({
         this.states.length = 0;
         this.states.push(...states);
 
-        this.replayCtrl = await replayGame(this.states, tick => {
-          this.selectedTick = tick;
+        this.replayCtrl = await replayGame(this.states, (stateIdx, newState) => {
+          if (this.canChangeRangeValue) {
+            this.selectedStateIdx = stateIdx;
+          }
+
+          this.stateJsonStr = JSON.stringify(newState, null, 2);
         });
-        this.maxTick = this.states.length - 1;
+
+        this.minStateIdx = 0;
+        this.maxStateIdx = this.states.length - 1;
         this.replayStarted = true;
       }
     },
@@ -143,7 +154,7 @@ export default Vue.extend({
       if (this.replayCtrl) this.replayCtrl.decreaseSpeed();
     },
     onSelectedTickChanged(): void {
-      if (this.replayCtrl) this.replayCtrl.goToTick(this.selectedTick);
+      if (this.replayCtrl) this.replayCtrl.goToStateIdx(this.selectedStateIdx);
     },
     toggleFullscreen(): void {
       if (screenfull && screenfull.enabled) {
@@ -183,6 +194,12 @@ export default Vue.extend({
       if (states.length >= SUDDEN_DEATH_COUNTDOWN + 300) throw new Error('Gamelog file too big');
 
       return states;
+    },
+    tickRangeMouseDown(): void {
+      this.canChangeRangeValue = false;
+    },
+    tickRangeMouseUp(): void {
+      this.canChangeRangeValue = true;
     }
   }
 });
