@@ -25,10 +25,11 @@ async function main() {
       state.addPlayer(bot.id, bot.id);
     }
 
+    appendStateToFile();
+
     let iter = 0;
     while (state.isPlaying() && iter < maxIterations) {
       const sanitizedState = createSanitizedStateCopyForBot(state);
-
       const playerMessages: IClientMessage[] = [];
 
       for (const bot of bots) {
@@ -49,19 +50,7 @@ async function main() {
       const shuffledPlayerMessages = shuffle(playerMessages);
       state.applyClientMessages(shuffledPlayerMessages);
 
-      // dump state to file
-      const step = {
-        state: state,
-        actions: {} as { [botId: string]: string }
-      };
-
-      for (const bot of bots) {
-        step.actions[bot.id] = bot.action;
-      }
-
-      const stepStr = JSON.stringify(step);
-      writeStream.write(stepStr + os.EOL);
-
+      appendStateToFile();
       iter++;
     }
 
@@ -71,6 +60,19 @@ async function main() {
     const winner = Object.keys(state.players).filter(id => state.players[id].hasWon);
     if (winner.length) {
       winnerSentence = `Bot ${winner[0]} wins after ${state.tick} ticks`;
+    }
+
+    function appendStateToFile() {
+      const step = {
+        state: state,
+        actions: {} as { [botId: string]: string }
+      };
+
+      for (const bot of bots) {
+        step.actions[bot.id] = bot.action;
+      }
+
+      writeStream.write(JSON.stringify(step) + os.EOL);
     }
 
     console.log(writeStream.path);

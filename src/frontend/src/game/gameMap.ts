@@ -110,15 +110,18 @@ export class GameMap extends GameContainer {
 
         const sprite: Sprite = this.playerSprites[playerId];
 
-        sprite.x = oldPlayer.x * this.textures.tileSize;
-        sprite.y = oldPlayer.y * this.textures.tileSize;
-
         // On replay mode, you can skip multiple ticks so we don't want to animate players in that case
         const diffTickCount = Math.abs(this.state.tick - prevState.tick);
         if (diffTickCount === 1) {
+          sprite.x = oldPlayer.x * this.textures.tileSize;
+          sprite.y = oldPlayer.y * this.textures.tileSize;
+
           sprite.vx = oldPlayer.x === newPlayer.x ? 0 : newPlayer.x - oldPlayer.x > 0 ? this.textures.tileSize : -this.textures.tileSize;
           sprite.vy = oldPlayer.y === newPlayer.y ? 0 : newPlayer.y - oldPlayer.y > 0 ? this.textures.tileSize : -this.textures.tileSize;
         } else {
+          sprite.x = newPlayer.x * this.textures.tileSize;
+          sprite.y = newPlayer.y * this.textures.tileSize;
+
           sprite.vx = 0;
           sprite.vy = 0;
         }
@@ -186,6 +189,10 @@ export class GameMap extends GameContainer {
     }
 
     // z-ordering
+    this.fixZOrdering();
+  }
+
+  private fixZOrdering(): void {
     this.mapContainer.children.sort((s1: DisplayObject, s2: DisplayObject) => {
       const y1 = Math.floor(s1.y / this.textures.tileSize);
       const y2 = Math.floor(s2.y / this.textures.tileSize);
@@ -324,5 +331,19 @@ export class GameMap extends GameContainer {
     sprite.play();
 
     return sprite;
+  }
+
+  public resetPlayerPositions() {
+    for (const playerId in this.playerSprites) {
+      const player = this.state.players[playerId];
+      const sprite: Sprite = this.playerSprites[playerId];
+
+      sprite.x = player.x * this.textures.tileSize;
+      sprite.y = player.y * this.textures.tileSize;
+      sprite.vx = 0;
+      sprite.vy = 0;
+    }
+
+    this.fixZOrdering();
   }
 }

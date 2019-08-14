@@ -70,22 +70,24 @@ export async function replayGame(
   // hack: does not block function exit so we can return the controller
   window.setTimeout(async () => {
     while (!stopped) {
+      displayState(stateIdx);
+
       if (!paused) {
-        stateProvider.state = states[stateIdx];
-        stateProvider.state.tickDuration = tickDuration;
-        stateChangedCallback(stateIdx, stateProvider.state);
-
-        onStateChanged(stateProvider.state);
-
         stateIdx++;
-        if (stateIdx >= states.length) {
-          stateIdx = states.length - 1;
-        }
+        if (stateIdx >= states.length) stateIdx = states.length - 1;
       }
 
       await sleepAsync(tickDuration);
     }
   }, 0);
+
+  function displayState(stateIdx: number) {
+    stateProvider.state = states[stateIdx];
+    stateProvider.state.tickDuration = tickDuration;
+    stateChangedCallback(stateIdx, stateProvider.state);
+
+    onStateChanged(stateProvider.state);
+  }
 
   function onStateChanged(state: IGameState) {
     // Sometimes, when we receive the state for the first time, plenty of properties are missing, so skip it
@@ -106,8 +108,8 @@ export async function replayGame(
     increaseSpeed: () => (tickDuration = tickDuration > 110 ? tickDuration - 100 : 10),
     decreaseSpeed: () => (tickDuration += 100),
     pauseGame: () => {
+      gameRenderer.resetPlayerPositions();
       paused = true;
-      pixiApp.ticker.stop();
       sounds.pause.play({
         complete: () => {
           sounds.pauseAll();
@@ -118,10 +120,12 @@ export async function replayGame(
       sounds.resumeAll();
       sounds.unpause.play();
       paused = false;
-      pixiApp.ticker.start();
     },
     goToStateIdx: (newStateIdx: number) => {
-      if (stateIdx >= 0 && stateIdx < states.length) stateIdx = newStateIdx;
+      if (gameRenderer && stateIdx >= 0 && stateIdx < states.length) {
+        stateIdx = newStateIdx;
+        displayState(stateIdx);
+      }
     },
     stopViewer: () => {
       stopped = true;

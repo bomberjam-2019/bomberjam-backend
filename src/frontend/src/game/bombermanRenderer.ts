@@ -183,4 +183,8 @@ export class BombermanRenderer {
     this.map.onPixiFrameUpdated(delta);
     this.hud.onPixiFrameUpdated(delta);
   }
+
+  public resetPlayerPositions(): void {
+    this.map.resetPlayerPositions();
+  }
 }
