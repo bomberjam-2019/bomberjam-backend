@@ -8,6 +8,6 @@ script:
   - npm run test
   - npm run build
   - npm pack --dry-run
-  - npm run start:client:simulate
+  - npm run training-export
 notifications:
   email: false
