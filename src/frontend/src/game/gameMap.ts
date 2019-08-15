@@ -12,8 +12,8 @@ export class GameMap extends GameContainer {
   private readonly sounds: SoundRegistry;
   private readonly mapContainer: Container;
 
-  private wallSprites: Sprite[] = [];
-  private blockSprites: Sprite[] = [];
+  private wallSprites: { [idx: number]: AnimatedSprite } = {};
+  private blockSprites: { [idx: number]: AnimatedSprite } = {};
   private playerSprites: { [playerId: string]: AnimatedSprite } = {};
   private bombSprites: { [bombId: string]: Sprite } = {};
   private bonusesSprites: { [bonusId: string]: Sprite } = {};
@@ -183,13 +183,12 @@ export class GameMap extends GameContainer {
 
     this.displayFlames();
 
-    let previousWallCount = this.wallSprites.length;
+    const previousWallCount = Object.keys(this.wallSprites).length;
     this.displayWallsAndBlocks();
+    const currentWallCount = Object.keys(this.wallSprites).length;
 
     // New wall has dropped.
-    if (previousWallCount !== this.wallSprites.length) {
-      this.sounds.stomp.play();
-    }
+    if (previousWallCount !== currentWallCount) this.sounds.stomp.play();
 
     // z-ordering
     this.fixZOrdering();
@@ -224,7 +223,7 @@ export class GameMap extends GameContainer {
     else if (orientation === 'front') textures = this.textures.player.front;
     else if (orientation === 'back') textures = this.textures.player.back;
 
-    const sprite = this.makeAnimatedSprite(textures, player, 'player', false);
+    const sprite = this.makeAnimatedSprite(textures, player, 'player', false, 0.15);
     sprite.anchor.set(0, 0.5);
     PlayerColor.colorize(playerId, sprite);
     this.playerSprites[playerId] = sprite;
@@ -234,7 +233,7 @@ export class GameMap extends GameContainer {
 
   private registerBomb(bombId: string, bomb: IBomb) {
     if (bomb.countdown >= 0) {
-      const sprite = this.makeAnimatedSprite(this.textures.bomb, bomb, 'bomb', true);
+      const sprite = this.makeAnimatedSprite(this.textures.bomb, bomb, 'bomb', true, 0.15);
       sprite.anchor.set(0.5, 0.5);
       this.bombSprites[bombId] = sprite;
       this.mapContainer.addChild(sprite);
@@ -243,7 +242,7 @@ export class GameMap extends GameContainer {
 
   private registerBonus(bonusId: string, bonus: IBonus) {
     const texture = bonus.type === 'bomb' ? this.textures.bombBonus : this.textures.fireBonus;
-    const sprite = this.makeAnimatedSprite(texture, bonus, 'bonus', true);
+    const sprite = this.makeAnimatedSprite(texture, bonus, 'bonus', true, 0.15);
     sprite.anchor.set(0.5, 0.5);
     this.bonusesSprites[bonusId] = sprite;
     this.mapContainer.addChild(sprite);
@@ -263,7 +262,7 @@ export class GameMap extends GameContainer {
         .forEach(str => {
           const [x, y] = str.split(':').map(Number);
 
-          const sprite = this.makeAnimatedSprite(this.textures.flame, { x: x, y: y }, 'flame', true);
+          const sprite = this.makeAnimatedSprite(this.textures.flame, { x: x, y: y }, 'flame', true, 0.15);
           sprite.anchor.set(0.5, 0.5);
           this.mapContainer.addChild(sprite);
           this.flameSprites.push(sprite);
@@ -272,29 +271,49 @@ export class GameMap extends GameContainer {
   }
 
   private displayWallsAndBlocks() {
-    for (const sprite of [...this.wallSprites, ...this.blockSprites]) {
-      this.unregisterSprite(sprite);
+    let currentBlockFrame = 0;
+    let currentWallFrame = 0;
+
+    for (const idx in this.blockSprites) {
+      currentBlockFrame = this.blockSprites[idx].currentFrame + 1;
+      break;
     }
 
-    this.wallSprites.length = 0;
-    this.blockSprites.length = 0;
+    for (const idx in this.wallSprites) {
+      currentWallFrame = this.wallSprites[idx].currentFrame + 1;
+      break;
+    }
 
     for (let x = 0; x < this.state.width; x++) {
       for (let y = 0; y < this.state.height; y++) {
         const idx = y * this.state.width + x;
         const char = this.state.tiles[idx];
 
-        if (char === '+' || char === '#') {
-          let sprite: Sprite;
-          if (char === '+') {
-            sprite = this.makeAnimatedSprite(this.textures.block, { x: x, y: y }, 'block', false);
-            this.blockSprites.push(sprite);
-          } else {
-            sprite = this.makeAnimatedSprite(this.textures.wall, { x: x, y: y }, 'wall', false);
-            this.wallSprites.push(sprite);
+        let blockSprite: AnimatedSprite = this.blockSprites[idx];
+        let wallSprite: AnimatedSprite = this.wallSprites[idx];
+
+        if (char === '+') {
+          if (!blockSprite) {
+            blockSprite = this.makeAnimatedSprite(this.textures.block, { x: x, y: y }, 'block', false, 0.15, currentBlockFrame);
+            this.blockSprites[idx] = blockSprite;
+            this.mapContainer.addChild(blockSprite);
+          }
+        } else if (char === '#') {
+          if (!wallSprite) {
+            wallSprite = this.makeAnimatedSprite(this.textures.wall, { x: x, y: y }, 'wall', false, 0.15, currentWallFrame);
+            this.wallSprites[idx] = wallSprite;
+            this.mapContainer.addChild(wallSprite);
+          }
+        } else {
+          if (blockSprite) {
+            this.unregisterSprite(blockSprite);
+            delete this.blockSprites[idx];
           }
 
-          this.mapContainer.addChild(sprite);
+          if (wallSprite) {
+            this.unregisterSprite(wallSprite);
+            delete this.wallSprites[idx];
+          }
         }
       }
     }
@@ -313,7 +332,14 @@ export class GameMap extends GameContainer {
     sprite.destroy();
   }
 
-  private makeAnimatedSprite(textures: Texture[], pos: IHasPos, type: SpriteType, centered: boolean): AnimatedSprite {
+  private makeAnimatedSprite(
+    textures: Texture[],
+    pos: IHasPos,
+    type: SpriteType,
+    centered: boolean,
+    speed: number,
+    startingFrame: number = 0
+  ): AnimatedSprite {
     const sprite = new AnimatedSprite(textures, true);
 
     if (centered) {
@@ -325,13 +351,13 @@ export class GameMap extends GameContainer {
       sprite.position.set(pos.x * this.textures.tileSize, pos.y * this.textures.tileSize);
     }
 
-    sprite.animationSpeed = 0.15;
+    sprite.animationSpeed = speed;
     sprite.scale.set(this.textures.spriteRatio, this.textures.spriteRatio);
     sprite.vx = 0;
     sprite.vy = 0;
     sprite.type = type;
 
-    sprite.play();
+    sprite.gotoAndPlay(startingFrame);
 
     return sprite;
   }
