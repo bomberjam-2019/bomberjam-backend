@@ -71,6 +71,9 @@ export class Player extends Schema implements IPlayer {
   @type('int8')
   lives: number = DEFAULT_LIVES;
 
+  @type('int16')
+  score: number = 0;
+
   @type('boolean')
   hasWon: boolean = false;
 }

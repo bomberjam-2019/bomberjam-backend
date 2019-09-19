@@ -1,5 +1,3 @@
-/** Bomberman **/
-
 export interface IJoinRoomOpts {
   name?: string;
   roomId?: string;
@@ -74,6 +72,7 @@ export interface ISimplePlayer extends IHasPos {
   bombRange: number;
   alive: boolean;
   lives: number;
+  score: number;
 }
 
 export interface IPlayer extends ISimplePlayer {
