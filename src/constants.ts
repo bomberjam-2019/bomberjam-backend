@@ -14,4 +14,5 @@ export const BOMB_BONUS_COUNT = 8;
 export const FIRE_BONUS_COUNT = 8;
 export const SUDDEN_DEATH_COUNTDOWN = 1000;
 
-export const ARE_PLAYERS_INVINCIBLE = true;
+export const RESPAWN_TIME = 10;
+export const LOSE_BONUS = false;
