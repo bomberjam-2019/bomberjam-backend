@@ -111,7 +111,8 @@ export function createSanitizedStateCopyForBot(state: IGameState): ISimpleGameSt
       maxBombs: p.maxBombs,
       bombRange: p.bombRange,
       alive: p.alive,
-      lives: p.lives
+      lives: p.lives,
+      score: p.score
     };
   }
 
