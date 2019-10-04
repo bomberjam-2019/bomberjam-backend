@@ -25,6 +25,7 @@ import {
   TileCode,
   Tiles
 } from '../types';
+import { EquatableSet } from '../utils';
 import { MapSchema, Schema, type } from '@colyseus/schema';
 
 import _ from 'lodash';
@@ -80,6 +81,11 @@ export class Player extends Schema implements IPlayer {
 
   @type('boolean')
   hasWon: boolean = false;
+
+  public addScore(deltaScore: number): void {
+    this.score += deltaScore;
+    if (this.score < 0) this.score = 0;
+  }
 }
 
 export class Bomb extends Schema implements IBomb {
@@ -384,7 +390,7 @@ export class GameState extends Schema implements IGameState {
   }
 
   private changeStateIfGameEnded() {
-    const alivePlayers: IPlayer[] = [];
+    const alivePlayers: Player[] = [];
 
     for (const playerId in this.players) {
       const player = this.players[playerId];
@@ -397,7 +403,7 @@ export class GameState extends Schema implements IGameState {
 
       if (alivePlayers.length === 1) {
         alivePlayers[0].hasWon = true;
-        alivePlayers[0].score += POINTS_LAST_SURVIVOR;
+        alivePlayers[0].addScore(POINTS_LAST_SURVIVOR);
       }
     }
   }
@@ -527,11 +533,11 @@ export class GameState extends Schema implements IGameState {
     const deletedBombIds = new Set<string>();
     const explosionPositions = new Set<string>();
 
-    const destroyedBlocks = new ComparableSet((o1: DestroyedBlock, o2: DestroyedBlock) => {
+    const destroyedBlocks = new EquatableSet((o1: DestroyedBlock, o2: DestroyedBlock) => {
       return o1.x === o2.x && o1.y === o2.y;
     });
 
-    const playerHits = new ComparableSet((o1: PlayerHit, o2: PlayerHit) => {
+    const playerHits = new EquatableSet((o1: PlayerHit, o2: PlayerHit) => {
       return o1.victim === o2.victim;
     });
 
@@ -623,9 +629,9 @@ export class GameState extends Schema implements IGameState {
     }
 
     // 3) remove destroyed walls now otherwise too many walls could have been destroyed
-    for (const destroyedBlock of destroyedBlocks.enumerator) {
+    for (const destroyedBlock of destroyedBlocks) {
       this.setTileAt(destroyedBlock.x, destroyedBlock.y, Tiles.Empty);
-      this.players[destroyedBlock.destroyedBy].score += POINTS_BLOCK_DESTROYED;
+      this.players[destroyedBlock.destroyedBy].addScore(POINTS_BLOCK_DESTROYED);
 
       // drop bonus if applicable
       const idx = this.coordToTileIndex(destroyedBlock.x, destroyedBlock.y);
@@ -637,12 +643,12 @@ export class GameState extends Schema implements IGameState {
     }
 
     // 4) apply damage to players
-    for (const playerHit of playerHits.enumerator) {
+    for (const playerHit of playerHits) {
       this.hitPlayer(this.players[playerHit.victim]);
 
-      this.players[playerHit.victim].score += POINTS_DEATH;
+      this.players[playerHit.victim].addScore(POINTS_DEATH);
       if (playerHit.attacker !== playerHit.victim) {
-        this.players[playerHit.attacker].score += POINTS_KILLED_PLAYER;
+        this.players[playerHit.attacker].addScore(POINTS_KILLED_PLAYER);
       }
     }
 
@@ -673,40 +679,4 @@ interface DestroyedBlock extends IHasPos {
 interface PlayerHit {
   attacker: string;
   victim: string;
-}
-
-export class ComparableSet<T> {
-  private readonly equalityComparer: (o1: T, o2: T) => boolean;
-  private readonly collection: Array<T>;
-
-  public constructor(equalityComparer: (o1: T, o2: T) => boolean) {
-    this.equalityComparer = equalityComparer;
-    this.collection = [];
-  }
-
-  public get enumerator(): Array<T> {
-    return this.collection;
-  }
-
-  public get length(): number {
-    return this.collection.length;
-  }
-
-  public has(obj: T): boolean {
-    return this.hasInternal(obj) >= 0;
-  }
-
-  public add(obj: T): void {
-    const idx = this.hasInternal(obj);
-    if (idx < 0) this.collection.push(obj);
-  }
-
-  private hasInternal(obj: T): number {
-    for (let i = 0; i < this.collection.length; i++) {
-      const other = this.collection[i];
-      if (other === obj || this.equalityComparer(other, obj)) return i;
-    }
-
-    return -1;
-  }
 }

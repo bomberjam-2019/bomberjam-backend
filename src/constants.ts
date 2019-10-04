@@ -18,5 +18,5 @@ export const ARE_PLAYERS_INVINCIBLE = true;
 
 export const POINTS_BLOCK_DESTROYED = 1;
 export const POINTS_KILLED_PLAYER = 20;
-export const POINTS_DEATH = -0;
+export const POINTS_DEATH = -10;
 export const POINTS_LAST_SURVIVOR = 50;
