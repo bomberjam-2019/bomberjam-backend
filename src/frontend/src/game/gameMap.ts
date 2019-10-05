@@ -3,13 +3,13 @@ import { IBomb, IBonus, IGameState, IHasPos, IHasState, IPlayer } from '../../..
 
 import { GameContainer } from './gameContainer';
 import { PlayerColor } from './playerColor';
-import { RESPAWN_TIME } from '../../../constants';
 import { SoundRegistry } from './soundRegistry';
 import { TextureRegistry } from './textureRegistry';
+import { RESPAWN_TIME } from '../../../constants';
 
 type SpriteType = 'player' | 'bomb' | 'flame' | 'bonus' | 'block' | 'wall';
 
-export class GameMap extends GameContainer {
+export default class GameMap extends GameContainer {
   private readonly textures: TextureRegistry;
   private readonly sounds: SoundRegistry;
   private readonly mapContainer: Container;
@@ -171,6 +171,7 @@ export class GameMap extends GameContainer {
     // Hide dead players
     for (const playerId in this.state.players) {
       const player: IPlayer = this.state.players[playerId];
+      const oldPlayer: IPlayer = prevState.players[playerId];
       const playerSprite: Sprite = this.playerSprites[playerId];
 
       if (playerSprite) {
@@ -179,7 +180,7 @@ export class GameMap extends GameContainer {
         } else {
           playerSprite.visible = true;
         }
-        if (prevState.players[playerId].alive !== player.alive || player.respawning === RESPAWN_TIME) {
+        if ((oldPlayer && oldPlayer.alive !== player.alive) || player.respawning === RESPAWN_TIME) {
           this.sounds.death.play();
         }
         this.drawRespawningPlayer(player);

@@ -2,7 +2,7 @@ import { IBomb, IBonus, IGameState, IHasState, IPlayer } from '../../../types';
 
 import { Application } from 'pixi.js';
 import { GameHud } from './gameHud';
-import { GameMap } from './gameMap';
+import GameMap from './gameMap';
 import { SoundRegistry } from './soundRegistry';
 import { TextureRegistry } from './textureRegistry';
 
