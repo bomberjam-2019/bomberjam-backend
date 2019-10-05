@@ -294,6 +294,9 @@ export class GameState extends Schema implements IGameState {
       for (const message of messages) {
         const player = this.players[message.playerId];
         if (player && player.connected && player.alive) {
+          if (player.respawning > 0) {
+            player.respawning--;
+          }
           if (message.action === Actions.Bomb) {
             this.plantBomb(player);
           } else {
@@ -435,8 +438,8 @@ export class GameState extends Schema implements IGameState {
       player.bombRange = 0;
     }
 
-    // Keep player alive if he is the winner.
-    if (!player.hasWon) {
+    // Only kill player if its sudden death and if he is not the winner.
+    if (!player.hasWon && this.suddenDeathEnabled) {
       player.alive = false;
     }
   }
@@ -494,7 +497,8 @@ export class GameState extends Schema implements IGameState {
 
   private plantBomb(player: Player) {
     const hasEnoughBombs = player.bombsLeft > 0;
-    if (!hasEnoughBombs) return;
+    const isRespawning = player.respawning > 0;
+    if (!hasEnoughBombs || isRespawning) return;
 
     const existingBomb = this.findActiveBombAt(player.x, player.y);
     if (!existingBomb) {

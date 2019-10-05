@@ -1,9 +1,11 @@
 import { AnimatedSprite, Container, DisplayObject, Sprite, Texture, TilingSprite } from 'pixi.js';
-import { TextureRegistry } from './textureRegistry';
-import { SoundRegistry } from './soundRegistry';
 import { IBomb, IBonus, IGameState, IHasPos, IHasState, IPlayer } from '../../../types';
+
 import { GameContainer } from './gameContainer';
 import { PlayerColor } from './playerColor';
+import { RESPAWN_TIME } from '../../../constants';
+import { SoundRegistry } from './soundRegistry';
+import { TextureRegistry } from './textureRegistry';
 
 type SpriteType = 'player' | 'bomb' | 'flame' | 'bonus' | 'block' | 'wall';
 
@@ -90,44 +92,47 @@ export class GameMap extends GameContainer {
       const oldPlayer = prevState.players[playerId];
       const newPlayer = this.state.players[playerId];
 
-      if (oldPlayer && newPlayer) {
-        if (newPlayer.x > oldPlayer.x) {
-          this.unregisterObjectSprite(this.playerSprites, playerId);
-          this.registerPlayer(playerId, oldPlayer, 'right');
-        } else if (newPlayer.x < oldPlayer.x) {
-          this.unregisterObjectSprite(this.playerSprites, playerId);
-          this.registerPlayer(playerId, oldPlayer, 'left');
-        } else if (newPlayer.y > oldPlayer.y) {
-          this.unregisterObjectSprite(this.playerSprites, playerId);
-          this.registerPlayer(playerId, oldPlayer, 'front');
-        } else if (newPlayer.y < oldPlayer.y) {
-          this.unregisterObjectSprite(this.playerSprites, playerId);
-          this.registerPlayer(playerId, oldPlayer, 'back');
-        } else {
-          this.playerSprites[playerId].stop();
-        }
+      // Dont animate if player has just been killed
+      if (newPlayer.respawning !== RESPAWN_TIME) {
+        if (oldPlayer && newPlayer) {
+          if (newPlayer.x > oldPlayer.x) {
+            this.unregisterObjectSprite(this.playerSprites, playerId);
+            this.registerPlayer(playerId, oldPlayer, 'right');
+          } else if (newPlayer.x < oldPlayer.x) {
+            this.unregisterObjectSprite(this.playerSprites, playerId);
+            this.registerPlayer(playerId, oldPlayer, 'left');
+          } else if (newPlayer.y > oldPlayer.y) {
+            this.unregisterObjectSprite(this.playerSprites, playerId);
+            this.registerPlayer(playerId, oldPlayer, 'front');
+          } else if (newPlayer.y < oldPlayer.y) {
+            this.unregisterObjectSprite(this.playerSprites, playerId);
+            this.registerPlayer(playerId, oldPlayer, 'back');
+          } else {
+            this.playerSprites[playerId].stop();
+          }
 
-        const sprite: Sprite = this.playerSprites[playerId];
+          const sprite: Sprite = this.playerSprites[playerId];
 
-        // On replay mode, you can skip multiple ticks so we don't want to animate players in that case
-        const diffTickCount = Math.abs(this.state.tick - prevState.tick);
-        if (diffTickCount === 1) {
-          sprite.x = oldPlayer.x * this.textures.tileSize;
-          sprite.y = oldPlayer.y * this.textures.tileSize;
+          // On replay mode, you can skip multiple ticks so we don't want to animate players in that case
+          const diffTickCount = Math.abs(this.state.tick - prevState.tick);
+          if (diffTickCount === 1) {
+            sprite.x = oldPlayer.x * this.textures.tileSize;
+            sprite.y = oldPlayer.y * this.textures.tileSize;
 
-          sprite.vx = oldPlayer.x === newPlayer.x ? 0 : newPlayer.x - oldPlayer.x > 0 ? this.textures.tileSize : -this.textures.tileSize;
-          sprite.vy = oldPlayer.y === newPlayer.y ? 0 : newPlayer.y - oldPlayer.y > 0 ? this.textures.tileSize : -this.textures.tileSize;
-        } else {
-          sprite.x = newPlayer.x * this.textures.tileSize;
-          sprite.y = newPlayer.y * this.textures.tileSize;
+            sprite.vx = oldPlayer.x === newPlayer.x ? 0 : newPlayer.x - oldPlayer.x > 0 ? this.textures.tileSize : -this.textures.tileSize;
+            sprite.vy = oldPlayer.y === newPlayer.y ? 0 : newPlayer.y - oldPlayer.y > 0 ? this.textures.tileSize : -this.textures.tileSize;
+          } else {
+            sprite.x = newPlayer.x * this.textures.tileSize;
+            sprite.y = newPlayer.y * this.textures.tileSize;
 
-          sprite.vx = 0;
-          sprite.vy = 0;
-        }
+            sprite.vx = 0;
+            sprite.vy = 0;
+          }
 
-        if (this.state.state === 1) {
-          sprite.vx = 0;
-          sprite.vy = 0;
+          if (this.state.state === 1) {
+            sprite.vx = 0;
+            sprite.vy = 0;
+          }
         }
       }
     }
@@ -171,13 +176,13 @@ export class GameMap extends GameContainer {
       if (playerSprite) {
         if (!player.alive && !player.hasWon) {
           playerSprite.visible = false;
-
-          if (prevState.players[playerId].alive !== player.alive) {
-            this.sounds.death.play();
-          }
         } else {
           playerSprite.visible = true;
         }
+        if (prevState.players[playerId].alive !== player.alive || player.respawning === RESPAWN_TIME) {
+          this.sounds.death.play();
+        }
+        this.drawRespawningPlayer(player);
       }
     }
 
@@ -192,6 +197,13 @@ export class GameMap extends GameContainer {
 
     // z-ordering
     this.fixZOrdering();
+  }
+
+  private drawRespawningPlayer(player: IPlayer) {
+    const playerSprite: Sprite = this.playerSprites[player.id];
+    if (player.alive && player.respawning > 0) {
+      playerSprite.visible = player.respawning % 2 !== 0;
+    }
   }
 
   private fixZOrdering(): void {
