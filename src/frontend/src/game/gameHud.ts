@@ -35,11 +35,7 @@ export class GameHud extends GameContainer {
 
     this.reserveSpaceForHud();
 
-    const containerSize = {
-      width: (this.state.width + 2) * this.textures.tileSize,
-      height: (this.state.height + 2) * this.textures.tileSize
-    };
-
+    const gameHeight = (this.state.height + 2) * this.textures.tileSize;
     const playerCount = Object.keys(this.state.players).length;
     const ratios: { [id: string]: number } = {};
 
@@ -62,7 +58,7 @@ export class GameHud extends GameContainer {
       ratios[playerId] = ratios[playerId] - extraRatios / playerCount;
 
       const something = new Graphics();
-      const height = ratios[playerId] * containerSize.height;
+      const height = ratios[playerId] * gameHeight;
 
       something.beginFill(this.state.players[playerId].color);
       something.drawRect(0, lastY, 10, height);
