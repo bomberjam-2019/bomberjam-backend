@@ -73,6 +73,10 @@ export class GameHud extends GameContainer {
     bombRangeText.x = flameSprite.x + flameSprite.width + 5;
     bombRangeText.y = bombSprite.y;
 
+    const scoreText = new Text(`- score: ${player.score.toString()}`, GameHud.TextStyle);
+    scoreText.x = bombRangeText.x + bombRangeText.width + 5;
+    scoreText.y = bombSprite.y;
+
     const padding = new Graphics();
 
     padding.beginFill(0xff0000);
@@ -80,7 +84,7 @@ export class GameHud extends GameContainer {
     padding.endFill();
     padding.alpha = 0;
 
-    container.addChild(playerSprite, playerNameText, bombSprite, bombCountText, flameSprite, bombRangeText, padding);
+    container.addChild(playerSprite, playerNameText, bombSprite, bombCountText, flameSprite, bombRangeText, scoreText, padding);
 
     container.y = this.container.children.length * (container.height + 25);
 
