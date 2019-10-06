@@ -10,6 +10,7 @@ import {
   POINTS_DEATH,
   POINTS_KILLED_PLAYER,
   POINTS_LAST_SURVIVOR,
+  POINTS_PER_ALIVE_TICK,
   SUDDEN_DEATH_COUNTDOWN
 } from '../constants';
 import {
@@ -330,6 +331,7 @@ export class GameState extends Schema implements IGameState {
 
       this.runBombs();
       this.changeStateIfGameEnded();
+      this.addScorePerTick();
     } else if (this.isGameEnded()) {
       // end game cleanup
       for (const bombId in this.bombs) delete this.bombs[bombId];
@@ -419,6 +421,13 @@ export class GameState extends Schema implements IGameState {
         alivePlayers[0].hasWon = true;
         alivePlayers[0].addScore(POINTS_LAST_SURVIVOR);
       }
+    }
+  }
+
+  private addScorePerTick() {
+    for (const playerId in this.players) {
+      const player = this.players[playerId];
+      if (player.alive) player.addScore(POINTS_PER_ALIVE_TICK);
     }
   }
 

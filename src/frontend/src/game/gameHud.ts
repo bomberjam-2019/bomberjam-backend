@@ -27,11 +27,52 @@ export class GameHud extends GameContainer {
   private refresh() {
     this.cleanup();
 
+    let totalScore = 0;
     for (const playerId in this.state.players) {
       this.createPlayerHud(playerId, this.state.players[playerId]);
+      totalScore += this.state.players[playerId].score;
     }
 
     this.reserveSpaceForHud();
+
+    const containerSize = {
+      width: (this.state.width + 2) * this.textures.tileSize,
+      height: (this.state.height + 2) * this.textures.tileSize
+    };
+
+    const playerCount = Object.keys(this.state.players).length;
+    const ratios: { [id: string]: number } = {};
+
+    let extraRatios = 0;
+
+    for (const playerId in this.state.players) {
+      let ratio = totalScore > 0 ? this.state.players[playerId].score / totalScore : 1 / playerCount;
+      if (ratio === 0) {
+        ratio = 0.01;
+        extraRatios += ratio;
+      }
+
+      ratios[playerId] = ratio;
+    }
+
+    const container = new Container();
+    let lastY = 0;
+
+    for (const playerId in this.state.players) {
+      ratios[playerId] = ratios[playerId] - extraRatios / playerCount;
+
+      const something = new Graphics();
+      const height = ratios[playerId] * containerSize.height;
+
+      something.beginFill(this.state.players[playerId].color);
+      something.drawRect(0, lastY, 10, height);
+      something.endFill();
+
+      lastY += height;
+      container.addChild(something);
+    }
+
+    this.container.addChild(container);
   }
 
   private cleanup() {
