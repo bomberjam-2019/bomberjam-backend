@@ -73,6 +73,7 @@ export interface ISimplePlayer extends IHasPos {
   alive: boolean;
   lives: number;
   score: number;
+  color: number;
 }
 
 export interface IPlayer extends ISimplePlayer {

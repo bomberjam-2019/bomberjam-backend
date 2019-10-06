@@ -3,7 +3,6 @@ import { TextureRegistry } from './textureRegistry';
 import { SoundRegistry } from './soundRegistry';
 import { IBomb, IBonus, IGameState, IHasPos, IHasState, IPlayer } from '../../../types';
 import { GameContainer } from './gameContainer';
-import { PlayerColor } from './playerColor';
 
 type SpriteType = 'player' | 'bomb' | 'flame' | 'bonus' | 'block' | 'wall';
 
@@ -225,7 +224,7 @@ export class GameMap extends GameContainer {
 
     const sprite = this.makeAnimatedSprite(textures, player, 'player', false, 0.15);
     sprite.anchor.set(0, 0.5);
-    PlayerColor.colorize(playerId, sprite);
+    sprite.tint = player.color;
     this.playerSprites[playerId] = sprite;
     this.mapContainer.addChild(sprite);
     this.sounds.footsteps.play();

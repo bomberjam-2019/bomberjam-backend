@@ -20,3 +20,5 @@ export const POINTS_BLOCK_DESTROYED = 1;
 export const POINTS_KILLED_PLAYER = 20;
 export const POINTS_DEATH = -10;
 export const POINTS_LAST_SURVIVOR = 50;
+
+export const PLAYER_COLORS: number[] = [0xff8f8f, 0xffff8a, 0x7aff7a, 0x75c0ff, 0xff78fd];

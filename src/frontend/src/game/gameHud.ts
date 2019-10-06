@@ -2,7 +2,6 @@ import { GameContainer } from './gameContainer';
 import { TextureRegistry } from './textureRegistry';
 import { IGameState, IHasState, IPlayer } from '../../../types';
 import { Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
-import { PlayerColor } from './playerColor';
 
 export class GameHud extends GameContainer {
   private static readonly TextStyle = new TextStyle({
@@ -52,7 +51,7 @@ export class GameHud extends GameContainer {
     const playerSprite = this.makeStaticSprite(this.textures.player.front[0]);
     playerSprite.x = 20;
     playerSprite.y = 25;
-    PlayerColor.colorize(playerId, playerSprite);
+    playerSprite.tint = player.color;
 
     const playerNameText = new Text(player.name, GameHud.TextStyle);
     playerNameText.x = playerSprite.x + playerSprite.width + 10;

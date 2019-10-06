@@ -5,6 +5,7 @@ import {
   DEFAULT_BOMB_RANGE,
   DEFAULT_LIVES,
   FIRE_BONUS_COUNT,
+  PLAYER_COLORS,
   POINTS_BLOCK_DESTROYED,
   POINTS_DEATH,
   POINTS_KILLED_PLAYER,
@@ -78,6 +79,9 @@ export class Player extends Schema implements IPlayer {
 
   @type('int16')
   score: number = 0;
+
+  @type('int32')
+  color: number = 0xffffff;
 
   @type('boolean')
   hasWon: boolean = false;
@@ -174,9 +178,11 @@ export class GameState extends Schema implements IGameState {
   @type('boolean')
   isSimulationPaused: boolean = true;
 
-  private startPositions: Array<IHasPos> = [];
+  private startPositions: IHasPos[] = [];
 
   private plannedBonuses: { [tileIndex: number]: BonusCode } = {};
+
+  private playerColors: number[] = [];
 
   constructor(asciiMap?: string[]) {
     super();
@@ -196,6 +202,7 @@ export class GameState extends Schema implements IGameState {
     ];
 
     this.planBonusPositions();
+    this.planPlayerColors();
   }
 
   private static isValidAsciiMap(asciiMap: string[]) {
@@ -240,6 +247,13 @@ export class GameState extends Schema implements IGameState {
       this.plannedBonuses[idx] = 'fire';
       potentialBonusPositions.delete(idx);
     }
+  }
+
+  private planPlayerColors(): void {
+    if (PLAYER_COLORS.length < 4) throw new Error('Not enough player colors in constants');
+
+    const shuffledColors = _.shuffle(PLAYER_COLORS);
+    this.playerColors.push(...shuffledColors.slice(0, 4));
   }
 
   public isWaitingForPlayers(): boolean {
@@ -409,12 +423,14 @@ export class GameState extends Schema implements IGameState {
   }
 
   public addPlayer(id: string, name: string) {
+    if (this.players[id]) throw new Error(`Player ${name} with ID ${id} already exists`);
+
     const player = new Player();
 
     player.id = id;
     player.name = name;
 
-    const playerCount = Object.keys(this.players).length;
+    let playerCount = Object.keys(this.players).length;
     if (playerCount >= this.startPositions.length) throw new Error('More players than starting spots');
 
     const startPos = this.startPositions[playerCount];
@@ -422,8 +438,11 @@ export class GameState extends Schema implements IGameState {
     player.y = startPos.y;
 
     this.players[id] = player;
+    playerCount++;
 
-    if (playerCount + 1 >= this.startPositions.length) {
+    player.color = this.playerColors[playerCount - 1];
+
+    if (playerCount >= this.startPositions.length) {
       this.startGame();
     }
   }
