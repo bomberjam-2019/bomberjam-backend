@@ -1,8 +1,8 @@
 export class EquatableSet<T> implements Iterable<T> {
-  private readonly equalityComparer: (o1: T, o2: T) => boolean;
+  private readonly equalityComparer: (firstEl: T, secondEl: T) => boolean;
   private readonly collection: T[];
 
-  public constructor(equalityComparer: (o1: T, o2: T) => boolean) {
+  public constructor(equalityComparer: (firstEl: T, secondEl: T) => boolean) {
     this.equalityComparer = equalityComparer;
     this.collection = [];
   }

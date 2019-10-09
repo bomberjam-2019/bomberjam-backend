@@ -251,8 +251,6 @@ export class GameState extends Schema implements IGameState {
   }
 
   private planPlayerColors(): void {
-    if (PLAYER_COLORS.length < 4) throw new Error('Not enough player colors in constants');
-
     const shuffledColors = _.shuffle(PLAYER_COLORS);
     this.playerColors.push(...shuffledColors.slice(0, 4));
   }
@@ -561,12 +559,12 @@ export class GameState extends Schema implements IGameState {
     const deletedBombIds = new Set<string>();
     const explosionPositions = new Set<string>();
 
-    const destroyedBlocks = new EquatableSet((o1: DestroyedBlock, o2: DestroyedBlock) => {
-      return o1.x === o2.x && o1.y === o2.y;
+    const destroyedBlocks = new EquatableSet((firstBlock: DestroyedBlock, secondBlock: DestroyedBlock) => {
+      return firstBlock.x === secondBlock.x && firstBlock.y === secondBlock.y;
     });
 
-    const playerHits = new EquatableSet((o1: PlayerHit, o2: PlayerHit) => {
-      return o1.victim === o2.victim;
+    const playerHits = new EquatableSet((firstHit: PlayerHit, secondHit: PlayerHit) => {
+      return firstHit.victim === secondHit.victim;
     });
 
     // 1) detect zero-countdown exploding bombs
