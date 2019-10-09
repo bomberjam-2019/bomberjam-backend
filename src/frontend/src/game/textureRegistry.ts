@@ -1,7 +1,8 @@
-import { IResourceDictionary, Texture, Spritesheet } from 'pixi.js';
+import { IResourceDictionary, Texture, Spritesheet, Sprite, AnimatedSprite } from 'pixi.js';
 import { Sprites } from './assets';
 
 export class TextureRegistry {
+  private readonly spritePools: AnimatedSpritePool;
   private readonly spritesheet: Spritesheet;
 
   public readonly floor: Texture[];
@@ -21,6 +22,7 @@ export class TextureRegistry {
   public readonly spriteRatio: number;
 
   constructor(resources: IResourceDictionary) {
+    this.spritePools = new AnimatedSpritePool();
     const spritesheet = resources[Sprites.spritesheet].spritesheet;
     if (!spritesheet) throw new Error('Could not load spritesheet ' + Sprites.spritesheet);
     this.spritesheet = spritesheet;
@@ -48,7 +50,17 @@ export class TextureRegistry {
     this.spriteRatio = this.tileSize / this.floor[0].width;
   }
 
+  public makeAnimatedSprite(textures: Texture[]): AnimatedSprite {
+    return this.spritePools.get(textures);
+  }
+
+  public freeAnimatedSprite(sprite: AnimatedSprite): void {
+    this.spritePools.free(sprite);
+  }
+
   destroy() {
+    this.spritePools.dispose();
+
     this.floor.forEach(t => t.destroy(true));
     this.wall.forEach(t => t.destroy(true));
     this.block.forEach(t => t.destroy(true));
@@ -62,5 +74,72 @@ export class TextureRegistry {
     this.bombBonus.forEach(t => t.destroy(true));
 
     this.spritesheet.destroy(true);
+  }
+}
+
+class AnimatedSpritePool {
+  private readonly underlyingPools: Map<Texture[], SpritePool<AnimatedSprite>>;
+
+  public constructor() {
+    this.underlyingPools = new Map<Texture[], SpritePool<AnimatedSprite>>();
+  }
+
+  public get(textures: Texture[]): AnimatedSprite {
+    return this.getUnderlyingPool(textures).get();
+  }
+
+  public free(sprite: AnimatedSprite): void {
+    this.getUnderlyingPool(sprite.textures).free(sprite);
+  }
+
+  private getUnderlyingPool(textures: Texture[]): SpritePool<AnimatedSprite> {
+    if (!textures || textures.length === 0) throw new Error('Cannot instanciate an animated sprite pool without textures');
+
+    let pool = this.underlyingPools.get(textures);
+
+    if (!pool) {
+      pool = new SpritePool(() => new AnimatedSprite(textures, true));
+      this.underlyingPools.set(textures, pool);
+    }
+
+    return pool;
+  }
+
+  public dispose(): void {
+    this.underlyingPools.forEach(underlyingPool => underlyingPool.dispose());
+    this.underlyingPools.clear();
+  }
+}
+
+class SpritePool<TSprite extends Sprite> {
+  private readonly spriteFactory: () => TSprite;
+  private readonly usedSprites: Set<TSprite>;
+  private readonly freeSprites: Array<TSprite>;
+
+  public constructor(spriteFactory: () => TSprite) {
+    this.spriteFactory = spriteFactory;
+    this.usedSprites = new Set<TSprite>();
+    this.freeSprites = [];
+  }
+
+  public get(): TSprite {
+    let sprite = this.freeSprites.shift();
+    if (!sprite) sprite = this.spriteFactory();
+    this.usedSprites.add(sprite);
+    return sprite;
+  }
+
+  public free(sprite: TSprite): void {
+    if (this.usedSprites.has(sprite)) {
+      this.usedSprites.delete(sprite);
+      this.freeSprites.push(sprite);
+    }
+  }
+
+  public dispose(): void {
+    this.freeSprites.push(...this.usedSprites);
+    this.usedSprites.clear();
+    for (const sprite of this.freeSprites) sprite.destroy();
+    this.freeSprites.length = 0;
   }
 }
