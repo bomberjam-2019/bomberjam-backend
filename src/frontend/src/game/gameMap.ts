@@ -3,13 +3,13 @@ import { IBomb, IBonus, IGameState, IHasPos, IHasState, IPlayer } from '../../..
 
 import { GameContainer } from './gameContainer';
 import { PlayerColor } from './playerColor';
+import { RESPAWN_TIME } from '../../../constants';
 import { SoundRegistry } from './soundRegistry';
 import { TextureRegistry } from './textureRegistry';
-import { RESPAWN_TIME } from '../../../constants';
 
 type SpriteType = 'player' | 'bomb' | 'flame' | 'bonus' | 'block' | 'wall';
 
-export default class GameMap extends GameContainer {
+export class GameMap extends GameContainer {
   private readonly textures: TextureRegistry;
   private readonly sounds: SoundRegistry;
   private readonly mapContainer: Container;
