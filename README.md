@@ -2,8 +2,8 @@
 
 | OS      | Build status                                                                                                                                                              |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows | [![Windows build status](https://img.shields.io/appveyor/ci/asimmon/bomberman-colyseus/master?logo=appveyor)](https://ci.appveyor.com/project/asimmon/bomberman-colyseus) |
-| Ubuntu  | [![Ubuntu build status](https://img.shields.io/travis/asimmon/bomberman-colyseus/master?logo=travis)](https://travis-ci.com/asimmon/bomberman-colyseus)                   |
+| Windows | [![Windows build status](https://img.shields.io/appveyor/ci/asimmon/bomberjam-backend/master?logo=appveyor)](https://ci.appveyor.com/project/asimmon/bomberjam-backend) |
+| Ubuntu  | [![Ubuntu build status](https://img.shields.io/travis/asimmon/bomberjam-backend/master?logo=travis)](https://travis-ci.com/asimmon/bomberjam-backend)                   |
 
 First, install npm dependencies with `npm i && cd src && cd frontend && npm i && cd .. && cd ..`.
 
