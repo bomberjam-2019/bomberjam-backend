@@ -292,11 +292,11 @@ export class GameState extends Schema implements IGameState {
     this.tiles = GameState.replaceCharAt(this.tiles, idx, newTile);
   }
 
-  private findActiveBombAt(x: number, y: number): IBomb | undefined {
+  private findActiveBombAt(x: number, y: number): Bomb | undefined {
     return _.find(this.bombs, b => b.countdown > 0 && b.x === x && b.y === y);
   }
 
-  private findAlivePlayerAt(x: number, y: number): IPlayer | undefined {
+  private findAlivePlayerAt(x: number, y: number): Player | undefined {
     return _.find(this.players, p => p.alive && p.x === x && p.y === y);
   }
 
@@ -554,8 +554,8 @@ export class GameState extends Schema implements IGameState {
   }
 
   private runBombs() {
-    const visitedBombs = new Set<IBomb>(); // avoid handling bombs twice
-    const explosionChain: IBomb[] = []; // FIFO
+    const visitedBombs = new Set<Bomb>(); // avoid handling bombs twice
+    const explosionChain: Explosion[] = []; // FIFO
     const deletedBombIds = new Set<string>();
     const explosionPositions = new Set<string>();
 
@@ -577,10 +577,13 @@ export class GameState extends Schema implements IGameState {
         continue;
       }
 
-      // bomb explodes
+      // bomb explodes itself
       if (bomb.countdown === 0) {
-        explosionChain.push(bomb);
         visitedBombs.add(bomb);
+        explosionChain.push({
+          explodedBomb: bomb,
+          triggeredBy: bomb
+        });
       }
     }
 
@@ -588,18 +591,21 @@ export class GameState extends Schema implements IGameState {
       delete this.bombs[deletedBombId];
     }
 
-    const propagateExplosion = (bomb: IBomb, posIncrementer: PosIncrementer) => {
-      const pos: IHasPos = { x: bomb.x, y: bomb.y };
+    const propagateExplosion = (explosion: Explosion, posIncrementer: PosIncrementer) => {
+      const explodedBomb = explosion.explodedBomb;
+      const triggeredBy = explosion.triggeredBy;
+
+      const pos: IHasPos = { x: explodedBomb.x, y: explodedBomb.y };
       explosionPositions.add(`${pos.x}:${pos.y}`);
 
-      const victim = this.findAlivePlayerAt(bomb.x, bomb.y);
+      const victim = this.findAlivePlayerAt(explodedBomb.x, explodedBomb.y);
       if (victim)
         playerHits.add({
-          attacker: bomb.playerId,
+          attacker: triggeredBy.playerId,
           victim: victim.id
         });
 
-      for (let i = 1; i <= bomb.range; i++) {
+      for (let i = 1; i <= explodedBomb.range; i++) {
         posIncrementer(pos);
 
         const tile = this.getTileAt(pos.x, pos.y);
@@ -610,7 +616,7 @@ export class GameState extends Schema implements IGameState {
           destroyedBlocks.add({
             x: pos.x,
             y: pos.y,
-            destroyedBy: bomb.playerId
+            destroyedBy: triggeredBy.playerId
           });
           return;
         }
@@ -619,14 +625,17 @@ export class GameState extends Schema implements IGameState {
         if (tile === Tiles.Empty) {
           const otherBomb = this.findActiveBombAt(pos.x, pos.y);
           if (otherBomb && !visitedBombs.has(otherBomb)) {
-            explosionChain.push(otherBomb);
             visitedBombs.add(otherBomb);
+            explosionChain.push({
+              explodedBomb: otherBomb,
+              triggeredBy: explodedBomb
+            });
           }
 
           const victim = this.findAlivePlayerAt(pos.x, pos.y);
           if (victim)
             playerHits.add({
-              attacker: bomb.playerId,
+              attacker: triggeredBy.playerId,
               victim: victim.id
             });
 
@@ -644,14 +653,14 @@ export class GameState extends Schema implements IGameState {
 
     // 2) propagate explosion and detonate other bombs on the way
     while (explosionChain.length > 0) {
-      const bomb = explosionChain.shift() as IBomb;
-      bomb.countdown = 0;
+      const explosion = explosionChain.shift() as Explosion;
+      explosion.explodedBomb.countdown = 0;
 
       // find other bombs that would explode and their victims
-      propagateExplosion(bomb, positionIncrementers[Actions.Up]);
-      propagateExplosion(bomb, positionIncrementers[Actions.Down]);
-      propagateExplosion(bomb, positionIncrementers[Actions.Left]);
-      propagateExplosion(bomb, positionIncrementers[Actions.Right]);
+      propagateExplosion(explosion, positionIncrementers[Actions.Up]);
+      propagateExplosion(explosion, positionIncrementers[Actions.Down]);
+      propagateExplosion(explosion, positionIncrementers[Actions.Left]);
+      propagateExplosion(explosion, positionIncrementers[Actions.Right]);
     }
 
     // 3) remove destroyed walls now otherwise too many walls could have been destroyed
@@ -705,4 +714,9 @@ interface DestroyedBlock extends IHasPos {
 interface PlayerHit {
   attacker: string;
   victim: string;
+}
+
+interface Explosion {
+  explodedBomb: Bomb;
+  triggeredBy: Bomb;
 }
