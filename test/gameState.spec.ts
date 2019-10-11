@@ -186,7 +186,7 @@ describe('GameState', () => {
       assert.strictEqual(gameState.players['d'].score === 0, true);
     });
 
-    it('should give points at the closest attacker if two bombs explode at the same time', () => {
+    it("should give points at the closest bomb's owner if two bombs explode at the same time", () => {
       // all players scores should be zero at the beginning of the game
       for (const playerId in gameState.players) {
         assert.strictEqual(gameState.players[playerId].score, 0);
