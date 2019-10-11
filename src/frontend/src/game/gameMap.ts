@@ -7,8 +7,6 @@ import { RESPAWN_TIME } from '../../../constants';
 import { SoundRegistry } from './soundRegistry';
 import { TextureRegistry } from './textureRegistry';
 
-type SpriteType = 'player' | 'bomb' | 'flame' | 'bonus' | 'block' | 'wall';
-
 export class GameMap extends GameContainer {
   private readonly textures: TextureRegistry;
   private readonly sounds: SoundRegistry;
@@ -17,9 +15,9 @@ export class GameMap extends GameContainer {
   private wallSprites: { [idx: number]: AnimatedSprite } = {};
   private blockSprites: { [idx: number]: AnimatedSprite } = {};
   private playerSprites: { [playerId: string]: AnimatedSprite } = {};
-  private bombSprites: { [bombId: string]: Sprite } = {};
-  private bonusesSprites: { [bonusId: string]: Sprite } = {};
-  private flameSprites: Sprite[] = [];
+  private bombSprites: { [bombId: string]: AnimatedSprite } = {};
+  private bonusesSprites: { [bonusId: string]: AnimatedSprite } = {};
+  private flameSprites: AnimatedSprite[] = [];
 
   constructor(stateProvider: IHasState, textures: TextureRegistry, sounds: SoundRegistry) {
     super(stateProvider);
@@ -236,7 +234,7 @@ export class GameMap extends GameContainer {
     else if (orientation === 'front') textures = this.textures.player.front;
     else if (orientation === 'back') textures = this.textures.player.back;
 
-    const sprite = this.makeAnimatedSprite(textures, player, 'player', false, 0.15);
+    const sprite = this.makeAnimatedSprite(textures, player, false, 0.15);
     sprite.anchor.set(0, 0.5);
     PlayerColor.colorize(playerId, sprite);
     this.playerSprites[playerId] = sprite;
@@ -246,7 +244,7 @@ export class GameMap extends GameContainer {
 
   private registerBomb(bombId: string, bomb: IBomb) {
     if (bomb.countdown >= 0) {
-      const sprite = this.makeAnimatedSprite(this.textures.bomb, bomb, 'bomb', true, 0.15);
+      const sprite = this.makeAnimatedSprite(this.textures.bomb, bomb, true, 0.15);
       sprite.anchor.set(0.5, 0.5);
       this.bombSprites[bombId] = sprite;
       this.mapContainer.addChild(sprite);
@@ -255,7 +253,7 @@ export class GameMap extends GameContainer {
 
   private registerBonus(bonusId: string, bonus: IBonus) {
     const texture = bonus.type === 'bomb' ? this.textures.bombBonus : this.textures.fireBonus;
-    const sprite = this.makeAnimatedSprite(texture, bonus, 'bonus', true, 0.15);
+    const sprite = this.makeAnimatedSprite(texture, bonus, true, 0.15);
     sprite.anchor.set(0.5, 0.5);
     this.bonusesSprites[bonusId] = sprite;
     this.mapContainer.addChild(sprite);
@@ -275,7 +273,7 @@ export class GameMap extends GameContainer {
         .forEach(str => {
           const [x, y] = str.split(':').map(Number);
 
-          const sprite = this.makeAnimatedSprite(this.textures.flame, { x: x, y: y }, 'flame', true, 0.15);
+          const sprite = this.makeAnimatedSprite(this.textures.flame, { x: x, y: y }, true, 0.15);
           sprite.anchor.set(0.5, 0.5);
           this.mapContainer.addChild(sprite);
           this.flameSprites.push(sprite);
@@ -307,13 +305,13 @@ export class GameMap extends GameContainer {
 
         if (char === '+') {
           if (!blockSprite) {
-            blockSprite = this.makeAnimatedSprite(this.textures.block, { x: x, y: y }, 'block', false, 0.15, currentBlockFrame);
+            blockSprite = this.makeAnimatedSprite(this.textures.block, { x: x, y: y }, false, 0.15, currentBlockFrame);
             this.blockSprites[idx] = blockSprite;
             this.mapContainer.addChild(blockSprite);
           }
         } else if (char === '#') {
           if (!wallSprite) {
-            wallSprite = this.makeAnimatedSprite(this.textures.wall, { x: x, y: y }, 'wall', false, 0.15, currentWallFrame);
+            wallSprite = this.makeAnimatedSprite(this.textures.wall, { x: x, y: y }, false, 0.15, currentWallFrame);
             this.wallSprites[idx] = wallSprite;
             this.mapContainer.addChild(wallSprite);
           }
@@ -332,28 +330,27 @@ export class GameMap extends GameContainer {
     }
   }
 
-  private unregisterObjectSprite(sprites: { [k: string]: Sprite }, key: string) {
-    const sprite: Sprite = sprites[key];
+  private unregisterObjectSprite(sprites: { [k: string]: AnimatedSprite }, key: string) {
+    const sprite = sprites[key];
     if (sprite) {
       this.unregisterSprite(sprite);
       delete sprites[key];
     }
   }
 
-  private unregisterSprite(sprite: Sprite) {
+  private unregisterSprite(sprite: AnimatedSprite) {
     this.mapContainer.removeChild(sprite);
-    sprite.destroy();
+    this.textures.freeAnimatedSprite(sprite);
   }
 
   private makeAnimatedSprite(
     textures: Texture[],
     pos: IHasPos,
-    type: SpriteType,
     centered: boolean,
     speed: number,
     startingFrame: number = 0
   ): AnimatedSprite {
-    const sprite = new AnimatedSprite(textures, true);
+    const sprite = this.textures.makeAnimatedSprite(textures);
 
     if (centered) {
       sprite.position.set(
@@ -368,7 +365,6 @@ export class GameMap extends GameContainer {
     sprite.scale.set(this.textures.spriteRatio, this.textures.spriteRatio);
     sprite.vx = 0;
     sprite.vy = 0;
-    sprite.type = type;
 
     sprite.gotoAndPlay(startingFrame);
 
