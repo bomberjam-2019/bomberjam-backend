@@ -16,9 +16,8 @@ import {
   BOMB_BONUS_COUNT,
   DEFAULT_BOMB_COUNTDOWN,
   DEFAULT_BOMB_RANGE,
-  DEFAULT_LIVES,
   FIRE_BONUS_COUNT,
-  LOSE_BONUS,
+  LOSE_BONUSES_ON_DEATH,
   RESPAWN_TIME,
   SUDDEN_DEATH_COUNTDOWN
 } from '../constants';
@@ -432,7 +431,7 @@ export class GameState extends Schema implements IGameState {
   }
 
   public killPlayer(player: IPlayer) {
-    if (LOSE_BONUS) {
+    if (LOSE_BONUSES_ON_DEATH) {
       player.bombsLeft = 0;
       player.maxBombs = 0;
       player.bombRange = 0;
