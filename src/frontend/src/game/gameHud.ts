@@ -1,7 +1,7 @@
+import { Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
+import { IGameState, IHasState, IPlayer } from '../../../types';
 import { GameContainer } from './gameContainer';
 import { TextureRegistry } from './textureRegistry';
-import { IGameState, IHasState, IPlayer } from '../../../types';
-import { Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 
 interface IPlayerHudContainer extends Container {
   playerSprite: Sprite;

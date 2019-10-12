@@ -1,6 +1,5 @@
-import { IBomb, IBonus, IGameState, IHasState, IPlayer } from '../../../types';
-
 import { Application } from 'pixi.js';
+import { IBomb, IBonus, IGameState, IHasState, IPlayer } from '../../../types';
 import { GameHud } from './gameHud';
 import { GameMap } from './gameMap';
 import { SoundRegistry } from './soundRegistry';

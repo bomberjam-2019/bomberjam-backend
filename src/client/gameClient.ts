@@ -1,5 +1,5 @@
-import { IGameState, IJoinRoomOpts } from '../types';
 import { Client, Room } from 'colyseus.js';
+import { IGameState, IJoinRoomOpts } from '../types';
 import { APP_NAME } from '../constants';
 import { createSanitizedStateCopyForBot, sleepAsync } from './utils';
 

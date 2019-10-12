@@ -51,8 +51,8 @@
 <script lang="ts">
 import Vue from 'vue';
 import * as screenfull from 'screenfull';
-import { ILiveGameController, showGame } from '../game/game';
 import { IJoinRoomOpts } from '../../../types';
+import { ILiveGameController, showGame } from '../game/game';
 
 export default Vue.extend({
   data() {
