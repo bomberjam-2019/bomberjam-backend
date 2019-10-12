@@ -115,9 +115,7 @@ describe('GameState', () => {
       for (const playerId in gameState.players) {
         gameState.players[playerId].bombRange = 3;
       }
-    });
 
-    it('should give points to the player that triggers an explosion chain', () => {
       // all players scores should be zero at the beginning of the game
       for (const playerId in gameState.players) {
         expect(gameState.players[playerId].score).toBe(0);
@@ -133,7 +131,9 @@ describe('GameState', () => {
       // player b (victim) is at top right (4, 0)
       expect(gameState.players['b'].x).toBe(4);
       expect(gameState.players['b'].y).toBe(0);
+    });
 
+    it('should give points to the player that triggers an explosion chain', () => {
       // player d is at bottom right (4, 2) then comes between a and b at (2, 0)
       simulateTick({ d: AllActions.Left });
       simulateTick({ d: AllActions.Left });
@@ -184,23 +184,7 @@ describe('GameState', () => {
       expect(gameState.players['d'].score).toBeGreaterThan(0);
     });
 
-    it('should give points at the closest attacker if two bombs explode at the same time', () => {
-      // all players scores should be zero at the beginning of the game
-      for (const playerId in gameState.players) {
-        expect(gameState.players[playerId].score).toBe(0);
-      }
-
-      // remove player c because he does not participate in this test and will block player a on his way
-      delete gameState.players['c'];
-
-      // player a is at top left (0, 0)
-      expect(gameState.players['a'].x).toBe(0);
-      expect(gameState.players['a'].y).toBe(0);
-
-      // player b (victim) is at top right (4, 0)
-      expect(gameState.players['b'].x).toBe(4);
-      expect(gameState.players['b'].y).toBe(0);
-
+    it('should give points at the closest attacker if two bombs explode at the same time (1)', () => {
       // player d is at bottom right (4, 2) then comes between a and b at (2, 0)
       simulateTick({ d: AllActions.Left });
       simulateTick({ d: AllActions.Left });
@@ -224,6 +208,61 @@ describe('GameState', () => {
 
       expect(gameState.players['d'].x).toBe(3);
       expect(gameState.players['d'].y).toBe(2);
+
+      // there should be two active bombs with the same countdown
+      expect(Object.keys(gameState.bombs)).toHaveLength(2);
+      expect(_.uniq(_.map(gameState.bombs, bomb => bomb.countdown))).toHaveLength(1);
+
+      // wait for the bombs to explode at the same time
+      const minCountdown = _.min(_.map(gameState.bombs, bomb => bomb.countdown)) as number;
+      for (let i = 0; i < minCountdown; i++) {
+        simulateTick({});
+      }
+
+      // the two bombs should be in an exploding state
+      for (const bombId in gameState.bombs) {
+        expect(gameState.bombs[bombId].countdown).toBe(0);
+      }
+
+      // as they exploded at the same time, it was not an explosion chain
+      // the closest attacker get the points, so player d should have a positive score, and not player a
+      expect(gameState.players['d'].score).toBeGreaterThan(0);
+      expect(gameState.players['a'].score).toBe(0);
+    });
+
+    it('should give points at the closest attacker if two bombs explode at the same time (2)', () => {
+      // player b (victim) is at top right (4, 0) then go to (3, 0)
+      simulateTick({ b: AllActions.Left });
+
+      expect(gameState.players['b'].x).toBe(3);
+      expect(gameState.players['b'].y).toBe(0);
+
+      // player a is at top left (0, 0) then go to (1, 0)
+      simulateTick({ a: AllActions.Right });
+
+      expect(gameState.players['a'].x).toBe(1);
+      expect(gameState.players['a'].y).toBe(0);
+
+      // player d is at bottom right (4, 2) then go to (4, 0)
+      simulateTick({ d: AllActions.Up });
+      simulateTick({ d: AllActions.Up });
+
+      expect(gameState.players['d'].x).toBe(4);
+      expect(gameState.players['d'].y).toBe(0);
+
+      // both a and d drop a bomb at the same time
+      simulateTick({ a: AllActions.Bomb, d: AllActions.Bomb });
+
+      // both a and d flies away to escape the explosions
+      simulateTick({ a: AllActions.Left, d: AllActions.Down });
+      simulateTick({ a: AllActions.Down, d: AllActions.Stay });
+
+      // a and d should be safe respectively at (0, 1) and (4, 1)
+      expect(gameState.players['a'].x).toBe(0);
+      expect(gameState.players['a'].y).toBe(1);
+
+      expect(gameState.players['d'].x).toBe(4);
+      expect(gameState.players['d'].y).toBe(1);
 
       // there should be two active bombs with the same countdown
       expect(Object.keys(gameState.bombs)).toHaveLength(2);

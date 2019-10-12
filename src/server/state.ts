@@ -578,9 +578,7 @@ export class GameState extends Schema implements IGameState {
       return firstBlock.x === secondBlock.x && firstBlock.y === secondBlock.y;
     });
 
-    const playerHits = new EquatableSet((firstHit: PlayerHit, secondHit: PlayerHit) => {
-      return firstHit.victim === secondHit.victim;
-    });
+    const playersHits: { [playerId: string]: PlayerHit[] } = {};
 
     // 1) detect zero-countdown exploding bombs
     for (const bombId in this.bombs) {
@@ -608,11 +606,14 @@ export class GameState extends Schema implements IGameState {
       explosionPositions.add(`${pos.x}:${pos.y}`);
 
       const victim = this.findAlivePlayerAt(bomb.x, bomb.y);
-      if (victim)
-        playerHits.add({
+      if (victim) {
+        if (!playersHits[victim.id]) playersHits[victim.id] = [];
+        playersHits[victim.id].push({
           attacker: bomb.playerId,
-          victim: victim.id
+          victim: victim.id,
+          distance: GameState.getDistanceFrom(bomb, victim)
         });
+      }
 
       for (let i = 1; i <= bomb.range; i++) {
         posIncrementer(pos);
@@ -639,11 +640,14 @@ export class GameState extends Schema implements IGameState {
           }
 
           const victim = this.findAlivePlayerAt(pos.x, pos.y);
-          if (victim)
-            playerHits.add({
+          if (victim) {
+            if (!playersHits[victim.id]) playersHits[victim.id] = [];
+            playersHits[victim.id].push({
               attacker: bomb.playerId,
-              victim: victim.id
+              victim: victim.id,
+              distance: GameState.getDistanceFrom(bomb, victim)
             });
+          }
 
           const bonusId = this.findDroppedBonusIndexAt(pos.x, pos.y);
           if (bonusId) delete this.bonuses[bonusId];
@@ -684,12 +688,15 @@ export class GameState extends Schema implements IGameState {
     }
 
     // 4) apply damage to players
-    for (const playerHit of playerHits) {
-      this.hitPlayer(this.players[playerHit.victim]);
+    for (const victimId in playersHits) {
+      const distanceSortedHits = _.orderBy(playersHits[victimId], [(hit: PlayerHit) => hit.distance], ['asc']) as PlayerHit[];
+      const closesHit = distanceSortedHits[0];
 
-      this.players[playerHit.victim].addScore(POINTS_DEATH);
-      if (playerHit.attacker !== playerHit.victim) {
-        this.players[playerHit.attacker].addScore(POINTS_KILLED_PLAYER);
+      this.hitPlayer(this.players[closesHit.victim]);
+
+      this.players[closesHit.victim].addScore(POINTS_DEATH);
+      if (closesHit.attacker !== closesHit.victim) {
+        this.players[closesHit.attacker].addScore(POINTS_KILLED_PLAYER);
       }
     }
 
@@ -711,6 +718,10 @@ export class GameState extends Schema implements IGameState {
   private static replaceCharAt(text: string, idx: number, newChar: string): string {
     return text.substr(0, idx) + newChar + text.substr(idx + 1);
   }
+
+  private static getDistanceFrom(from: IHasPos, to: IHasPos): number {
+    return Math.hypot(to.x - from.x, to.y - from.y);
+  }
 }
 
 interface DestroyedBlock extends IHasPos {
@@ -720,4 +731,5 @@ interface DestroyedBlock extends IHasPos {
 interface PlayerHit {
   attacker: string;
   victim: string;
+  distance: number;
 }
