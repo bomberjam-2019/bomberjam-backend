@@ -3,7 +3,7 @@ import { MapSchema, Schema, type } from '@colyseus/schema';
 
 import {
   ActionCode,
-  Actions,
+  AllActions,
   BonusCode,
   IBomb,
   IBonus,
@@ -13,7 +13,7 @@ import {
   IPlayer,
   MoveCode,
   TileCode,
-  Tiles
+  AllTiles
 } from '../types';
 import {
   BOMB_BONUS_COUNT,
@@ -124,11 +124,11 @@ export class Bonus extends Schema implements IBonus {
 type PosIncrementer = (pos: IHasPos) => void;
 
 const positionIncrementers: { [mov: string]: PosIncrementer } = {
-  [Actions.Up]: (pos: IHasPos) => pos.y--,
-  [Actions.Down]: (pos: IHasPos) => pos.y++,
-  [Actions.Left]: (pos: IHasPos) => pos.x--,
-  [Actions.Right]: (pos: IHasPos) => pos.x++,
-  [Actions.Stay]: () => {}
+  [AllActions.Up]: (pos: IHasPos) => pos.y--,
+  [AllActions.Down]: (pos: IHasPos) => pos.y++,
+  [AllActions.Left]: (pos: IHasPos) => pos.x--,
+  [AllActions.Right]: (pos: IHasPos) => pos.x++,
+  [AllActions.Stay]: () => {}
 };
 
 let objectCounter = 0;
@@ -219,7 +219,7 @@ export class GameState extends Schema implements IGameState {
 
     for (let i = 0; i < this.tiles.length; i++) {
       const char = this.tiles[i];
-      if (char === Tiles.Block) potentialBonusPositions.add(i);
+      if (char === AllTiles.Block) potentialBonusPositions.add(i);
     }
 
     let bombBonusCount = BOMB_BONUS_COUNT;
@@ -279,7 +279,7 @@ export class GameState extends Schema implements IGameState {
   }
 
   private getTileAt(x: number, y: number): TileCode {
-    if (this.isOutOfBound(x, y)) return Tiles.OutOfBound;
+    if (this.isOutOfBound(x, y)) return AllTiles.OutOfBound;
 
     const idx = this.coordToTileIndex(x, y);
     return this.tiles[idx] as TileCode;
@@ -322,7 +322,7 @@ export class GameState extends Schema implements IGameState {
           if (player.respawning > 0) {
             player.respawning--;
           }
-          if (message.action === Actions.Bomb) {
+          if (message.action === AllActions.Bomb) {
             this.plantBomb(player);
           } else {
             this.movePlayer(player, message.action);
@@ -359,7 +359,7 @@ export class GameState extends Schema implements IGameState {
       }
 
       const idx = this.coordToTileIndex(this.suddenDeathPos.x, this.suddenDeathPos.y);
-      this.tiles = GameState.replaceCharAt(this.tiles, idx, Tiles.Wall);
+      this.tiles = GameState.replaceCharAt(this.tiles, idx, AllTiles.Wall);
 
       const victim = this.findAlivePlayerAt(this.suddenDeathPos.x, this.suddenDeathPos.y);
       if (victim) this.killPlayer(victim);
@@ -494,7 +494,7 @@ export class GameState extends Schema implements IGameState {
   }
 
   private movePlayer(player: Player, movement: ActionCode) {
-    if (movement === Actions.Stay) return;
+    if (movement === AllActions.Stay) return;
 
     const posIncrementer = positionIncrementers[movement];
     if (!posIncrementer) return;
@@ -507,9 +507,9 @@ export class GameState extends Schema implements IGameState {
     posIncrementer(nextPos);
 
     const nextTile = this.getTileAt(nextPos.x, nextPos.y);
-    if (nextTile === Tiles.OutOfBound) return;
+    if (nextTile === AllTiles.OutOfBound) return;
 
-    if (nextTile === Tiles.Empty) {
+    if (nextTile === AllTiles.Empty) {
       const otherPlayer = this.findAlivePlayerAt(nextPos.x, nextPos.y);
       if (otherPlayer) return;
 
@@ -620,7 +620,7 @@ export class GameState extends Schema implements IGameState {
         const tile = this.getTileAt(pos.x, pos.y);
 
         // destroy block and do not spread explosion beyond that
-        if (tile === Tiles.Block) {
+        if (tile === AllTiles.Block) {
           explosionPositions.add(`${pos.x}:${pos.y}`);
           destroyedBlocks.add({
             x: pos.x,
@@ -631,7 +631,7 @@ export class GameState extends Schema implements IGameState {
         }
 
         // check if hitting another bomb / player / bonus
-        if (tile === Tiles.Empty) {
+        if (tile === AllTiles.Empty) {
           const otherBomb = this.findActiveBombAt(pos.x, pos.y);
           if (otherBomb && !visitedBombs.has(otherBomb)) {
             explosionChain.push(otherBomb);
@@ -663,15 +663,15 @@ export class GameState extends Schema implements IGameState {
       bomb.countdown = 0;
 
       // find other bombs that would explode and their victims
-      propagateExplosion(bomb, positionIncrementers[Actions.Up]);
-      propagateExplosion(bomb, positionIncrementers[Actions.Down]);
-      propagateExplosion(bomb, positionIncrementers[Actions.Left]);
-      propagateExplosion(bomb, positionIncrementers[Actions.Right]);
+      propagateExplosion(bomb, positionIncrementers[AllActions.Up]);
+      propagateExplosion(bomb, positionIncrementers[AllActions.Down]);
+      propagateExplosion(bomb, positionIncrementers[AllActions.Left]);
+      propagateExplosion(bomb, positionIncrementers[AllActions.Right]);
     }
 
     // 3) remove destroyed walls now otherwise too many walls could have been destroyed
     for (const destroyedBlock of destroyedBlocks) {
-      this.setTileAt(destroyedBlock.x, destroyedBlock.y, Tiles.Empty);
+      this.setTileAt(destroyedBlock.x, destroyedBlock.y, AllTiles.Empty);
       this.players[destroyedBlock.destroyedBy].addScore(POINTS_BLOCK_DESTROYED);
 
       // drop bonus if applicable

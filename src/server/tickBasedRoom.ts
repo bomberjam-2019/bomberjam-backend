@@ -1,9 +1,9 @@
 import _ from 'lodash';
 
-import { ActionCode, Actions, IClientMessage, IHasTick } from '../types';
+import { ActionCode, AllActions, IClientMessage, IHasTick } from '../types';
 import { Client, Room } from 'colyseus';
 
-const allActionCodes = new Set<ActionCode>(Object.values(Actions));
+const allActionCodes = new Set<ActionCode>(Object.values(AllActions));
 
 export abstract class TickBasedRoom<TState extends IHasTick> extends Room<TState> {
   protected abstract readonly tickDurationMs: number;

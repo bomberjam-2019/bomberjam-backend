@@ -89,8 +89,8 @@
 import Vue from 'vue';
 import * as screenfull from 'screenfull';
 import { IGameState } from '../../../types';
-import { IReplayGameController, replayGame } from '../game/game';
 import { SUDDEN_DEATH_COUNTDOWN } from '../../../constants';
+import { IReplayGameController, replayGame } from '../game/game';
 
 const maxUploadSize = 2097152; // 2mb
 

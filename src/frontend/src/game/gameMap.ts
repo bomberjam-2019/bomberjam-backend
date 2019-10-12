@@ -1,6 +1,5 @@
 import { AnimatedSprite, Container, DisplayObject, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { IBomb, IBonus, IGameState, IHasPos, IHasState, IPlayer } from '../../../types';
-
 import { RESPAWN_TIME } from '../../../constants';
 import { GameContainer } from './gameContainer';
 import { SoundRegistry } from './soundRegistry';

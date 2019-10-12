@@ -1,6 +1,6 @@
+import { ActionCode, IClientMessage } from '../types';
 import { createSanitizedStateCopyForBot, getFourBots } from './utils';
 import { GameState } from '../server/state';
-import { ActionCode, IClientMessage } from '../types';
 
 import path from 'path';
 import fs from 'fs';
