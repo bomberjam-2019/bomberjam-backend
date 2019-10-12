@@ -1,18 +1,6 @@
-import {
-  ARE_PLAYERS_INVINCIBLE,
-  BOMB_BONUS_COUNT,
-  DEFAULT_BOMB_COUNTDOWN,
-  DEFAULT_BOMB_RANGE,
-  DEFAULT_LIVES,
-  FIRE_BONUS_COUNT,
-  PLAYER_COLORS,
-  POINTS_BLOCK_DESTROYED,
-  POINTS_DEATH,
-  POINTS_KILLED_PLAYER,
-  POINTS_LAST_SURVIVOR,
-  POINTS_PER_ALIVE_TICK,
-  SUDDEN_DEATH_COUNTDOWN
-} from '../constants';
+import _ from 'lodash';
+import { MapSchema, Schema, type } from '@colyseus/schema';
+
 import {
   ActionCode,
   Actions,
@@ -27,10 +15,22 @@ import {
   TileCode,
   Tiles
 } from '../types';
+import {
+  BOMB_BONUS_COUNT,
+  DEFAULT_BOMB_COUNTDOWN,
+  DEFAULT_BOMB_RANGE,
+  FIRE_BONUS_COUNT,
+  LOSE_BONUSES_ON_DEATH,
+  RESPAWN_TIME,
+  PLAYER_COLORS,
+  POINTS_BLOCK_DESTROYED,
+  POINTS_DEATH,
+  POINTS_KILLED_PLAYER,
+  POINTS_LAST_SURVIVOR,
+  POINTS_PER_ALIVE_TICK,
+  SUDDEN_DEATH_COUNTDOWN
+} from '../constants';
 import { EquatableSet } from '../utils';
-import { MapSchema, Schema, type } from '@colyseus/schema';
-
-import _ from 'lodash';
 
 // prettier-ignore
 const defaultAsciiMap: string[] = [
@@ -76,7 +76,7 @@ export class Player extends Schema implements IPlayer {
   alive: boolean = true;
 
   @type('int8')
-  lives: number = DEFAULT_LIVES;
+  respawning: number = 0;
 
   @type('int16')
   score: number = 0;
@@ -319,6 +319,9 @@ export class GameState extends Schema implements IGameState {
       for (const message of messages) {
         const player = this.players[message.playerId];
         if (player && player.connected && player.alive) {
+          if (player.respawning > 0) {
+            player.respawning--;
+          }
           if (message.action === Actions.Bomb) {
             this.plantBomb(player);
           } else {
@@ -459,24 +462,35 @@ export class GameState extends Schema implements IGameState {
   }
 
   private hitPlayer(player: IPlayer) {
-    if (!ARE_PLAYERS_INVINCIBLE) {
-      if (player.lives > 0) {
-        player.lives--;
-
-        if (player.lives <= 0) {
-          this.killPlayer(player);
-        }
+    if (player.respawning === 0) {
+      this.killPlayer(player);
+      if (!this.suddenDeathEnabled) {
+        this.respawnPlayer(player);
       }
     }
   }
 
   public killPlayer(player: IPlayer) {
-    player.lives = 0;
-    player.bombsLeft = 0;
-    player.maxBombs = 0;
-    player.bombRange = 0;
+    if (LOSE_BONUSES_ON_DEATH) {
+      player.bombsLeft = 0;
+      player.maxBombs = 0;
+      player.bombRange = 0;
+    }
 
-    if (!player.hasWon) player.alive = false;
+    // Only kill player if its sudden death and if he is not the winner.
+    if (!player.hasWon && this.suddenDeathEnabled) {
+      player.alive = false;
+    }
+  }
+
+  public respawnPlayer(player: IPlayer) {
+    player.respawning = RESPAWN_TIME;
+
+    const position = Object.keys(this.players).indexOf(player.id);
+    const playerStartPosition = this.startPositions[position];
+
+    player.x = playerStartPosition.x;
+    player.y = playerStartPosition.y;
   }
 
   private movePlayer(player: Player, movement: ActionCode) {
@@ -522,7 +536,8 @@ export class GameState extends Schema implements IGameState {
 
   private plantBomb(player: Player) {
     const hasEnoughBombs = player.bombsLeft > 0;
-    if (!hasEnoughBombs) return;
+    const isRespawning = player.respawning > 0;
+    if (!hasEnoughBombs || isRespawning) return;
 
     const existingBomb = this.findActiveBombAt(player.x, player.y);
     if (!existingBomb) {

@@ -1,8 +1,10 @@
 import { AnimatedSprite, Container, DisplayObject, Sprite, Texture, TilingSprite } from 'pixi.js';
-import { TextureRegistry } from './textureRegistry';
-import { SoundRegistry } from './soundRegistry';
 import { IBomb, IBonus, IGameState, IHasPos, IHasState, IPlayer } from '../../../types';
+
+import { RESPAWN_TIME } from '../../../constants';
 import { GameContainer } from './gameContainer';
+import { SoundRegistry } from './soundRegistry';
+import { TextureRegistry } from './textureRegistry';
 
 export class GameMap extends GameContainer {
   private readonly textures: TextureRegistry;
@@ -87,7 +89,8 @@ export class GameMap extends GameContainer {
       const oldPlayer = prevState.players[playerId];
       const newPlayer = this.state.players[playerId];
 
-      if (oldPlayer && newPlayer) {
+      // Dont animate if player has just been killed
+      if (oldPlayer && newPlayer && newPlayer.respawning !== RESPAWN_TIME) {
         if (newPlayer.x > oldPlayer.x) {
           this.unregisterObjectSprite(this.playerSprites, playerId);
           this.registerPlayer(playerId, oldPlayer, 'right');
@@ -162,19 +165,22 @@ export class GameMap extends GameContainer {
 
     // Hide dead players
     for (const playerId in this.state.players) {
-      const player: IPlayer = this.state.players[playerId];
+      const newPlayer: IPlayer = this.state.players[playerId];
+      const oldPlayer: IPlayer = prevState.players[playerId];
       const playerSprite: Sprite = this.playerSprites[playerId];
 
       if (playerSprite) {
-        if (!player.alive && !player.hasWon) {
+        if (!newPlayer.alive && !newPlayer.hasWon) {
           playerSprite.visible = false;
-
-          if (prevState.players[playerId].alive !== player.alive) {
-            this.sounds.death.play();
-          }
         } else {
           playerSprite.visible = true;
         }
+
+        if ((oldPlayer && oldPlayer.alive !== newPlayer.alive) || newPlayer.respawning === RESPAWN_TIME) {
+          this.sounds.death.play();
+        }
+
+        this.drawRespawningPlayer(newPlayer);
       }
     }
 
@@ -189,6 +195,13 @@ export class GameMap extends GameContainer {
 
     // z-ordering
     this.fixZOrdering();
+  }
+
+  private drawRespawningPlayer(player: IPlayer) {
+    const playerSprite: Sprite = this.playerSprites[player.id];
+    if (player.alive && player.respawning > 0) {
+      playerSprite.visible = player.respawning % 2 !== 0;
+    }
   }
 
   private fixZOrdering(): void {

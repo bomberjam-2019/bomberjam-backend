@@ -71,9 +71,9 @@ export interface ISimplePlayer extends IHasPos {
   maxBombs: number;
   bombRange: number;
   alive: boolean;
-  lives: number;
   score: number;
   color: number;
+  respawning: number;
 }
 
 export interface IPlayer extends ISimplePlayer {
