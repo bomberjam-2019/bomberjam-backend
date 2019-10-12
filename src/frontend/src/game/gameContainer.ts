@@ -18,7 +18,7 @@ export abstract class GameContainer {
 
   public onStateChanged(prevState: IGameState): void {}
 
-  public onPixiFrameUpdated(delta: number): void {}
+  public onPixiFrameUpdated(delta: number, totalTime: number): void {}
 
   public onPlayerAdded(playerId: string, player: IPlayer): void {}
 

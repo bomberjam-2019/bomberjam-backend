@@ -88,17 +88,18 @@ export class GameMap extends GameContainer {
       const oldPlayer = prevState.players[playerId];
       const newPlayer = this.state.players[playerId];
 
-      // Dont animate if player has just been killed
-      if (oldPlayer && newPlayer && newPlayer.respawning !== RESPAWN_TIME) {
-        if (newPlayer.x > oldPlayer.x) {
+      if (oldPlayer && newPlayer) {
+        const hasJustRespawned = newPlayer.respawning === RESPAWN_TIME;
+
+        if (hasJustRespawned || newPlayer.y > oldPlayer.y) {
+          this.unregisterObjectSprite(this.playerSprites, playerId);
+          this.registerPlayer(playerId, oldPlayer, 'front');
+        } else if (newPlayer.x > oldPlayer.x) {
           this.unregisterObjectSprite(this.playerSprites, playerId);
           this.registerPlayer(playerId, oldPlayer, 'right');
         } else if (newPlayer.x < oldPlayer.x) {
           this.unregisterObjectSprite(this.playerSprites, playerId);
           this.registerPlayer(playerId, oldPlayer, 'left');
-        } else if (newPlayer.y > oldPlayer.y) {
-          this.unregisterObjectSprite(this.playerSprites, playerId);
-          this.registerPlayer(playerId, oldPlayer, 'front');
         } else if (newPlayer.y < oldPlayer.y) {
           this.unregisterObjectSprite(this.playerSprites, playerId);
           this.registerPlayer(playerId, oldPlayer, 'back');
@@ -109,24 +110,21 @@ export class GameMap extends GameContainer {
         const sprite: Sprite = this.playerSprites[playerId];
 
         // On replay mode, you can skip multiple ticks so we don't want to animate players in that case
-        const diffTickCount = Math.abs(this.state.tick - prevState.tick);
-        if (diffTickCount === 1) {
-          sprite.x = oldPlayer.x * this.textures.tileSize;
-          sprite.y = oldPlayer.y * this.textures.tileSize;
+        const hasSwitchManyTicksInReplayMode = Math.abs(this.state.tick - prevState.tick) > 1;
+        const gameEnded = this.state.state === 1;
 
-          sprite.vx = oldPlayer.x === newPlayer.x ? 0 : newPlayer.x - oldPlayer.x > 0 ? this.textures.tileSize : -this.textures.tileSize;
-          sprite.vy = oldPlayer.y === newPlayer.y ? 0 : newPlayer.y - oldPlayer.y > 0 ? this.textures.tileSize : -this.textures.tileSize;
-        } else {
+        if (gameEnded || hasSwitchManyTicksInReplayMode || hasJustRespawned) {
           sprite.x = newPlayer.x * this.textures.tileSize;
           sprite.y = newPlayer.y * this.textures.tileSize;
 
           sprite.vx = 0;
           sprite.vy = 0;
-        }
+        } else {
+          sprite.x = oldPlayer.x * this.textures.tileSize;
+          sprite.y = oldPlayer.y * this.textures.tileSize;
 
-        if (this.state.state === 1) {
-          sprite.vx = 0;
-          sprite.vy = 0;
+          sprite.vx = oldPlayer.x === newPlayer.x ? 0 : newPlayer.x - oldPlayer.x > 0 ? this.textures.tileSize : -this.textures.tileSize;
+          sprite.vy = oldPlayer.y === newPlayer.y ? 0 : newPlayer.y - oldPlayer.y > 0 ? this.textures.tileSize : -this.textures.tileSize;
         }
       }
     }
@@ -162,13 +160,13 @@ export class GameMap extends GameContainer {
       }
     }
 
-    // Hide dead players
     for (const playerId in this.state.players) {
       const newPlayer: IPlayer = this.state.players[playerId];
       const oldPlayer: IPlayer = prevState.players[playerId];
       const playerSprite: Sprite = this.playerSprites[playerId];
 
       if (playerSprite) {
+        // Hide dead players
         if (!newPlayer.alive && !newPlayer.hasWon) {
           playerSprite.visible = false;
         } else {
@@ -179,7 +177,10 @@ export class GameMap extends GameContainer {
           this.sounds.death.play();
         }
 
-        this.drawRespawningPlayer(newPlayer);
+        // Restore player transparency if not respawning
+        if (newPlayer.alive && newPlayer.respawning === 0) {
+          playerSprite.alpha = 1;
+        }
       }
     }
 
@@ -196,13 +197,6 @@ export class GameMap extends GameContainer {
     this.fixZOrdering();
   }
 
-  private drawRespawningPlayer(player: IPlayer) {
-    const playerSprite: Sprite = this.playerSprites[player.id];
-    if (player.alive && player.respawning > 0) {
-      playerSprite.visible = player.respawning % 2 !== 0;
-    }
-  }
-
   private fixZOrdering(): void {
     this.mapContainer.children.sort((s1: DisplayObject, s2: DisplayObject) => {
       const y1 = Math.floor(s1.y / this.textures.tileSize);
@@ -211,17 +205,25 @@ export class GameMap extends GameContainer {
     });
   }
 
-  public onPixiFrameUpdated(delta: number): void {
+  public onPixiFrameUpdated(delta: number, totalTime: number): void {
     if (typeof this.state.tickDuration !== 'number' || this.state.tickDuration <= 0)
       throw new Error('Expected positive state tick duration');
 
+    // normalize total time at 200ms
+    const normalizedTotalTime = Math.round(totalTime / 100) * 100;
+    const shouldBlink = normalizedTotalTime % 200 === 0;
     const progress = delta / this.state.tickDuration;
 
     for (const playerId in this.playerSprites) {
       const sprite: Sprite = this.playerSprites[playerId];
+      const player: IPlayer = this.state.players[playerId];
 
       sprite.x += sprite.vx * progress;
       sprite.y += sprite.vy * progress;
+
+      if (player.alive && player.respawning > 0) {
+        sprite.alpha = shouldBlink ? 0.4 : 1;
+      }
     }
   }
 
