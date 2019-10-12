@@ -8,7 +8,7 @@ import _ from 'lodash';
 
 const allGameActions = new Set<string>(Object.values(AllGameActions));
 
-export class BombermanRoom extends TickBasedRoom<GameState> {
+export class BomberjamRoom extends TickBasedRoom<GameState> {
   protected readonly maxPlayerCount: number = MAX_PLAYERS;
   protected tickDurationMs: number = TICK_DURATION_MS;
   protected maxResponseTimeMs: number = MAX_RESPONSE_TIME_MS;

@@ -5,7 +5,7 @@ import { GameMap } from './gameMap';
 import { SoundRegistry } from './soundRegistry';
 import { TextureRegistry } from './textureRegistry';
 
-export class BombermanRenderer {
+export class BomberjamRenderer {
   private readonly stateProvider: IHasState;
   private readonly pixiApp: Application;
   private readonly textures: TextureRegistry;

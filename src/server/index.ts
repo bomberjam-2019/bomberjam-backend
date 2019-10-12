@@ -3,7 +3,7 @@ import express from 'express';
 
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../constants';
 import { Server } from 'colyseus';
-import { BombermanRoom } from './bombermanRoom';
+import { BomberjamRoom } from './bomberjamRoom';
 import { monitor } from '@colyseus/monitor';
 import history from 'connect-history-api-fallback';
 import path from 'path';
@@ -23,7 +23,7 @@ const httpServer = http.createServer(expressApp);
 const gameServer = new Server({ server: httpServer });
 
 // Register your room handlers
-gameServer.register(APP_NAME, BombermanRoom);
+gameServer.register(APP_NAME, BomberjamRoom);
 
 // Public frontend
 expressApp.use(

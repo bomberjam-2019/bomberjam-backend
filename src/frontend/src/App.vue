@@ -4,7 +4,7 @@
       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
           <span class="navbar-brand">
-            Bomberman
+            Bomberjam
           </span>
 
           <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggler">
