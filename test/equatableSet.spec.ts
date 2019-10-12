@@ -1,14 +1,12 @@
 import { EquatableSet } from '../src/utils';
 
-const assert = require('assert');
-
 describe('EquatableSet', () => {
   interface Person {
     name: string;
     age: number;
   }
 
-  it('equals all the properties of an object', () => {
+  test('equals all the properties of an object', () => {
     const set = new EquatableSet((o1: Person, o2: Person) => {
       return o1.name === o2.name && o1.age === o2.age;
     });
@@ -21,14 +19,14 @@ describe('EquatableSet', () => {
 
     set.add(p1, p2, p3, p4);
 
-    assert.strictEqual(set.size, 3);
-    assert.strictEqual(set.has(p1), true);
-    assert.strictEqual(set.has(p2), true);
-    assert.strictEqual(set.has(p3), true);
-    assert.strictEqual(set.has(p5), false);
+    expect(set.size).toBe(3);
+    expect(set.has(p1)).toBe(true);
+    expect(set.has(p2)).toBe(true);
+    expect(set.has(p3)).toBe(true);
+    expect(set.has(p5)).toBe(false);
   });
 
-  it('equals a few properties of an object', () => {
+  test('equals a few properties of an object', () => {
     const set = new EquatableSet((o1: Person, o2: Person) => {
       return o1.name === o2.name;
     });
@@ -42,14 +40,14 @@ describe('EquatableSet', () => {
     set.add(p2);
     set.add(p3);
 
-    assert.strictEqual(set.size, 2);
-    assert.strictEqual(set.has(p1), true);
-    assert.strictEqual(set.has(p2), true);
-    assert.strictEqual(set.has(p3), true);
-    assert.strictEqual(set.has(p4), false);
+    expect(set.size).toBe(2);
+    expect(set.has(p1)).toBe(true);
+    expect(set.has(p2)).toBe(true);
+    expect(set.has(p3)).toBe(true);
+    expect(set.has(p4)).toBe(false);
   });
 
-  it('iterable', () => {
+  test('iterable', () => {
     const set = new EquatableSet((o1: number, o2: number) => {
       return o1 === o2;
     });
@@ -57,6 +55,6 @@ describe('EquatableSet', () => {
     set.add(1, 3, 2, 1, 2, 3, 3, 2, 3, 1, 2, 3, 2);
 
     const iterated = [...set];
-    assert.strictEqual(iterated.length, 3);
+    expect(iterated.length).toBe(3);
   });
 });

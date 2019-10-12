@@ -3,8 +3,6 @@ import { GameState } from '../src/server/state';
 import { SUDDEN_DEATH_COUNTDOWN } from '../src/constants';
 import _ from 'lodash';
 
-const assert = require('assert');
-
 describe('GameState', () => {
   // prettier-ignore
   const asciiMap = [
@@ -20,37 +18,37 @@ describe('GameState', () => {
   });
 
   describe('constructor', () => {
-    it('parses ascii map', () => {
-      assert.strictEqual(gameState.height, 3);
-      assert.strictEqual(gameState.width, 5);
-      assert.strictEqual(gameState.tiles, '..+...+++...+..');
-      assert.strictEqual(gameState.state, -1);
-      assert.strictEqual(gameState.isSimulationPaused, true);
+    test('parses ascii map', () => {
+      expect(gameState.height).toBe(3);
+      expect(gameState.width).toBe(5);
+      expect(gameState.tiles).toBe('..+...+++...+..');
+      expect(gameState.state).toBe(-1);
+      expect(gameState.isSimulationPaused).toBe(true);
     });
   });
 
   describe('start and stop', () => {
-    it('automatically starts when four players join the game', () => {
+    test('automatically starts when four players join the game', () => {
       addPlayers('a', 'b', 'c', 'd');
 
-      assert.strictEqual(gameState.state, 0);
+      expect(gameState.state).toBe(0);
     });
   });
 
   describe('movement', () => {
-    it('moves right', () => {
+    test('moves right', () => {
       gameState.isSimulationPaused = false;
       addPlayers('a', 'b', 'c', 'd');
 
-      assert.strictEqual(gameState.players['a'].x, 0);
-      assert.strictEqual(gameState.players['a'].y, 0);
+      expect(gameState.players['a'].x).toBe(0);
+      expect(gameState.players['a'].y).toBe(0);
 
       simulateTick({
         a: Actions.Right
       });
 
-      assert.strictEqual(gameState.players['a'].x, 1);
-      assert.strictEqual(gameState.players['a'].y, 0);
+      expect(gameState.players['a'].x).toBe(1);
+      expect(gameState.players['a'].y).toBe(0);
     });
   });
 
@@ -59,7 +57,7 @@ describe('GameState', () => {
       addPlayers('a', 'b', 'c', 'd');
     });
 
-    it('when players do not move game ends with a winner', () => {
+    test('when players do not move game ends with a winner', () => {
       gameState.isSimulationPaused = false;
 
       const tileCount = gameState.width * gameState.height;
@@ -67,15 +65,15 @@ describe('GameState', () => {
         simulateTick({});
       }
 
-      assert.strictEqual(gameState.state, 1);
-      assert.strictEqual(gameState.suddenDeathEnabled, true);
-      assert.strictEqual(gameState.suddenDeathCountdown, 0);
+      expect(gameState.state).toBe(1);
+      expect(gameState.suddenDeathEnabled).toBe(true);
+      expect(gameState.suddenDeathCountdown).toBe(0);
 
       const playersAliveCount = _.filter(gameState.players, (p: IPlayer) => p.alive).length;
-      assert.strictEqual(playersAliveCount, 1);
+      expect(playersAliveCount).toBe(1);
     });
 
-    it('sudden death is delayed when game is paused', () => {
+    test('sudden death is delayed when game is paused', () => {
       gameState.isSimulationPaused = false;
       for (let i = 0; i < SUDDEN_DEATH_COUNTDOWN / 4; i++) {
         simulateTick({});
@@ -91,8 +89,8 @@ describe('GameState', () => {
         simulateTick({});
       }
 
-      assert.strictEqual(gameState.state, 0);
-      assert.strictEqual(gameState.suddenDeathEnabled, false);
+      expect(gameState.state).toBe(0);
+      expect(gameState.suddenDeathEnabled).toBe(false);
     });
   });
 
