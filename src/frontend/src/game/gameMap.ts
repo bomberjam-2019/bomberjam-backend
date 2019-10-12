@@ -209,7 +209,7 @@ export class GameMap extends GameContainer {
     if (typeof this.state.tickDuration !== 'number' || this.state.tickDuration <= 0)
       throw new Error('Expected positive state tick duration');
 
-    // normalize total time at 200ms
+    // round total time to 100ms and blink if it can be divided by 200
     const normalizedTotalTime = Math.round(totalTime / 100) * 100;
     const shouldBlink = normalizedTotalTime % 200 === 0;
     const progress = delta / this.state.tickDuration;
