@@ -1,7 +1,7 @@
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../constants';
 import { Application, Texture } from 'pixi.js';
 import { Client, Room } from 'colyseus.js';
-import { GameActions, IGameState, IHasState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
+import { AllGameActions, IGameState, IHasState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
 
 import { BombermanRenderer } from './bombermanRenderer';
 import { SoundRegistry } from './soundRegistry';
@@ -210,12 +210,12 @@ export async function showGame(
       if (room && room.hasJoined) {
         sounds.resumeAll();
         sounds.unpause.play();
-        room.send(GameActions.ResumeGame);
+        room.send(AllGameActions.ResumeGame);
       }
     },
     pauseGame: () => {
       if (room && room.hasJoined) {
-        room.send(GameActions.PauseGame);
+        room.send(AllGameActions.PauseGame);
         sounds.pause.play({
           complete: () => {
             sounds.pauseAll();
@@ -224,10 +224,10 @@ export async function showGame(
       }
     },
     increaseSpeed: () => {
-      if (room && room.hasJoined) room.send(GameActions.IncreaseSpeed);
+      if (room && room.hasJoined) room.send(AllGameActions.IncreaseSpeed);
     },
     decreaseSpeed: () => {
-      if (room && room.hasJoined) room.send(GameActions.DecreaseSpeed);
+      if (room && room.hasJoined) room.send(AllGameActions.DecreaseSpeed);
     }
   };
 }

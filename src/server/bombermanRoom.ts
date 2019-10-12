@@ -1,4 +1,4 @@
-import { GameActionCode, GameActions, IClientMessage, IJoinRoomOpts, IPlayer, IRoomMetadata } from '../types';
+import { GameActionCode, AllGameActions, IClientMessage, IJoinRoomOpts, IPlayer, IRoomMetadata } from '../types';
 import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../constants';
 
 import { Client } from 'colyseus';
@@ -6,7 +6,7 @@ import { GameState } from './state';
 import { TickBasedRoom } from './tickBasedRoom';
 import _ from 'lodash';
 
-const allGameActions = new Set<string>(Object.values(GameActions));
+const allGameActions = new Set<string>(Object.values(AllGameActions));
 
 export class BombermanRoom extends TickBasedRoom<GameState> {
   protected readonly maxPlayerCount: number = MAX_PLAYERS;

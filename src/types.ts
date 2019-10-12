@@ -33,7 +33,18 @@ export type BonusCode = 'bomb' | 'fire';
 
 export type GameActionCode = 'increaseSpeed' | 'decreaseSpeed' | 'resumeGame' | 'pauseGame';
 
-export const Actions: { [key: string]: ActionCode } = {
+// kind of redundant but this is the only way I found to restrict each value's type of an object
+// while also defining it keys in advance for auto-completion
+interface IAllActions {
+  Up: ActionCode;
+  Down: ActionCode;
+  Left: ActionCode;
+  Right: ActionCode;
+  Bomb: ActionCode;
+  Stay: ActionCode;
+}
+
+export const AllActions: IAllActions = {
   Up: 'up',
   Down: 'down',
   Left: 'left',
@@ -42,14 +53,30 @@ export const Actions: { [key: string]: ActionCode } = {
   Stay: 'stay'
 };
 
-export const Tiles: { [key: string]: TileCode } = {
+// same comment then above
+interface IAllTiles {
+  OutOfBound: TileCode;
+  Empty: TileCode;
+  Wall: TileCode;
+  Block: TileCode;
+}
+
+export const AllTiles: IAllTiles = {
   OutOfBound: '',
   Empty: '.',
   Wall: '#',
   Block: '+'
 };
 
-export const GameActions: { [key: string]: GameActionCode } = {
+// same comment then above
+interface IAllGameActions {
+  ResumeGame: GameActionCode;
+  PauseGame: GameActionCode;
+  IncreaseSpeed: GameActionCode;
+  DecreaseSpeed: GameActionCode;
+}
+
+export const AllGameActions: IAllGameActions = {
   ResumeGame: 'resumeGame',
   PauseGame: 'pauseGame',
   IncreaseSpeed: 'increaseSpeed',
