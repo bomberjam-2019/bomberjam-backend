@@ -292,17 +292,17 @@ export class GameState extends Schema implements IGameState {
     this.tiles = GameState.replaceCharAt(this.tiles, idx, newTile);
   }
 
-  private findActiveBombAt(x: number, y: number): IBomb | undefined {
+  private findActiveBombAt(x: number, y: number): Bomb | undefined {
     return _.find(this.bombs, b => b.countdown > 0 && b.x === x && b.y === y);
   }
 
-  private findAlivePlayerAt(x: number, y: number): IPlayer | undefined {
+  private findAlivePlayerAt(x: number, y: number): Player | undefined {
     return _.find(this.players, p => p.alive && p.x === x && p.y === y);
   }
 
   private findDroppedBonusIndexAt(x: number, y: number): string | undefined {
     for (const bonusId in this.bonuses) {
-      const bonus: IBonus = this.bonuses[bonusId];
+      const bonus: Bonus = this.bonuses[bonusId];
       if (bonus.x === x && bonus.y === y) return bonusId;
     }
   }
@@ -393,7 +393,7 @@ export class GameState extends Schema implements IGameState {
       playerBombCounts[playerId] = 0;
     }
 
-    _.forEach(this.bombs, (bomb: IBomb) => {
+    _.forEach(this.bombs, (bomb: Bomb) => {
       bomb.countdown -= 1;
       if (bomb.countdown >= 0) playerBombCounts[bomb.playerId]++;
     });
@@ -461,7 +461,7 @@ export class GameState extends Schema implements IGameState {
     this.state = 0;
   }
 
-  private hitPlayer(player: IPlayer) {
+  private hitPlayer(player: Player) {
     if (player.respawning === 0) {
       this.killPlayer(player);
       if (!this.suddenDeathEnabled) {
@@ -470,7 +470,7 @@ export class GameState extends Schema implements IGameState {
     }
   }
 
-  public killPlayer(player: IPlayer) {
+  public killPlayer(player: Player) {
     if (LOSE_BONUSES_ON_DEATH) {
       player.bombsLeft = 0;
       player.maxBombs = 0;
@@ -483,7 +483,7 @@ export class GameState extends Schema implements IGameState {
     }
   }
 
-  public respawnPlayer(player: IPlayer) {
+  public respawnPlayer(player: Player) {
     player.respawning = RESPAWN_TIME;
 
     const position = Object.keys(this.players).indexOf(player.id);
@@ -518,7 +518,7 @@ export class GameState extends Schema implements IGameState {
 
       const bonusId = this.findDroppedBonusIndexAt(nextPos.x, nextPos.y);
       if (bonusId) {
-        const bonus: IBonus = this.bonuses[bonusId];
+        const bonus: Bonus = this.bonuses[bonusId];
 
         if (bonus.type === 'bomb') {
           player.maxBombs++;
@@ -569,22 +569,21 @@ export class GameState extends Schema implements IGameState {
   }
 
   private runBombs() {
-    const visitedBombs = new Set<IBomb>(); // avoid handling bombs twice
-    const explosionChain: IBomb[] = []; // FIFO
+    const explosionChain: Explosion[] = []; // FIFO
+    const visitedBombs = new Set<Bomb>(); // avoid handling bombs twice
     const deletedBombIds = new Set<string>();
     const explosionPositions = new Set<string>();
+    const playersHits: { [playerId: string]: PlayerHit[] } = {};
 
     const destroyedBlocks = new EquatableSet((firstBlock: DestroyedBlock, secondBlock: DestroyedBlock) => {
       return firstBlock.x === secondBlock.x && firstBlock.y === secondBlock.y;
     });
 
-    const playersHits: { [playerId: string]: PlayerHit[] } = {};
-
     // 1) detect zero-countdown exploding bombs
     for (const bombId in this.bombs) {
       const bomb = this.bombs[bombId];
 
-      // cleanup already exploded bomb
+      // remove already exploded bomb from past tick
       if (bomb.countdown < 0) {
         deletedBombIds.add(bombId);
         continue;
@@ -592,8 +591,12 @@ export class GameState extends Schema implements IGameState {
 
       // bomb explodes
       if (bomb.countdown === 0) {
-        explosionChain.push(bomb);
         visitedBombs.add(bomb);
+        explosionChain.push({
+          explodedBomb: bomb,
+          triggeredBy: bomb,
+          countdownWhenExploded: bomb.countdown
+        });
       }
     }
 
@@ -601,7 +604,8 @@ export class GameState extends Schema implements IGameState {
       delete this.bombs[deletedBombId];
     }
 
-    const propagateExplosion = (bomb: IBomb, posIncrementer: PosIncrementer) => {
+    const propagateExplosion = (explosion: Explosion, posIncrementer: PosIncrementer) => {
+      const bomb = explosion.explodedBomb;
       const pos: IHasPos = { x: bomb.x, y: bomb.y };
       explosionPositions.add(`${pos.x}:${pos.y}`);
 
@@ -611,7 +615,8 @@ export class GameState extends Schema implements IGameState {
         playersHits[victim.id].push({
           attacker: bomb.playerId,
           victim: victim.id,
-          distance: GameState.getDistanceFrom(bomb, victim)
+          distanceFromBombToVictim: GameState.getDistanceFrom(bomb, victim),
+          bombCountdownWhenExploded: explosion.countdownWhenExploded
         });
       }
 
@@ -635,8 +640,12 @@ export class GameState extends Schema implements IGameState {
         if (tile === AllTiles.Empty) {
           const otherBomb = this.findActiveBombAt(pos.x, pos.y);
           if (otherBomb && !visitedBombs.has(otherBomb)) {
-            explosionChain.push(otherBomb);
             visitedBombs.add(otherBomb);
+            explosionChain.push({
+              explodedBomb: otherBomb,
+              triggeredBy: bomb,
+              countdownWhenExploded: otherBomb.countdown
+            });
           }
 
           const victim = this.findAlivePlayerAt(pos.x, pos.y);
@@ -645,7 +654,8 @@ export class GameState extends Schema implements IGameState {
             playersHits[victim.id].push({
               attacker: bomb.playerId,
               victim: victim.id,
-              distance: GameState.getDistanceFrom(bomb, victim)
+              distanceFromBombToVictim: GameState.getDistanceFrom(bomb, victim),
+              bombCountdownWhenExploded: explosion.countdownWhenExploded
             });
           }
 
@@ -663,14 +673,14 @@ export class GameState extends Schema implements IGameState {
 
     // 2) propagate explosion and detonate other bombs on the way
     while (explosionChain.length > 0) {
-      const bomb = explosionChain.shift() as IBomb;
-      bomb.countdown = 0;
+      const explosion = explosionChain.shift() as Explosion;
+      explosion.explodedBomb.countdown = 0;
 
       // find other bombs that would explode and their victims
-      propagateExplosion(bomb, positionIncrementers[AllActions.Up]);
-      propagateExplosion(bomb, positionIncrementers[AllActions.Down]);
-      propagateExplosion(bomb, positionIncrementers[AllActions.Left]);
-      propagateExplosion(bomb, positionIncrementers[AllActions.Right]);
+      propagateExplosion(explosion, positionIncrementers[AllActions.Up]);
+      propagateExplosion(explosion, positionIncrementers[AllActions.Down]);
+      propagateExplosion(explosion, positionIncrementers[AllActions.Left]);
+      propagateExplosion(explosion, positionIncrementers[AllActions.Right]);
     }
 
     // 3) remove destroyed walls now otherwise too many walls could have been destroyed
@@ -689,14 +699,18 @@ export class GameState extends Schema implements IGameState {
 
     // 4) apply damage to players
     for (const victimId in playersHits) {
-      const distanceSortedHits = _.orderBy(playersHits[victimId], [(hit: PlayerHit) => hit.distance], ['asc']) as PlayerHit[];
-      const closesHit = distanceSortedHits[0];
+      const sortedHits = _.orderBy(
+        playersHits[victimId],
+        [(hit: PlayerHit) => hit.bombCountdownWhenExploded, (hit: PlayerHit) => hit.distanceFromBombToVictim],
+        ['asc', 'asc']
+      ) as PlayerHit[];
+      const bestHit = sortedHits[0];
 
-      this.hitPlayer(this.players[closesHit.victim]);
+      this.hitPlayer(this.players[bestHit.victim]);
 
-      this.players[closesHit.victim].addScore(POINTS_DEATH);
-      if (closesHit.attacker !== closesHit.victim) {
-        this.players[closesHit.attacker].addScore(POINTS_KILLED_PLAYER);
+      this.players[bestHit.victim].addScore(POINTS_DEATH);
+      if (bestHit.attacker !== bestHit.victim) {
+        this.players[bestHit.attacker].addScore(POINTS_KILLED_PLAYER);
       }
     }
 
@@ -731,5 +745,12 @@ interface DestroyedBlock extends IHasPos {
 interface PlayerHit {
   attacker: string;
   victim: string;
-  distance: number;
+  distanceFromBombToVictim: number;
+  bombCountdownWhenExploded: number;
+}
+
+interface Explosion {
+  explodedBomb: Bomb;
+  triggeredBy: Bomb;
+  countdownWhenExploded: number;
 }
