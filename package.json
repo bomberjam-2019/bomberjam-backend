@@ -1,7 +1,9 @@
 {
-  "name": "bomberman-colyseus-server",
+  "name": "bomberjam-backend",
   "version": "1.0.0",
-  "description": "TODO",
+  "license": "ISC",
+  "main": "dist/server.js",
+  "private": true,
   "scripts": {
     "clean": "rimraf .rpt2_cache/ dist/",
     "test": "mocha -r ts-node/register test/**/*.spec.ts",
@@ -17,7 +19,6 @@
     "frontend": "cd src/frontend/ && npm run serve",
     "server": "npm run build-frontend-development && ts-node src/server/index.ts --frontend=../../dist/frontend"
   },
-  "main": "dist/server.js",
   "files": [
     "dist/**/*"
   ],

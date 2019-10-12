@@ -1,9 +1,8 @@
 import { AnimatedSprite, Container, DisplayObject, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { IBomb, IBonus, IGameState, IHasPos, IHasState, IPlayer } from '../../../types';
 
-import { GameContainer } from './gameContainer';
-import { PlayerColor } from './playerColor';
 import { RESPAWN_TIME } from '../../../constants';
+import { GameContainer } from './gameContainer';
 import { SoundRegistry } from './soundRegistry';
 import { TextureRegistry } from './textureRegistry';
 
@@ -236,7 +235,7 @@ export class GameMap extends GameContainer {
 
     const sprite = this.makeAnimatedSprite(textures, player, false, 0.15);
     sprite.anchor.set(0, 0.5);
-    PlayerColor.colorize(playerId, sprite);
+    sprite.tint = player.color;
     this.playerSprites[playerId] = sprite;
     this.mapContainer.addChild(sprite);
     this.sounds.footsteps.play();

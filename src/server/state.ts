@@ -1,3 +1,6 @@
+import _ from 'lodash';
+import { MapSchema, Schema, type } from '@colyseus/schema';
+
 import {
   ActionCode,
   Actions,
@@ -19,11 +22,15 @@ import {
   FIRE_BONUS_COUNT,
   LOSE_BONUSES_ON_DEATH,
   RESPAWN_TIME,
+  PLAYER_COLORS,
+  POINTS_BLOCK_DESTROYED,
+  POINTS_DEATH,
+  POINTS_KILLED_PLAYER,
+  POINTS_LAST_SURVIVOR,
+  POINTS_PER_ALIVE_TICK,
   SUDDEN_DEATH_COUNTDOWN
 } from '../constants';
-import { MapSchema, Schema, type } from '@colyseus/schema';
-
-import _ from 'lodash';
+import { EquatableSet } from '../utils';
 
 // prettier-ignore
 const defaultAsciiMap: string[] = [
@@ -71,8 +78,19 @@ export class Player extends Schema implements IPlayer {
   @type('int8')
   respawning: number = 0;
 
+  @type('int16')
+  score: number = 0;
+
+  @type('int32')
+  color: number = 0xffffff;
+
   @type('boolean')
   hasWon: boolean = false;
+
+  public addScore(deltaScore: number): void {
+    this.score += deltaScore;
+    if (this.score < 0) this.score = 0;
+  }
 }
 
 export class Bomb extends Schema implements IBomb {
@@ -161,9 +179,11 @@ export class GameState extends Schema implements IGameState {
   @type('boolean')
   isSimulationPaused: boolean = true;
 
-  private startPositions: Array<IHasPos> = [];
+  private startPositions: IHasPos[] = [];
 
   private plannedBonuses: { [tileIndex: number]: BonusCode } = {};
+
+  private playerColors: number[] = [];
 
   constructor(asciiMap?: string[]) {
     super();
@@ -183,6 +203,7 @@ export class GameState extends Schema implements IGameState {
     ];
 
     this.planBonusPositions();
+    this.planPlayerColors();
   }
 
   private static isValidAsciiMap(asciiMap: string[]) {
@@ -227,6 +248,11 @@ export class GameState extends Schema implements IGameState {
       this.plannedBonuses[idx] = 'fire';
       potentialBonusPositions.delete(idx);
     }
+  }
+
+  private planPlayerColors(): void {
+    const shuffledColors = _.shuffle(PLAYER_COLORS);
+    this.playerColors.push(...shuffledColors.slice(0, 4));
   }
 
   public isWaitingForPlayers(): boolean {
@@ -306,6 +332,7 @@ export class GameState extends Schema implements IGameState {
 
       this.runBombs();
       this.changeStateIfGameEnded();
+      this.addScorePerTick();
     } else if (this.isGameEnded()) {
       // end game cleanup
       for (const bombId in this.bombs) delete this.bombs[bombId];
@@ -380,7 +407,7 @@ export class GameState extends Schema implements IGameState {
   }
 
   private changeStateIfGameEnded() {
-    const alivePlayers: IPlayer[] = [];
+    const alivePlayers: Player[] = [];
 
     for (const playerId in this.players) {
       const player = this.players[playerId];
@@ -393,17 +420,27 @@ export class GameState extends Schema implements IGameState {
 
       if (alivePlayers.length === 1) {
         alivePlayers[0].hasWon = true;
+        alivePlayers[0].addScore(POINTS_LAST_SURVIVOR);
       }
     }
   }
 
+  private addScorePerTick() {
+    for (const playerId in this.players) {
+      const player = this.players[playerId];
+      if (player.alive) player.addScore(POINTS_PER_ALIVE_TICK);
+    }
+  }
+
   public addPlayer(id: string, name: string) {
+    if (this.players[id]) throw new Error(`Player ${name} with ID ${id} already exists`);
+
     const player = new Player();
 
     player.id = id;
     player.name = name;
 
-    const playerCount = Object.keys(this.players).length;
+    let playerCount = Object.keys(this.players).length;
     if (playerCount >= this.startPositions.length) throw new Error('More players than starting spots');
 
     const startPos = this.startPositions[playerCount];
@@ -411,8 +448,11 @@ export class GameState extends Schema implements IGameState {
     player.y = startPos.y;
 
     this.players[id] = player;
+    playerCount++;
 
-    if (playerCount + 1 >= this.startPositions.length) {
+    player.color = this.playerColors[playerCount - 1];
+
+    if (playerCount >= this.startPositions.length) {
       this.startGame();
     }
   }
@@ -533,8 +573,14 @@ export class GameState extends Schema implements IGameState {
     const explosionChain: IBomb[] = []; // FIFO
     const deletedBombIds = new Set<string>();
     const explosionPositions = new Set<string>();
-    const destroyedBlockPositions = new Set<string>();
-    const hitPlayers = new Set<string>();
+
+    const destroyedBlocks = new EquatableSet((firstBlock: DestroyedBlock, secondBlock: DestroyedBlock) => {
+      return firstBlock.x === secondBlock.x && firstBlock.y === secondBlock.y;
+    });
+
+    const playerHits = new EquatableSet((firstHit: PlayerHit, secondHit: PlayerHit) => {
+      return firstHit.victim === secondHit.victim;
+    });
 
     // 1) detect zero-countdown exploding bombs
     for (const bombId in this.bombs) {
@@ -562,7 +608,11 @@ export class GameState extends Schema implements IGameState {
       explosionPositions.add(`${pos.x}:${pos.y}`);
 
       const victim = this.findAlivePlayerAt(bomb.x, bomb.y);
-      if (victim) hitPlayers.add(victim.id);
+      if (victim)
+        playerHits.add({
+          attacker: bomb.playerId,
+          victim: victim.id
+        });
 
       for (let i = 1; i <= bomb.range; i++) {
         posIncrementer(pos);
@@ -572,7 +622,11 @@ export class GameState extends Schema implements IGameState {
         // destroy block and do not spread explosion beyond that
         if (tile === Tiles.Block) {
           explosionPositions.add(`${pos.x}:${pos.y}`);
-          destroyedBlockPositions.add(`${pos.x}:${pos.y}`);
+          destroyedBlocks.add({
+            x: pos.x,
+            y: pos.y,
+            destroyedBy: bomb.playerId
+          });
           return;
         }
 
@@ -585,7 +639,11 @@ export class GameState extends Schema implements IGameState {
           }
 
           const victim = this.findAlivePlayerAt(pos.x, pos.y);
-          if (victim) hitPlayers.add(victim.id);
+          if (victim)
+            playerHits.add({
+              attacker: bomb.playerId,
+              victim: victim.id
+            });
 
           const bonusId = this.findDroppedBonusIndexAt(pos.x, pos.y);
           if (bonusId) delete this.bonuses[bonusId];
@@ -612,21 +670,27 @@ export class GameState extends Schema implements IGameState {
     }
 
     // 3) remove destroyed walls now otherwise too many walls could have been destroyed
-    for (const posStr of destroyedBlockPositions) {
-      const [x, y] = posStr.split(':').map(Number);
-      this.setTileAt(x, y, Tiles.Empty);
+    for (const destroyedBlock of destroyedBlocks) {
+      this.setTileAt(destroyedBlock.x, destroyedBlock.y, Tiles.Empty);
+      this.players[destroyedBlock.destroyedBy].addScore(POINTS_BLOCK_DESTROYED);
 
-      const idx = this.coordToTileIndex(x, y);
+      // drop bonus if applicable
+      const idx = this.coordToTileIndex(destroyedBlock.x, destroyedBlock.y);
       const bonusType = this.plannedBonuses[idx];
       if (bonusType) {
-        this.dropBonus(x, y, bonusType);
+        this.dropBonus(destroyedBlock.x, destroyedBlock.y, bonusType);
         delete this.plannedBonuses[idx];
       }
     }
 
     // 4) apply damage to players
-    for (const playerId of hitPlayers) {
-      this.hitPlayer(this.players[playerId]);
+    for (const playerHit of playerHits) {
+      this.hitPlayer(this.players[playerHit.victim]);
+
+      this.players[playerHit.victim].addScore(POINTS_DEATH);
+      if (playerHit.attacker !== playerHit.victim) {
+        this.players[playerHit.attacker].addScore(POINTS_KILLED_PLAYER);
+      }
     }
 
     this.explosions = [...explosionPositions].join(';');
@@ -647,4 +711,13 @@ export class GameState extends Schema implements IGameState {
   private static replaceCharAt(text: string, idx: number, newChar: string): string {
     return text.substr(0, idx) + newChar + text.substr(idx + 1);
   }
+}
+
+interface DestroyedBlock extends IHasPos {
+  destroyedBy: string;
+}
+
+interface PlayerHit {
+  attacker: string;
+  victim: string;
 }

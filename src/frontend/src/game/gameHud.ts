@@ -2,7 +2,16 @@ import { GameContainer } from './gameContainer';
 import { TextureRegistry } from './textureRegistry';
 import { IGameState, IHasState, IPlayer } from '../../../types';
 import { Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
-import { PlayerColor } from './playerColor';
+
+interface IPlayerHudContainer extends Container {
+  playerSprite: Sprite;
+  playerNameText: Text;
+  bombSprite: Sprite;
+  bombCountText: Text;
+  flameSprite: Sprite;
+  bombRangeText: Text;
+  scoreText: Text;
+}
 
 export class GameHud extends GameContainer {
   private static readonly TextStyle = new TextStyle({
@@ -11,13 +20,29 @@ export class GameHud extends GameContainer {
   });
 
   private readonly textures: TextureRegistry;
+  private readonly playerHuds: { [playerId: string]: IPlayerHudContainer };
+  private readonly playerBars: { [playerId: string]: Graphics };
+
+  private get canvasHeight(): number {
+    return (this.state.height + 2) * this.textures.tileSize;
+  }
+
+  private get playerScoreSum(): number {
+    let sum = 0;
+    for (const playerId in this.state.players) sum += this.state.players[playerId].score;
+    return sum;
+  }
 
   constructor(stateProvider: IHasState, textures: TextureRegistry) {
     super(stateProvider);
+
     this.textures = textures;
+    this.playerHuds = {};
+    this.playerBars = {};
   }
 
   initialize(): void {
+    this.reserveSpace();
     this.refresh();
   }
 
@@ -25,94 +50,133 @@ export class GameHud extends GameContainer {
     this.refresh();
   }
 
-  private refresh() {
-    this.cleanup();
-
-    for (const playerId in this.state.players) {
-      this.createPlayerHud(playerId, this.state.players[playerId]);
-    }
-
-    this.reserveSpaceForHud();
-  }
-
-  private cleanup() {
-    for (let i = 0; i < this.container.children.length; i++) {
-      const childContainer = this.container.children[i] as Container;
-      childContainer.destroy({
-        children: true
-      });
-    }
-
-    this.container.removeChildren();
-  }
-
-  private createPlayerHud(playerId: string, player: IPlayer): void {
-    const container = new Container();
-
-    const playerSprite = this.makeStaticSprite(this.textures.player.front[0]);
-    playerSprite.x = 20;
-    playerSprite.y = 25;
-    PlayerColor.colorize(playerId, playerSprite);
-
-    const playerNameText = new Text(player.name, GameHud.TextStyle);
-    playerNameText.x = playerSprite.x + playerSprite.width + 10;
-    playerNameText.y = playerSprite.y + 10;
-
-    const bombSprite = this.makeStaticSprite(this.textures.bomb[0]);
-    bombSprite.x = playerNameText.x;
-    bombSprite.y = playerNameText.y + playerNameText.height + 5;
-
-    const bombCountText = new Text(player.bombsLeft + '/' + player.maxBombs, GameHud.TextStyle);
-    bombCountText.x = bombSprite.x + bombSprite.width + 5;
-    bombCountText.y = bombSprite.y;
-
-    const flameSprite = this.makeStaticSprite(this.textures.flame[0]);
-    flameSprite.x = bombCountText.x + bombCountText.width + 10;
-    flameSprite.y = bombSprite.y;
-
-    const bombRangeText = new Text(player.bombRange.toString(), GameHud.TextStyle);
-    bombRangeText.x = flameSprite.x + flameSprite.width + 5;
-    bombRangeText.y = bombSprite.y;
-
+  private reserveSpace() {
     const padding = new Graphics();
 
-    padding.beginFill(0xff0000);
-    padding.drawRect(Math.max(playerNameText.x + playerNameText.width, bombRangeText.x + bombRangeText.width), playerNameText.y, 50, 10);
+    padding.beginFill(0xffffff);
+    padding.drawRect(0, 0, 350, this.canvasHeight);
     padding.endFill();
-    padding.alpha = 0;
 
-    container.addChild(playerSprite, playerNameText, bombSprite, bombCountText, flameSprite, bombRangeText, padding);
+    this.container.addChild(padding);
+  }
 
-    container.y = this.container.children.length * (container.height + 25);
-
-    if (!player.alive) {
-      container.alpha = 0.5;
+  private refresh() {
+    let playerPosition = 0;
+    for (const playerId in this.state.players) {
+      this.updatePlayerHud(playerPosition, playerId, this.state.players[playerId]);
+      playerPosition++;
     }
 
-    this.container.addChild(container);
+    this.updateScoreBars();
+  }
+
+  private updatePlayerHud(playerPosition: number, playerId: string, player: IPlayer): void {
+    if (!this.playerHuds[playerId]) {
+      this.addPlayerHud(playerId, player);
+    }
+
+    const hud = this.playerHuds[playerId];
+
+    hud.playerSprite.x = 25;
+    hud.playerSprite.y = 25;
+    hud.playerSprite.tint = player.color;
+
+    hud.playerNameText.x = hud.playerSprite.x + hud.playerSprite.width + 10;
+    hud.playerNameText.y = hud.playerSprite.y + 10;
+
+    hud.bombSprite.x = hud.playerNameText.x;
+    hud.bombSprite.y = hud.playerNameText.y + hud.playerNameText.height + 5;
+
+    hud.bombCountText.text = player.bombsLeft + '/' + player.maxBombs;
+    hud.bombCountText.x = hud.bombSprite.x + hud.bombSprite.width + 5;
+    hud.bombCountText.y = hud.bombSprite.y;
+
+    hud.flameSprite.x = hud.bombCountText.x + hud.bombCountText.width + 10;
+    hud.flameSprite.y = hud.bombSprite.y;
+
+    hud.bombRangeText.text = player.bombRange.toString();
+    hud.bombRangeText.x = hud.flameSprite.x + hud.flameSprite.width + 5;
+    hud.bombRangeText.y = hud.bombSprite.y;
+
+    hud.scoreText.text = `- score: ${player.score.toString()}`;
+    hud.scoreText.x = hud.bombRangeText.x + hud.bombRangeText.width + 5;
+    hud.scoreText.y = hud.bombSprite.y;
+
+    hud.y = playerPosition * (hud.height + 25);
+    hud.alpha = player.alive ? 1 : 0.5;
+  }
+
+  private addPlayerHud(playerId: string, player: IPlayer): void {
+    const hud = new Container() as IPlayerHudContainer;
+
+    hud.playerSprite = this.makeStaticSprite(this.textures.player.front[0]);
+    hud.playerNameText = new Text(player.name, GameHud.TextStyle);
+    hud.bombSprite = this.makeStaticSprite(this.textures.bomb[0]);
+    hud.bombCountText = new Text(player.bombsLeft + '/' + player.maxBombs, GameHud.TextStyle);
+    hud.flameSprite = this.makeStaticSprite(this.textures.flame[0]);
+    hud.bombRangeText = new Text(player.bombRange.toString(), GameHud.TextStyle);
+    hud.scoreText = new Text(`- score: ${player.score.toString()}`, GameHud.TextStyle);
+
+    hud.addChild(
+      hud.playerSprite,
+      hud.playerNameText,
+      hud.bombSprite,
+      hud.bombCountText,
+      hud.flameSprite,
+      hud.bombRangeText,
+      hud.scoreText
+    );
+
+    this.playerHuds[playerId] = hud;
+    this.container.addChild(hud);
   }
 
   private makeStaticSprite(texture: Texture): Sprite {
     const sprite = new Sprite(texture);
-
     sprite.scale.set(this.textures.spriteRatio, this.textures.spriteRatio);
-    sprite.vx = 0;
-    sprite.vy = 0;
-
     return sprite;
   }
 
-  private reserveSpaceForHud() {
-    const container = new Container();
-    const padding = new Graphics();
+  private updateScoreBars() {
+    const playerScoreSum = this.playerScoreSum;
+    const canvasHeight = this.canvasHeight;
+    const playerCount = Object.keys(this.state.players).length;
+    const playerScoreRatios: { [id: string]: number } = {};
 
-    padding.beginFill(0xff0000);
-    padding.drawRect(0, 0, 400, 1);
-    padding.endFill();
-    padding.alpha = 0;
+    let extraRatios = 0;
 
-    container.addChild(padding);
+    for (const playerId in this.state.players) {
+      // when all scores are equal to 0, there is a tie, so the ratio is 1 / playerCount
+      let ratio = playerScoreSum > 0 ? this.state.players[playerId].score / playerScoreSum : 1 / playerCount;
+      if (ratio === 0) {
+        // at least show a tiny score bar for this player
+        ratio = 0.01;
+        extraRatios += ratio;
+      }
 
-    this.container.addChild(container);
+      playerScoreRatios[playerId] = ratio;
+    }
+
+    let lastRatioBarY = 0;
+
+    for (const playerId in this.state.players) {
+      playerScoreRatios[playerId] = playerScoreRatios[playerId] - extraRatios / playerCount;
+
+      if (!this.playerBars[playerId]) {
+        this.playerBars[playerId] = new Graphics();
+        this.container.addChild(this.playerBars[playerId]);
+      }
+
+      const ratioBar = this.playerBars[playerId];
+      const ratioBarHeight = playerScoreRatios[playerId] * canvasHeight;
+      const ratioBarWidth = 10;
+
+      ratioBar.clear();
+      ratioBar.beginFill(this.state.players[playerId].color);
+      ratioBar.drawRect(0, lastRatioBarY, ratioBarWidth, ratioBarHeight);
+      ratioBar.endFill();
+
+      lastRatioBarY += ratioBarHeight;
+    }
   }
 }

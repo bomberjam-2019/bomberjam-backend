@@ -1,5 +1,3 @@
-/** Bomberman **/
-
 export interface IJoinRoomOpts {
   name?: string;
   roomId?: string;
@@ -73,6 +71,8 @@ export interface ISimplePlayer extends IHasPos {
   maxBombs: number;
   bombRange: number;
   alive: boolean;
+  score: number;
+  color: number;
   respawning: number;
 }
 
