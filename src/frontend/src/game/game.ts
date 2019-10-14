@@ -2,7 +2,7 @@ import { Application, Texture } from 'pixi.js';
 import { Client, Room } from 'colyseus.js';
 import { AllGameActions, IGameState, IHasState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../constants';
-import { BombermanRenderer } from './bombermanRenderer';
+import { BomberjamRenderer } from './bomberjamRenderer';
 import { SoundRegistry } from './soundRegistry';
 import { Sprites } from './assets';
 import { TextureRegistry } from './textureRegistry';
@@ -58,7 +58,7 @@ export async function replayGame(
   let initialized = false;
   let stopped = false;
   let paused = false;
-  let gameRenderer: BombermanRenderer;
+  let gameRenderer: BomberjamRenderer;
   let tickDuration = 300;
   let stateIdx = 0;
 
@@ -94,7 +94,7 @@ export async function replayGame(
     if (stopped) return;
 
     if (!initialized) {
-      gameRenderer = new BombermanRenderer(stateProvider, pixiApp, textures, sounds, true);
+      gameRenderer = new BomberjamRenderer(stateProvider, pixiApp, textures, sounds, true);
       pixiContainer.appendChild(pixiApp.view);
       pixiApp.ticker.add(() => gameRenderer.onPixiFrameUpdated(pixiApp.ticker.elapsedMS));
       initialized = true;
@@ -168,7 +168,7 @@ export async function showGame(
 
   let initialized = false;
   let stopped = false;
-  let gameRenderer: BombermanRenderer;
+  let gameRenderer: BomberjamRenderer;
 
   onStateChanged(room.state);
   room.onStateChange.add(onStateChanged);
@@ -181,7 +181,7 @@ export async function showGame(
     stateChangedCallback(state, room.sessionId === state.ownerId);
 
     if (!initialized) {
-      gameRenderer = new BombermanRenderer(room, pixiApp, textures, sounds);
+      gameRenderer = new BomberjamRenderer(room, pixiApp, textures, sounds);
       pixiContainer.appendChild(pixiApp.view);
       pixiApp.ticker.add(() => gameRenderer.onPixiFrameUpdated(pixiApp.ticker.elapsedMS));
       initialized = true;

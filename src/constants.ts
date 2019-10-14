@@ -1,4 +1,4 @@
-export const APP_NAME = 'bomberman';
+export const APP_NAME = 'bomberjam';
 
 export const DEFAULT_SERVER_PORT = 4321;
 

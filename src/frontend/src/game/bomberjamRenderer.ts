@@ -5,12 +5,13 @@ import { GameMap } from './gameMap';
 import { SoundRegistry } from './soundRegistry';
 import { TextureRegistry } from './textureRegistry';
 
-export class BombermanRenderer {
+export class BomberjamRenderer {
   private readonly stateProvider: IHasState;
   private readonly pixiApp: Application;
   private readonly textures: TextureRegistry;
   private readonly sounds: SoundRegistry;
   private prevState: IGameState;
+  private totalTime: number;
 
   private readonly map: GameMap;
   private readonly hud: GameHud;
@@ -24,6 +25,7 @@ export class BombermanRenderer {
     this.isReplay = isReplay;
 
     this.prevState = this.stateProvider.state;
+    this.totalTime = 0;
     this.map = new GameMap(stateProvider, textures, sounds);
     this.hud = new GameHud(stateProvider, textures);
 
@@ -175,8 +177,9 @@ export class BombermanRenderer {
   }
 
   public onPixiFrameUpdated(delta: number): void {
-    this.map.onPixiFrameUpdated(delta);
-    this.hud.onPixiFrameUpdated(delta);
+    this.totalTime += delta;
+    this.map.onPixiFrameUpdated(delta, this.totalTime);
+    this.hud.onPixiFrameUpdated(delta, this.totalTime);
   }
 
   public resetPlayerPositions(): void {
