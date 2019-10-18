@@ -1,23 +1,25 @@
 {
   "name": "bomberjam-backend",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "license": "ISC",
   "main": "dist/server.js",
   "scripts": {
     "clean": "rimraf .rpt2_cache/ dist/",
     "test": "jest",
-    "build": "npm run clean && npm run build-server && npm run build-client && npm run build-simulator && npm run build-frontend-production",
+    "build": "npm run clean && npm run build-server && npm run build-client && npm run build-simulator && npm run build-frontend-production && npm run build-types",
     "build-server": "rollup -c --environment APPNAME:server",
     "build-client": "rollup -c --environment APPNAME:client",
     "build-simulator": "rollup -c --environment APPNAME:simulator",
     "build-frontend-development": "cd src/frontend/ && npm run build-development",
     "build-frontend-production": "cd src/frontend/ && npm run build-production",
+    "build-types": "tsc -p tsconfig.types.json",
     "training-export": "ts-node src/client/simulator.ts --bot=bot/bot.js",
     "training-browser": "ts-node src/client/index.ts --bot=bot/bot.js --config=config.json --mode=training",
     "join-match": "ts-node src/client/index.ts --bot=bot/bot.js --config=config.json --mode=match",
     "frontend": "cd src/frontend/ && npm run serve",
     "server": "npm run build-frontend-development && ts-node src/server/index.ts --frontend=../../dist/frontend"
   },
+  "typings": "dist/types.d.ts",
   "files": [
     "dist/**/*"
   ],
