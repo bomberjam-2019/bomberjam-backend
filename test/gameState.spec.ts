@@ -1,4 +1,4 @@
-import { ActionCode, AllActions, IClientMessage, IPlayer } from '../src/types';
+import { ActionCode, AllActions, IClientMessage, IHasPos, IPlayer } from '../src/types';
 import { POINTS_KILLED_PLAYER, SUDDEN_DEATH_COUNTDOWN } from '../src/constants';
 import { GameState } from '../src/server/state';
 import _ from 'lodash';
@@ -33,6 +33,22 @@ describe('GameState', () => {
 
       expect(gameState.state).toBe(0);
       expect(gameState.isSimulationPaused).toBe(true);
+    });
+
+    test('basic player starting locations', () => {
+      addPlayers('a', 'b', 'c', 'd');
+
+      expect(gameState.players['a'].x).toBe(0);
+      expect(gameState.players['a'].y).toBe(0);
+
+      expect(gameState.players['b'].x).toBe(4);
+      expect(gameState.players['b'].y).toBe(0);
+
+      expect(gameState.players['c'].x).toBe(0);
+      expect(gameState.players['c'].y).toBe(2);
+
+      expect(gameState.players['d'].x).toBe(4);
+      expect(gameState.players['d'].y).toBe(2);
     });
   });
 
@@ -93,6 +109,78 @@ describe('GameState', () => {
       expect(gameState.state).toBe(0);
       expect(gameState.suddenDeathEnabled).toBe(false);
     });
+  });
+
+  describe('when player spawn location occupied find another location around', () => {
+    interface IPlayerRespawnTestInput {
+      asciiMap: string[];
+      expectedPlayerLocations: { [playerId: string]: IHasPos };
+    }
+
+    // prettier-ignore
+    const testInputs: IPlayerRespawnTestInput[] = [
+      // 0
+      {
+        asciiMap: [
+          '.....',
+          '.#.#.',
+          '.....',
+        ],
+        expectedPlayerLocations: {
+          'a': { x: 0, y: 0 },
+          'b': { x: 4, y: 0 },
+          'c': { x: 0, y: 2 },
+          'd': { x: 4, y: 2 }
+        }
+      },
+      // 1
+      {
+        asciiMap: [
+          '#....',
+          '.#.#.',
+          '.....',
+        ],
+        expectedPlayerLocations: {
+          'a': { x: 1, y: 0 },
+          'b': { x: 4, y: 0 },
+          'c': { x: 0, y: 2 },
+          'd': { x: 4, y: 2 }
+        }
+      },
+      // 2
+      {
+        asciiMap: [
+          '#####',
+          '#..#.',
+          '#...#',
+        ],
+        expectedPlayerLocations: {
+          'a': { x: 1, y: 1 },
+          'b': { x: 4, y: 1 },
+          'c': { x: 1, y: 2 },
+          'd': { x: 3, y: 2 }
+        }
+      }
+    ];
+
+    for (let i = 0; i < testInputs.length; i++) {
+      test(`scenario ${i}`, () => {
+        foo(testInputs[i]);
+      });
+    }
+
+    function foo(input: IPlayerRespawnTestInput) {
+      const playerIds = Object.keys(input.expectedPlayerLocations);
+
+      gameState = new GameState(input.asciiMap);
+      addPlayers(...playerIds);
+      gameState.isSimulationPaused = false;
+
+      for (const playerId of playerIds) {
+        expect(gameState.players[playerId].x).toBe(input.expectedPlayerLocations[playerId].x);
+        expect(gameState.players[playerId].y).toBe(input.expectedPlayerLocations[playerId].y);
+      }
+    }
   });
 
   describe('death responsibility', () => {
