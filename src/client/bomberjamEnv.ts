@@ -1,4 +1,4 @@
-import { ActionCode, IClientMessage, ISimpleGameState } from '../types';
+import { ActionCode, ISimpleGameState } from '../types';
 import { createSanitizedStateCopyForBot, shuffle } from './utils';
 import { GameState } from '../server/state';
 
