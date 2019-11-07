@@ -14,17 +14,27 @@ export interface Observation {
 }
 
 export class BomberjamEnv {
-  public state: GameState;
   public actionSize: Number;
+  public numberOfPlayers: Number;
+  public state: GameState;
   public bots: Bot[];
 
   constructor(numberOfPlayers: Number) {
     this.actionSize = 10;
+    this.numberOfPlayers = numberOfPlayers;
+
+    this.bots = [];
+    this.state = new GameState();
+
+    this.reset();
+  }
+
+  public reset() {
+    this.bots = [];
     this.state = new GameState();
     this.state.isSimulationPaused = false;
 
-    this.bots = [];
-    for (let i = 0; i < numberOfPlayers; i++) {
+    for (let i = 0; i < this.numberOfPlayers; i++) {
       const bot = createBot(i);
       this.bots.push(bot);
       this.state.addPlayer(bot.id, bot.id);
