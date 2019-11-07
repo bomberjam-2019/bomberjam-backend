@@ -2,7 +2,7 @@ import { BomberjamEnv } from '../src/client/bomberjamEnv';
 import { AllActions } from '../src/types';
 
 // Setup
-const maxIterations = 2000;
+const maxIterations = 1050;
 const env = new BomberjamEnv(4);
 
 // Play
