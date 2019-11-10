@@ -27,7 +27,7 @@ export type MoveCode = 'up' | 'down' | 'left' | 'right' | 'stay';
 
 export type ActionCode = MoveCode | 'bomb';
 
-export type TileCode = '' | '.' | '#' | '+';
+export type TileCode = '' | '.' | '#' | '+' | '*';
 
 export type BonusCode = 'bomb' | 'fire';
 
@@ -59,13 +59,15 @@ interface IAllTiles {
   Empty: TileCode;
   Wall: TileCode;
   Block: TileCode;
+  Explosion: TileCode;
 }
 
 export const AllTiles: IAllTiles = {
   OutOfBound: '',
   Empty: '.',
   Wall: '#',
-  Block: '+'
+  Block: '+',
+  Explosion: '*'
 };
 
 // same comment then above
@@ -141,7 +143,6 @@ export interface IGameState extends ISimpleGameState {
   players: { [id: string]: IPlayer };
   bombs: { [id: string]: IBomb };
   bonuses: { [id: string]: IBonus };
-  explosions: string;
   tickDuration: number;
   isSimulationPaused: boolean;
 }

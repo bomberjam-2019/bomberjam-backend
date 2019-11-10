@@ -1,4 +1,4 @@
-import { ActionCode, AllActions, IClientMessage, IHasPos, IPlayer } from '../src/types';
+import { ActionCode, AllActions, AllTiles, IBomb, IClientMessage, IHasPos, IPlayer } from '../src/types';
 import { POINTS_KILLED_PLAYER, SUDDEN_DEATH_COUNTDOWN } from '../src/constants';
 import { GameState } from '../src/server/state';
 import _ from 'lodash';
@@ -66,6 +66,44 @@ describe('GameState', () => {
 
       expect(gameState.players['a'].x).toBe(1);
       expect(gameState.players['a'].y).toBe(0);
+    });
+  });
+
+  describe('bombing', () => {
+    test('simple bomb at player location', () => {
+      gameState.isSimulationPaused = false;
+      addPlayers('a', 'b', 'c', 'd');
+
+      simulateTick({
+        a: AllActions.Bomb
+      });
+
+      let bombs: IBomb[] = Object.values(gameState.bombs);
+      expect(bombs).toHaveLength(1);
+
+      while (bombs.length > 0 && bombs[0].countdown > 0) {
+        simulateTick({});
+      }
+
+      const expectedExplosionPositions: IHasPos[] = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }];
+
+      const expectedExplosionIndexes = new Set<number>(expectedExplosionPositions.map(pos => pos.y * gameState.width + pos.x));
+
+      for (let idx = 0; idx < gameState.tiles.length; idx++) {
+        const tile = gameState.tiles.charAt(idx);
+        if (expectedExplosionIndexes.has(idx)) {
+          expect(tile).toBe(AllTiles.Explosion);
+        } else {
+          expect(tile).not.toBe(AllTiles.Explosion);
+        }
+      }
+
+      simulateTick({});
+
+      for (let idx = 0; idx < gameState.tiles.length; idx++) {
+        const tile = gameState.tiles.charAt(idx);
+        expect(tile).not.toBe(AllTiles.Explosion);
+      }
     });
   });
 

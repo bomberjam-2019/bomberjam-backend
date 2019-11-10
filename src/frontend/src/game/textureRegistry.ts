@@ -1,7 +1,7 @@
 import { IResourceDictionary, Texture, Spritesheet, Sprite, AnimatedSprite } from 'pixi.js';
 import { Sprites } from './assets';
 
-export class TextureRegistry {
+export default class TextureRegistry {
   private readonly spritePools: AnimatedSpritePool;
   private readonly spritesheet: Spritesheet;
 

@@ -2,10 +2,10 @@ import { Application, Texture } from 'pixi.js';
 import { Client, Room } from 'colyseus.js';
 import { AllGameActions, IGameState, IHasState, IJoinRoomOpts, IRoomMetadata } from '../../../types';
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../../../constants';
-import { BomberjamRenderer } from './bomberjamRenderer';
-import { SoundRegistry } from './soundRegistry';
 import { Sprites } from './assets';
-import { TextureRegistry } from './textureRegistry';
+import BomberjamRenderer from './bomberjamRenderer';
+import SoundRegistry from './soundRegistry';
+import TextureRegistry from './textureRegistry';
 
 export function listRooms(): Promise<IRoomMetadata[]> {
   return new Promise<IRoomMetadata[]>((resolve, reject) => {
