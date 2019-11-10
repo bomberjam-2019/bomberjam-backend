@@ -158,9 +158,6 @@ export class GameState extends Schema implements IGameState {
   @type({ map: Bonus })
   bonuses: { [id: string]: Bonus } = new MapSchema<Bonus>();
 
-  @type('string')
-  explosions: string = '';
-
   @type('int8')
   width: number = 0;
 
@@ -333,8 +330,6 @@ export class GameState extends Schema implements IGameState {
     } else if (this.isGameEnded()) {
       // end game cleanup
       for (const bombId in this.bombs) delete this.bombs[bombId];
-
-      if (this.explosions.length > 0) this.explosions = '';
     }
   }
 
@@ -602,12 +597,21 @@ export class GameState extends Schema implements IGameState {
     const explosionChain: Explosion[] = []; // FIFO
     const visitedBombs = new Set<Bomb>(); // avoid handling bombs twice
     const deletedBombIds = new Set<string>();
-    const explosionPositions = new Set<string>();
     const playersHits: { [playerId: string]: PlayerHit[] } = {};
+
+    const explosionPositions = new EquatableSet((firstPos: IHasPos, secondPos: IHasPos) => {
+      return firstPos.x === secondPos.x && firstPos.y === secondPos.y;
+    });
 
     const destroyedBlocks = new EquatableSet((firstBlock: DestroyedBlock, secondBlock: DestroyedBlock) => {
       return firstBlock.x === secondBlock.x && firstBlock.y === secondBlock.y;
     });
+
+    // 0) replace previous explosions with empty tiles
+    for (let idx = 0; idx < this.tiles.length; idx++) {
+      const tile = this.tiles.charAt(idx) as TileCode;
+      if (tile === AllTiles.Explosion) this.tiles = GameState.replaceCharAt(this.tiles, idx, AllTiles.Empty);
+    }
 
     // 1) detect zero-countdown exploding bombs
     for (const bombId in this.bombs) {
@@ -637,7 +641,7 @@ export class GameState extends Schema implements IGameState {
     const propagateExplosion = (explosion: Explosion, posIncrementer: PosIncrementer) => {
       const bomb = explosion.explodedBomb;
       const pos: IHasPos = { x: bomb.x, y: bomb.y };
-      explosionPositions.add(`${pos.x}:${pos.y}`);
+      explosionPositions.add({ x: pos.x, y: pos.y });
 
       const victim = this.findAlivePlayerAt(bomb.x, bomb.y);
       if (victim) {
@@ -657,7 +661,7 @@ export class GameState extends Schema implements IGameState {
 
         // destroy block and do not spread explosion beyond that
         if (tile === AllTiles.Block) {
-          explosionPositions.add(`${pos.x}:${pos.y}`);
+          explosionPositions.add({ x: pos.x, y: pos.y });
           destroyedBlocks.add({
             x: pos.x,
             y: pos.y,
@@ -692,7 +696,7 @@ export class GameState extends Schema implements IGameState {
           const bonusId = this.findDroppedBonusIndexAt(pos.x, pos.y);
           if (bonusId) delete this.bonuses[bonusId];
 
-          explosionPositions.add(`${pos.x}:${pos.y}`);
+          explosionPositions.add({ x: pos.x, y: pos.y });
         }
         // nothing to do on walls or out of bounds
         else {
@@ -744,7 +748,10 @@ export class GameState extends Schema implements IGameState {
       }
     }
 
-    this.explosions = [...explosionPositions].join(';');
+    for (const explosionPosition of [...explosionPositions]) {
+      const explosionIndex = this.coordToTileIndex(explosionPosition.x, explosionPosition.y);
+      this.tiles = GameState.replaceCharAt(this.tiles, explosionIndex, AllTiles.Explosion);
+    }
   }
 
   private coordToTileIndex(x: number, y: number): number {

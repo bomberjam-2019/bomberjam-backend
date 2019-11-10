@@ -1,7 +1,7 @@
 import { Container } from 'pixi.js';
 import { IBomb, IBonus, IGameState, IHasState, IPlayer } from '../../../types';
 
-export abstract class GameContainer {
+export default abstract class GameContainer {
   public readonly stateProvider: IHasState;
   public readonly container: Container;
 

@@ -1,11 +1,11 @@
 import { Application } from 'pixi.js';
 import { IBomb, IBonus, IGameState, IHasState, IPlayer } from '../../../types';
-import { GameHud } from './gameHud';
-import { GameMap } from './gameMap';
-import { SoundRegistry } from './soundRegistry';
-import { TextureRegistry } from './textureRegistry';
+import GameHud from './gameHud';
+import GameMap from './gameMap';
+import SoundRegistry from './soundRegistry';
+import TextureRegistry from './textureRegistry';
 
-export class BomberjamRenderer {
+export default class BomberjamRenderer {
   private readonly stateProvider: IHasState;
   private readonly pixiApp: Application;
   private readonly textures: TextureRegistry;

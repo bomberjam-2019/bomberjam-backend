@@ -3,7 +3,7 @@ import { Musics, Sounds } from './assets';
 
 import sound from 'pixi-sound';
 
-export class SoundRegistry {
+export default class SoundRegistry {
   public readonly level: sound.Sound;
   public readonly waiting: sound.Sound;
   public readonly victory: sound.Sound;

@@ -1,11 +1,11 @@
 import { AnimatedSprite, Container, DisplayObject, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { IBomb, IBonus, IGameState, IHasPos, IHasState, IPlayer } from '../../../types';
 import { RESPAWN_TIME } from '../../../constants';
-import { GameContainer } from './gameContainer';
-import { SoundRegistry } from './soundRegistry';
-import { TextureRegistry } from './textureRegistry';
+import GameContainer from './gameContainer';
+import SoundRegistry from './soundRegistry';
+import TextureRegistry from './textureRegistry';
 
-export class GameMap extends GameContainer {
+export default class GameMap extends GameContainer {
   private readonly textures: TextureRegistry;
   private readonly sounds: SoundRegistry;
   private readonly mapContainer: Container;
@@ -266,18 +266,18 @@ export class GameMap extends GameContainer {
 
     this.flameSprites.length = 0;
 
-    if (this.state.explosions) {
-      this.state.explosions
-        .split(';')
-        .filter(str => str.length > 0)
-        .forEach(str => {
-          const [x, y] = str.split(':').map(Number);
+    for (let x = 0; x < this.state.width; x++) {
+      for (let y = 0; y < this.state.height; y++) {
+        const idx = y * this.state.width + x;
+        const char = this.state.tiles[idx];
 
+        if (char === '*') {
           const sprite = this.makeAnimatedSprite(this.textures.flame, { x: x, y: y }, true, 0.15);
           sprite.anchor.set(0.5, 0.5);
           this.mapContainer.addChild(sprite);
           this.flameSprites.push(sprite);
-        });
+        }
+      }
     }
   }
 

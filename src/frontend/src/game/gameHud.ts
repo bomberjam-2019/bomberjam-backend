@@ -1,7 +1,7 @@
 import { Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 import { IGameState, IHasState, IPlayer } from '../../../types';
-import { GameContainer } from './gameContainer';
-import { TextureRegistry } from './textureRegistry';
+import GameContainer from './gameContainer';
+import TextureRegistry from './textureRegistry';
 
 interface IPlayerHudContainer extends Container {
   playerSprite: Sprite;
@@ -13,7 +13,7 @@ interface IPlayerHudContainer extends Container {
   scoreText: Text;
 }
 
-export class GameHud extends GameContainer {
+export default class GameHud extends GameContainer {
   private static readonly TextStyle = new TextStyle({
     fontFamily: 'Arial',
     fontSize: 20
