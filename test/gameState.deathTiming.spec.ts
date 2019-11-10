@@ -87,6 +87,8 @@ describe('GameState death timing', () => {
       d: AllActions.Stay
     });
 
+    expect(Object.keys(gameState.bombs)).toHaveLength(0);
+
     expect(gameState.players['c'].respawning).toBe(RESPAWN_TIME);
     expect(gameState.players['c'].x).toBe(1);
     expect(gameState.players['c'].y).toBe(0);
