@@ -94,6 +94,8 @@ export class Player extends Schema implements IPlayer {
 }
 
 export class Bomb extends Schema implements IBomb {
+  id: string = '';
+
   @type('string')
   playerId: string = '';
 
@@ -111,6 +113,8 @@ export class Bomb extends Schema implements IBomb {
 }
 
 export class Bonus extends Schema implements IBonus {
+  id: string = '';
+
   @type('int8')
   x: number = 0;
 
@@ -294,7 +298,7 @@ export class GameState extends Schema implements IGameState {
     return _.find(this.players, p => p.alive && p.x === x && p.y === y);
   }
 
-  private findDroppedBonusIndexAt(x: number, y: number): string | undefined {
+  private findDroppedBonusIdAt(x: number, y: number): string | undefined {
     for (const bonusId in this.bonuses) {
       const bonus: Bonus = this.bonuses[bonusId];
       if (bonus.x === x && bonus.y === y) return bonusId;
@@ -317,7 +321,7 @@ export class GameState extends Schema implements IGameState {
             player.respawning--;
           }
           if (message.action === AllActions.Bomb) {
-            this.plantBomb(player);
+            this.dropBomb(player);
           } else {
             this.movePlayer(player, message.action);
           }
@@ -355,6 +359,12 @@ export class GameState extends Schema implements IGameState {
 
       const victim = this.findAlivePlayerAt(this.suddenDeathPos.x, this.suddenDeathPos.y);
       if (victim) this.killPlayer(victim);
+
+      const bomb = this.findActiveBombAt(this.suddenDeathPos.x, this.suddenDeathPos.y);
+      if (bomb && this.bombs[bomb.id]) delete this.bombs[bomb.id];
+
+      const bonusId = this.findDroppedBonusIdAt(this.suddenDeathPos.x, this.suddenDeathPos.y);
+      if (bonusId && this.bonuses[bonusId]) delete this.bonuses[bonusId];
 
       // walling bottom
       if (this.suddenDeathPos.dir === 'right' && this.suddenDeathPos.x + 1 >= this.width - this.suddenDeathPos.iter) {
@@ -541,7 +551,7 @@ export class GameState extends Schema implements IGameState {
       const bomb = this.findActiveBombAt(nextPos.x, nextPos.y);
       if (bomb) return;
 
-      const bonusId = this.findDroppedBonusIndexAt(nextPos.x, nextPos.y);
+      const bonusId = this.findDroppedBonusIdAt(nextPos.x, nextPos.y);
       if (bonusId) {
         const bonus: Bonus = this.bonuses[bonusId];
 
@@ -559,22 +569,23 @@ export class GameState extends Schema implements IGameState {
     }
   }
 
-  private plantBomb(player: Player) {
+  private dropBomb(player: Player) {
     const hasEnoughBombs = player.bombsLeft > 0;
     const isRespawning = player.respawning > 0;
     if (!hasEnoughBombs || isRespawning) return;
 
     const existingBomb = this.findActiveBombAt(player.x, player.y);
     if (!existingBomb) {
-      const newBomb = new Bomb();
+      const bombId = String(objectCounter++);
 
+      const newBomb = new Bomb();
+      newBomb.id = bombId;
       newBomb.x = player.x;
       newBomb.y = player.y;
       newBomb.range = player.bombRange;
       newBomb.playerId = player.id;
       newBomb.countdown = DEFAULT_BOMB_COUNTDOWN;
 
-      const bombId = String(objectCounter++);
       this.bombs[bombId] = newBomb;
       player.bombsLeft--;
 
@@ -583,13 +594,13 @@ export class GameState extends Schema implements IGameState {
   }
 
   private dropBonus(x: number, y: number, type: BonusCode) {
-    const bonus = new Bonus();
+    const bonusId = String(objectCounter++);
 
+    const bonus = new Bonus();
+    bonus.id = bonusId;
     bonus.x = x;
     bonus.y = y;
     bonus.type = type;
-
-    const bonusId = String(objectCounter++);
     this.bonuses[bonusId] = bonus;
   }
 
@@ -693,7 +704,7 @@ export class GameState extends Schema implements IGameState {
             });
           }
 
-          const bonusId = this.findDroppedBonusIndexAt(pos.x, pos.y);
+          const bonusId = this.findDroppedBonusIdAt(pos.x, pos.y);
           if (bonusId) delete this.bonuses[bonusId];
 
           explosionPositions.add({ x: pos.x, y: pos.y });
