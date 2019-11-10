@@ -272,10 +272,7 @@ export class GameState extends Schema implements IGameState {
   }
 
   private isOutOfBound(x: number, y: number): boolean {
-    if (x < 0 || y < 0 || x >= this.width || y >= this.height) return true;
-
-    const idx = this.coordToTileIndex(x, y);
-    return idx >= this.tiles.length;
+    return x < 0 || y < 0 || x >= this.width || y >= this.height;
   }
 
   private getTileAt(x: number, y: number): TileCode {
@@ -435,22 +432,19 @@ export class GameState extends Schema implements IGameState {
   public addPlayer(id: string, name: string) {
     if (this.players[id]) throw new Error(`Player ${name} with ID ${id} already exists`);
 
-    const player = new Player();
-
-    player.id = id;
-    player.name = name;
-
     let playerCount = Object.keys(this.players).length;
     if (playerCount >= this.startPositions.length) throw new Error('More players than starting spots');
 
-    const startPos = this.startPositions[playerCount];
-    player.x = startPos.x;
-    player.y = startPos.y;
+    const player = new Player();
 
     this.players[id] = player;
     playerCount++;
 
+    player.id = id;
+    player.name = name;
     player.color = this.playerColors[playerCount - 1];
+
+    this.movePlayerToItsSpawnLocation(player);
 
     if (playerCount >= this.startPositions.length) {
       this.startGame();
@@ -483,14 +477,50 @@ export class GameState extends Schema implements IGameState {
     }
   }
 
-  public respawnPlayer(player: Player) {
+  private respawnPlayer(player: Player) {
     player.respawning = RESPAWN_TIME;
 
-    const position = Object.keys(this.players).indexOf(player.id);
-    const playerStartPosition = this.startPositions[position];
+    this.movePlayerToItsSpawnLocation(player);
+  }
 
-    player.x = playerStartPosition.x;
-    player.y = playerStartPosition.y;
+  private movePlayerToItsSpawnLocation(player: Player) {
+    const position = Object.keys(this.players).indexOf(player.id);
+    const startPosition = this.startPositions[position];
+
+    this.movePlayerToAvailableLocationAround(player, startPosition.x, startPosition.y);
+  }
+
+  private movePlayerToAvailableLocationAround(player: Player, x: number, y: number) {
+    const maxRadius = Math.max(this.width, this.height);
+
+    for (let radius = 0; radius < maxRadius; radius++) {
+      const minX = x - radius;
+      const maxX = x + radius;
+      const minY = y - radius;
+      const maxY = y + radius;
+
+      for (let oy = minY; oy <= maxY; oy++) {
+        for (let ox = minX; ox <= maxX; ox++) {
+          const tile = this.getTileAt(ox, oy);
+
+          // cannot set a player location to an non-empty tile
+          if (tile !== AllTiles.Empty) continue;
+
+          // cannot set a player location to another alive player location
+          const otherPlayer = this.findAlivePlayerAt(ox, oy);
+          if (otherPlayer && otherPlayer.id !== player.id) continue;
+
+          // cannot set a player location to an active bomb
+          const bomb = this.findActiveBombAt(ox, oy);
+          if (bomb) continue;
+
+          // found a safe spot!
+          player.x = ox;
+          player.y = oy;
+          return;
+        }
+      }
+    }
   }
 
   private movePlayer(player: Player, movement: ActionCode) {
