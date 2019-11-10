@@ -3,7 +3,7 @@
 | OS      | Build status                                                                                                                                                            |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Windows | [![Windows build status](https://img.shields.io/appveyor/ci/asimmon/bomberjam-backend/master?logo=appveyor)](https://ci.appveyor.com/project/asimmon/bomberjam-backend) |
-| Ubuntu  | [![Ubuntu build status](https://img.shields.io/travis/asimmon/bomberjam-backend/master?logo=travis)](https://travis-ci.com/asimmon/bomberjam-backend)                   |
+| Ubuntu  | [![Ubuntu build status](https://img.shields.io/travis/bomberjam-2019/bomberjam-backend/master?logo=travis)](https://travis-ci.com/bomberjam-2019/bomberjam-backend)                   |
 
 First, install npm dependencies with `npm i && cd src && cd frontend && npm i && cd .. && cd ..`.
 
