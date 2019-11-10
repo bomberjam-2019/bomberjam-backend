@@ -57,4 +57,43 @@ describe('EquatableSet', () => {
     const iterated = [...set];
     expect(iterated.length).toBe(3);
   });
+
+  test('forEach', () => {
+    const set = new EquatableSet((o1: number, o2: number) => {
+      return o1 === o2;
+    });
+
+    const allValues = new Set<number>([1, 2, 3, 4, 5, 6]);
+    let iterCount = 0;
+
+    set.add(...allValues);
+
+    set.forEach(currentValue => {
+      allValues.delete(currentValue);
+      iterCount++;
+    });
+
+    expect(iterCount).toBe(6);
+    expect(allValues.size).toBe(0);
+  });
+
+  test('forEach exit early', () => {
+    const set = new EquatableSet((o1: number, o2: number) => {
+      return o1 === o2;
+    });
+
+    const allValues = new Set<number>([1, 2, 3, 4, 5, 6]);
+    let iterCount = 0;
+
+    set.add(...allValues);
+
+    set.forEach(currentValue => {
+      if (currentValue > 3) return;
+      allValues.delete(currentValue);
+      iterCount++;
+    });
+
+    expect(iterCount).toBe(3);
+    expect(allValues.size).toBe(3);
+  });
 });

@@ -90,7 +90,7 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
       }
     } else {
       player.connected = false;
-      this.state.killPlayer(player);
+      this.state.killPlayerWhenSuddenDeathIsEnabled(player);
     }
   }
 

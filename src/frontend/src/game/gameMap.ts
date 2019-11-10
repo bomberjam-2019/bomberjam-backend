@@ -89,7 +89,7 @@ export default class GameMap extends GameContainer {
       const newPlayer = this.state.players[playerId];
 
       if (oldPlayer && newPlayer) {
-        const hasJustRespawned = newPlayer.respawning === RESPAWN_TIME;
+        const hasJustRespawned = newPlayer.respawning === RESPAWN_TIME - 1;
 
         if (hasJustRespawned || newPlayer.y > oldPlayer.y) {
           this.unregisterObjectSprite(this.playerSprites, playerId);
@@ -192,9 +192,6 @@ export default class GameMap extends GameContainer {
 
     // New wall has dropped.
     if (previousWallCount !== currentWallCount) this.sounds.stomp.play();
-
-    // z-ordering
-    this.fixZOrdering();
   }
 
   private fixZOrdering(): void {
@@ -221,10 +218,13 @@ export default class GameMap extends GameContainer {
       sprite.x += sprite.vx * progress;
       sprite.y += sprite.vy * progress;
 
-      if (player.alive && player.respawning > 0) {
+      if (player.alive && player.respawning > 0 && player.respawning < RESPAWN_TIME) {
         sprite.alpha = shouldBlink ? 0.4 : 1;
       }
     }
+
+    // z-ordering
+    this.fixZOrdering();
   }
 
   private registerPlayer(playerId: string, player: IPlayer, orientation: 'left' | 'right' | 'front' | 'back' = 'front'): void {

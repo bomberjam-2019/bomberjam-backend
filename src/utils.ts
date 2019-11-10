@@ -33,6 +33,14 @@ export class EquatableSet<T> implements Iterable<T> {
     return -1;
   }
 
+  public clear(): void {
+    this.collection.length = 0;
+  }
+
+  public forEach(callbackFn: (currentValue: T) => void): void {
+    this.collection.forEach(callbackFn);
+  }
+
   [Symbol.iterator](): Iterator<T> {
     return this.collection[Symbol.iterator]();
   }
