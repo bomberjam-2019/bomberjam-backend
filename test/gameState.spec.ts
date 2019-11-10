@@ -165,11 +165,11 @@ describe('GameState', () => {
 
     for (let i = 0; i < testInputs.length; i++) {
       test(`scenario ${i}`, () => {
-        foo(testInputs[i]);
+        assertPlayerLocation(testInputs[i]);
       });
     }
 
-    function foo(input: IPlayerRespawnTestInput) {
+    function assertPlayerLocation(input: IPlayerRespawnTestInput) {
       const playerIds = Object.keys(input.expectedPlayerLocations);
 
       gameState = new GameState(input.asciiMap);
