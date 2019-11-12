@@ -6,7 +6,7 @@ async function main(): Promise<void> {
   const joinOpts = getJoinOptions();
   const clients: GameClient[] = [];
 
-  const mainClient = new GameClient(bots[0], joinOpts, false);
+  const mainClient = new GameClient(bots[0], jsonClone(joinOpts), false);
   const roomId = await mainClient.runAsync();
   await sleepAsync(500);
   clients.push(mainClient);
@@ -26,4 +26,12 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch(err => console.log(err));
+function onError(err: any) {
+  if (err && typeof err.message === 'string' && err.message.indexOf('ECONNREFUSED') >= 0) {
+    console.log(err.message);
+  } else {
+    console.log(err);
+  }
+}
+
+main().catch(onError);

@@ -8,4 +8,4 @@ function dumbBot(state, myPlayerId) {
   return 'stay';
 }
 
-module.exports = [yourBot, dumbBot, dumbBot, dumbBot];
+module.exports = yourBot;

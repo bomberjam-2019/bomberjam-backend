@@ -8,6 +8,7 @@ export interface IJoinRoomOpts {
   createNewRoom?: boolean;
   tickDurationMs?: number;
   shufflePlayers?: boolean;
+  sessionId?: string; // used for re-joining rooms
 }
 
 export interface IHasTick {

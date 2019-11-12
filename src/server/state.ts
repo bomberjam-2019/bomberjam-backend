@@ -360,7 +360,7 @@ export class GameState extends Schema implements IGameState {
       this.tiles = GameState.replaceCharAt(this.tiles, idx, AllTiles.Wall);
 
       const victim = this.findAlivePlayerAt(this.suddenDeathPos.x, this.suddenDeathPos.y);
-      if (victim) this.killPlayerWhenSuddenDeathIsEnabled(victim);
+      if (victim) this.killPlayer(victim);
 
       const bomb = this.findActiveBombAt(this.suddenDeathPos.x, this.suddenDeathPos.y);
       if (bomb && this.bombs[bomb.id]) delete this.bombs[bomb.id];
@@ -482,18 +482,18 @@ export class GameState extends Schema implements IGameState {
         attacker.addScore(POINTS_KILLED_PLAYER);
       }
 
-      this.killPlayerWhenSuddenDeathIsEnabled(victim);
-
-      if (!this.suddenDeathEnabled) {
+      if (this.suddenDeathEnabled) {
+        this.killPlayer(victim);
+      } else {
         victim.mustRespawn = true;
         victim.respawning = RESPAWN_TIME;
       }
     }
   }
 
-  public killPlayerWhenSuddenDeathIsEnabled(victim: Player) {
-    // Only kill player if its sudden death and if he is not the winner.
-    if (!victim.hasWon && this.suddenDeathEnabled) {
+  public killPlayer(victim: Player) {
+    // Only kill player if he is not the winner.
+    if (!victim.hasWon) {
       if (LOSE_BONUSES_ON_DEATH) {
         victim.bombsLeft = 0;
         victim.maxBombs = 0;
