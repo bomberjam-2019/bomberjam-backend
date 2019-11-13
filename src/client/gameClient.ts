@@ -49,6 +49,8 @@ export class GameClient {
 
   private joinRoomAsync(): Promise<string> {
     return new Promise<string>((resolve, reject) => {
+      const rejoinDelayMs = 3000;
+
       try {
         let hasJoinedAtLeastOnce = false;
 
@@ -58,7 +60,7 @@ export class GameClient {
             this.log(err);
 
             if (hasJoinedAtLeastOnce) {
-              joinOrRejoin();
+              setTimeout(() => joinOrRejoin(), rejoinDelayMs);
             } else {
               reject(err);
               this.close();
@@ -69,17 +71,22 @@ export class GameClient {
         const setupOnRoomLeaveListener = (room: Room<IGameState>) => {
           room.onLeave.add(() => {
             if (hasJoinedAtLeastOnce) {
-              setTimeout(() => joinOrRejoin(), 2000);
+              setTimeout(() => joinOrRejoin(), rejoinDelayMs);
             }
           });
         };
 
         const setupOnRoomJoinedListener = (room: Room<IGameState>) => {
           room.onJoin.add(() => {
-            hasJoinedAtLeastOnce = true;
-            this.log(`Successfully joined room ${room.id} with session id ${room.sessionId}`);
-            this.joinOptions.sessionId = room.sessionId;
-            resolve(room.id);
+            if (room.id && room.sessionId) {
+              hasJoinedAtLeastOnce = true;
+              this.log(`Successfully joined room ${room.id} with session id ${room.sessionId}`);
+              this.joinOptions.sessionId = room.sessionId;
+              resolve(room.id);
+            } else {
+              this.log('An error occured while joining the room, room id and session id are missing');
+              this.close();
+            }
           });
         };
 
