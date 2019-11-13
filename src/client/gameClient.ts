@@ -1,7 +1,7 @@
 import { Client, Room } from 'colyseus.js';
-import { IGameState, IJoinRoomOpts } from '../types';
 import { APP_NAME } from '../constants';
-import { createSanitizedStateCopyForBot, sleepAsync } from './utils';
+import { IGameState, IJoinRoomOpts } from '../types';
+import { createSanitizedStateCopyForBot } from './utils';
 
 const open = require('open');
 const colyseus = require('colyseus.js');
@@ -14,7 +14,7 @@ export class GameClient {
   private readonly serverWsUrl: string;
   private readonly serverHttpUrl: string;
 
-  private room?: Room<IGameState>;
+  private room: Room<IGameState> = undefined as any;
 
   public constructor(bot: Function, joinOptions: IJoinRoomOpts, silent: boolean) {
     this.bot = bot;
@@ -27,11 +27,10 @@ export class GameClient {
 
   public async runAsync(): Promise<string> {
     await this.openColyseusClientAsync();
-    await this.joinRoomAsync();
-    await this.showGameInBrowserAsync();
-    await this.startPlayingAsync();
+    const roomId = await this.joinRoomAsync();
+    await this.showGameInBrowserAsync(roomId);
 
-    return this.room!.id;
+    return roomId;
   }
 
   private openColyseusClientAsync(): Promise<void> {
@@ -48,33 +47,85 @@ export class GameClient {
     });
   }
 
-  private joinRoomAsync(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      try {
-        this.room = this.client.join(APP_NAME, this.joinOptions);
+  private joinRoomAsync(): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const rejoinDelayMs = 3000;
 
-        this.room.onJoin.add(() => resolve());
-        this.room.onLeave.add(() => this.close());
-        this.room.onError.add((err: any) => {
-          reject(err);
-          this.close();
-        });
+      try {
+        let hasJoinedAtLeastOnce = false;
+
+        const setupOnRoomErrorListener = (room: Room<IGameState>) => {
+          room.onError.add((err: any) => {
+            this.log('An error occured:');
+            this.log(err);
+
+            if (hasJoinedAtLeastOnce) {
+              setTimeout(() => joinOrRejoin(), rejoinDelayMs);
+            } else {
+              reject(err);
+              this.close();
+            }
+          });
+        };
+
+        const setupOnRoomLeaveListener = (room: Room<IGameState>) => {
+          room.onLeave.add(() => {
+            if (hasJoinedAtLeastOnce) {
+              setTimeout(() => joinOrRejoin(), rejoinDelayMs);
+            }
+          });
+        };
+
+        const setupOnRoomJoinedListener = (room: Room<IGameState>) => {
+          room.onJoin.add(() => {
+            if (room.id && room.sessionId) {
+              hasJoinedAtLeastOnce = true;
+              this.log(`Successfully joined room ${room.id} with session id ${room.sessionId}`);
+              this.joinOptions.sessionId = room.sessionId;
+              resolve(room.id);
+            } else {
+              this.log('An error occured while joining the room, room id and session id are missing');
+              this.close();
+            }
+          });
+        };
+
+        const setupOnStateChanged = (room: Room<IGameState>) => {
+          room.onStateChange.add((state: IGameState) => this.runBotSafely(state));
+        };
+
+        const joinOrRejoin = () => {
+          try {
+            if (hasJoinedAtLeastOnce) {
+              this.log(`Trying to rejoin room ${this.room.id} with previous session id ${this.joinOptions.sessionId}...`);
+              this.room.removeAllListeners();
+              this.room = this.client.rejoin(APP_NAME, this.joinOptions);
+            } else {
+              this.log('Trying to join room...');
+              this.room = this.client.join(APP_NAME, this.joinOptions);
+            }
+
+            setupOnRoomErrorListener(this.room);
+            setupOnRoomLeaveListener(this.room);
+            setupOnRoomJoinedListener(this.room);
+            setupOnStateChanged(this.room);
+          } catch (err) {
+            this.log('An error occured:');
+            this.log(err);
+            this.close();
+          }
+        };
+
+        joinOrRejoin();
       } catch (err) {
         reject(err);
       }
     });
   }
 
-  private async showGameInBrowserAsync(): Promise<void> {
+  private async showGameInBrowserAsync(roomId: string): Promise<void> {
     if (!this.silent) {
-      await open(`${this.serverHttpUrl}/games/${this.room!.id}`);
-      await sleepAsync(1500);
-    }
-  }
-
-  private async startPlayingAsync() {
-    if (this.room) {
-      this.room.onStateChange.add((state: IGameState) => this.runBotSafely(state));
+      await open(`${this.serverHttpUrl}/games/${roomId}`);
     }
   }
 
@@ -128,7 +179,7 @@ export class GameClient {
     try {
       if (this.room) {
         this.room.onStateChange.removeAll();
-        this.room.leave();
+        if (this.room.hasJoined) this.room.leave();
       }
     } catch {}
 

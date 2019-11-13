@@ -82,15 +82,28 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
     }
   }
 
-  public onLeave(client: Client, consented: boolean) {
+  public async onLeave(client: Client, consented: boolean) {
     let player = this.state.players[client.sessionId];
     if (!player) {
+      // the spectator's browser that "owns" the control of this room has leave
       if (client.sessionId === this.state.ownerId) {
         this.state.ownerId = '';
       }
     } else {
-      player.connected = false;
-      this.state.killPlayerWhenSuddenDeathIsEnabled(player);
+      try {
+        const rejoinWaitTimeInSeconds = 30;
+
+        this.log(`Player ${player.name} (${client.sessionId}) is disconnected`);
+        player.connected = false;
+
+        await this.allowReconnection(client, rejoinWaitTimeInSeconds);
+
+        player.connected = true;
+        this.log(`Player ${player.name} (${client.sessionId}) is reconnected`);
+      } catch (err) {
+        this.log(`Killing player ${player.name} (${client.sessionId}) because he is still disconnected`);
+        this.state.killPlayer(player);
+      }
     }
   }
 

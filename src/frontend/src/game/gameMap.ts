@@ -38,12 +38,19 @@ export default class GameMap extends GameContainer {
 
     const wallTilingSprite = new TilingSprite(this.textures.wall[0], containerSize.width, containerSize.height);
     wallTilingSprite.tileScale.set(this.textures.spriteRatio, this.textures.spriteRatio);
+
     this.container.addChild(wallTilingSprite);
 
     const floorTilingSprite = new TilingSprite(this.textures.floor[0], mapSize.width, mapSize.height);
     floorTilingSprite.tileScale.set(this.textures.spriteRatio, this.textures.spriteRatio);
+
+    const floorTilingSpriteContainer = new Container();
+    floorTilingSpriteContainer.position.set(this.textures.tileSize, this.textures.tileSize);
+    floorTilingSpriteContainer.addChild(floorTilingSprite);
+
+    this.container.addChild(floorTilingSpriteContainer);
+
     this.mapContainer.position.set(this.textures.tileSize, this.textures.tileSize);
-    this.mapContainer.addChild(floorTilingSprite);
 
     this.container.addChild(this.mapContainer);
   }

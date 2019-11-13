@@ -4,8 +4,4 @@ function yourBot(state, myPlayerId) {
   return allActions[Math.floor(Math.random() * allActions.length)];
 }
 
-function dumbBot(state, myPlayerId) {
-  return 'stay';
-}
-
-module.exports = [yourBot, dumbBot, dumbBot, dumbBot];
+module.exports = yourBot;
