@@ -4,6 +4,7 @@ import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } f
 import { Client } from 'colyseus';
 import { GameState } from './state';
 import { TickBasedRoom } from './tickBasedRoom';
+import RoomStateWriter from './roomStateWriter';
 import _ from 'lodash';
 
 const allGameActions = new Set<string>(Object.values(AllGameActions));
@@ -12,10 +13,12 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
   protected readonly maxPlayerCount: number = MAX_PLAYERS;
   protected tickDurationMs: number = TICK_DURATION_MS;
   protected maxResponseTimeMs: number = MAX_RESPONSE_TIME_MS;
+  private roomStateWriter: RoomStateWriter = undefined as any;
 
   protected onRoomInitializing(options: IJoinRoomOpts): void {
     this.autoDispose = true;
     this.maxClients = MAX_PLAYERS + MAX_SPECTATORS;
+    this.roomStateWriter = new RoomStateWriter(this);
 
     if (typeof options.tickDurationMs === 'number' && options.tickDurationMs > 0) {
       const tickDurationMs = Math.ceil(options.tickDurationMs);
@@ -178,7 +181,7 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
     this.state.tickDuration = this.tickDurationMs;
     this.state.applyClientMessages(queuedMessages);
     this.populateMetadata();
-    this.log(JSON.stringify(this.state));
+    this.writeGamelog();
   }
 
   private populateMetadata() {
@@ -192,7 +195,13 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
     this.setMetadata(metadata);
   }
 
+  private writeGamelog(): void {
+    this.log(JSON.stringify(this.state));
+    if (this.roomStateWriter) this.roomStateWriter.write();
+  }
+
   public onDispose() {
     this.log(`disposing room ${this.roomId}`);
+    if (this.roomStateWriter) this.roomStateWriter.close();
   }
 }
