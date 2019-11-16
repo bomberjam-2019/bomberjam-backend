@@ -1,7 +1,6 @@
 import { AllActions } from '../src/types';
-import { GameState } from '../src/server/state';
+import GameState from '../src/server/gameState';
 import { addPlayers, simulateTick } from './gameStateUtils';
-import _ from 'lodash';
 import { RESPAWN_TIME } from '../src/constants';
 
 describe('GameState death timing', () => {

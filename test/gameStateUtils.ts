@@ -1,5 +1,5 @@
 import { ActionCode, IClientMessage } from '../src/types';
-import { GameState } from '../src/server/state';
+import GameState from '../src/server/gameState';
 
 export function addPlayers(gameState: GameState, ...playerIds: string[]) {
   for (const playerId of playerIds) {
