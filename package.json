@@ -17,7 +17,7 @@
     "training-browser": "ts-node src/client/index.ts --bot=bot/bot.js --config=config.json --mode=training",
     "join-match": "ts-node src/client/index.ts --bot=bot/bot.js --config=config.json --mode=match",
     "frontend": "cd src/frontend/ && npm run serve",
-    "server": "npm run build-frontend-development && ts-node src/server/index.ts --frontend=../../dist/frontend"
+    "server": "ts-node src/server/index.ts --frontend=../../dist/frontend"
   },
   "typings": "dist/types.d.ts",
   "files": [
@@ -58,7 +58,7 @@
     "ts-jest": "^24.1.0",
     "ts-loader": "^6.0.2",
     "ts-node": "^8.1.0",
-    "typescript": "^3.5.1",
+    "typescript": "^3.7.2",
     "webpack": "^4.33.0",
     "webpack-cli": "^3.3.3"
   }
