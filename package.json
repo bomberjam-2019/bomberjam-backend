@@ -17,7 +17,7 @@
     "training-browser": "ts-node src/client/index.ts --bot=bot/bot.js --config=config.json --mode=training",
     "join-match": "ts-node src/client/index.ts --bot=bot/bot.js --config=config.json --mode=match",
     "frontend": "cd src/frontend/ && npm run serve",
-    "server": "ts-node src/server/index.ts --frontend=../../dist/frontend"
+    "server": "npm run build-frontend-development && ts-node src/server/index.ts --frontend=../../dist/frontend"
   },
   "typings": "dist/types.d.ts",
   "files": [
