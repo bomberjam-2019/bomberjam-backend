@@ -30,6 +30,7 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
     }
 
     state.roomId = this.roomId;
+    state.shouldWriteHistoryToDiskWhenGameEnded = true;
     if (options.training) state.isSimulationPaused = false;
     this.setState(state);
     this.computeState([]);
@@ -194,6 +195,5 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
 
   public onDispose() {
     this.log(`disposing room ${this.roomId}`);
-    this.state.writeHistory().then(_.noop);
   }
 }

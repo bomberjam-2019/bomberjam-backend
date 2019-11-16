@@ -96,6 +96,8 @@ export default class GameState extends Schema implements IGameState {
   @type('boolean')
   isSimulationPaused: boolean = true;
 
+  public shouldWriteHistoryToDiskWhenGameEnded: boolean = false;
+
   public readonly history: GameStateHistory;
 
   private readonly startPositions: IHasPos[] = [];
@@ -104,7 +106,9 @@ export default class GameState extends Schema implements IGameState {
 
   private readonly playerColors: number[] = [];
 
-  private endGameCleanupExecuted: boolean;
+  private firstPlayingTickExecuted: boolean = false;
+
+  private endGameCleanupExecuted: boolean = false;
 
   private suddenDeathPos: IHasPos & { dir: MoveCode; iter: number } = {
     x: 0,
@@ -134,7 +138,6 @@ export default class GameState extends Schema implements IGameState {
     this.planPlayerColors();
 
     this.history = new GameStateHistory(this);
-    this.endGameCleanupExecuted = false;
   }
 
   private static isValidAsciiMap(asciiMap: string[]) {
@@ -238,7 +241,12 @@ export default class GameState extends Schema implements IGameState {
   public executeNextTick(messages: IClientMessage[]) {
     if (this.isPlaying()) {
       if (!this.isSimulationPaused) {
-        this.appendCurrentStateToHistory(messages);
+        if (this.firstPlayingTickExecuted) {
+          this.history.append(messages);
+        } else {
+          this.firstPlayingTickExecuted = true;
+        }
+
         this.respawnPlayers();
         this.unleashSuddenDeath();
         this.runBombs();
@@ -412,10 +420,6 @@ export default class GameState extends Schema implements IGameState {
       const player = this.players[playerId];
       if (player.alive) player.addScore(POINTS_PER_ALIVE_TICK);
     }
-  }
-
-  private appendCurrentStateToHistory(messages: IClientMessage[]): void {
-    this.history.append(messages);
   }
 
   public addPlayer(id: string, name: string) {
@@ -725,18 +729,14 @@ export default class GameState extends Schema implements IGameState {
     if (!this.endGameCleanupExecuted) {
       for (const bombId in this.bombs) delete this.bombs[bombId];
 
-      for (let idx = 0; idx < this.tiles.length; idx++) {
-        if (this.tiles.charAt(idx) === AllTiles.Explosion) this.tiles = GameState.replaceCharAt(this.tiles, idx, AllTiles.Empty);
-      }
+      this.history.append(messages);
 
-      this.appendCurrentStateToHistory(messages);
+      if (this.shouldWriteHistoryToDiskWhenGameEnded) {
+        this.history.write().then(_.noop, console.log);
+      }
 
       this.endGameCleanupExecuted = true;
     }
-  }
-
-  public writeHistory(): Promise<void> {
-    return this.history.write();
   }
 
   private coordToTileIndex(x: number, y: number): number {
