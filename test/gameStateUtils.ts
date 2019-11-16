@@ -19,5 +19,5 @@ export function simulateTick(gameState: GameState, actions: { [playerId: string]
     });
   }
 
-  gameState.applyClientMessages(messages);
+  gameState.executeNextTick(messages);
 }

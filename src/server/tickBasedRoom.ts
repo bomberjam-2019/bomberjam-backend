@@ -5,7 +5,7 @@ import { Client, Room } from 'colyseus';
 
 const allActionCodes = new Set<ActionCode>(Object.values(AllActions));
 
-export abstract class TickBasedRoom<TState extends IHasTick> extends Room<TState> {
+export default abstract class TickBasedRoom<TState extends IHasTick> extends Room<TState> {
   protected abstract readonly tickDurationMs: number;
   protected abstract readonly maxResponseTimeMs: number;
   protected abstract readonly maxPlayerCount: number;

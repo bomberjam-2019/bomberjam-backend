@@ -2,9 +2,8 @@ import { GameActionCode, AllGameActions, IClientMessage, IJoinRoomOpts, IPlayer,
 import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../constants';
 
 import { Client } from 'colyseus';
-import { GameState } from './state';
-import { TickBasedRoom } from './tickBasedRoom';
-import RoomStateWriter from './roomStateWriter';
+import GameState from './gameState';
+import TickBasedRoom from './tickBasedRoom';
 import _ from 'lodash';
 
 const allGameActions = new Set<string>(Object.values(AllGameActions));
@@ -13,12 +12,10 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
   protected readonly maxPlayerCount: number = MAX_PLAYERS;
   protected tickDurationMs: number = TICK_DURATION_MS;
   protected maxResponseTimeMs: number = MAX_RESPONSE_TIME_MS;
-  private roomStateWriter: RoomStateWriter = undefined as any;
 
   protected onRoomInitializing(options: IJoinRoomOpts): void {
     this.autoDispose = true;
     this.maxClients = MAX_PLAYERS + MAX_SPECTATORS;
-    this.roomStateWriter = new RoomStateWriter(this);
 
     if (typeof options.tickDurationMs === 'number' && options.tickDurationMs > 0) {
       const tickDurationMs = Math.ceil(options.tickDurationMs);
@@ -179,9 +176,9 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
 
   protected computeState(queuedMessages: IClientMessage[]) {
     this.state.tickDuration = this.tickDurationMs;
-    this.state.applyClientMessages(queuedMessages);
+    this.state.executeNextTick(queuedMessages);
     this.populateMetadata();
-    this.writeGamelog();
+    this.log(JSON.stringify(this.state));
   }
 
   private populateMetadata() {
@@ -195,13 +192,8 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
     this.setMetadata(metadata);
   }
 
-  private writeGamelog(): void {
-    this.log(JSON.stringify(this.state));
-    if (this.roomStateWriter) this.roomStateWriter.write();
-  }
-
   public onDispose() {
     this.log(`disposing room ${this.roomId}`);
-    if (this.roomStateWriter) this.roomStateWriter.close();
+    this.state.writeHistory().then(_.noop);
   }
 }
