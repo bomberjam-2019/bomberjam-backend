@@ -1,23 +1,29 @@
-import { IBot } from './bot';
-import { GameState } from '../server/state';
+import { createSanitizedStateCopyForBot, shuffle } from './utils';
 
-import path from 'path';
+import { GameState } from '../server/state';
+import { IBot } from './bot';
+import { IClientMessage } from '../types';
 import fs from 'fs';
 import os from 'os';
-import { createSanitizedStateCopyForBot, shuffle } from './utils';
-import { IClientMessage } from '../types';
+import path from 'path';
 
 export class GameSimulator {
   protected readonly maxIterations: number;
+  protected readonly saveLog: boolean;
+  private writeStream!: fs.WriteStream;
   bots: IBot[];
 
-  constructor(maxIterations: number, bots: IBot[]) {
+  constructor(maxIterations: number, bots: IBot[], saveLog: boolean = false) {
     this.maxIterations = maxIterations;
     this.bots = bots;
+    this.saveLog = saveLog;
   }
 
   async run(): Promise<GameState> {
-    const writeStream = await this.createWriteStream();
+    if (this.saveLog) {
+      this.writeStream = await this.createWriteStream();
+    }
+
     const state = new GameState();
     state.isSimulationPaused = false;
 
@@ -26,7 +32,7 @@ export class GameSimulator {
         state.addPlayer(bot.id, bot.id);
       }
 
-      this.appendStateToFile(state, {}, writeStream);
+      this.appendStateToFile(state, {});
 
       let iteration = 0;
       while (state.isPlaying() && iteration < this.maxIterations) {
@@ -54,18 +60,20 @@ export class GameSimulator {
         const shuffledPlayerMessages = shuffle(playerMessages);
         state.applyClientMessages(shuffledPlayerMessages);
 
-        this.appendStateToFile(state, botsActions, writeStream);
+        this.appendStateToFile(state, botsActions);
         iteration++;
       }
     } finally {
-      console.log(writeStream.path);
-      writeStream.end();
+      if (this.saveLog) {
+        console.log(this.writeStream.path);
+        this.writeStream.end();
+      }
     }
 
     return state;
   }
 
-  private appendStateToFile(state: GameState, botsActions: any, writeStream: fs.WriteStream) {
+  private appendStateToFile(state: GameState, botsActions: any) {
     const step = {
       state: state,
       actions: {} as { [botId: string]: string }
@@ -77,7 +85,9 @@ export class GameSimulator {
       }
     }
 
-    writeStream.write(JSON.stringify(step) + os.EOL);
+    if (this.saveLog) {
+      this.writeStream.write(JSON.stringify(step) + os.EOL);
+    }
   }
 
   private async createWriteStream(): Promise<fs.WriteStream> {
