@@ -94,7 +94,7 @@ export default class GameState extends Schema implements IGameState {
 
   public shouldWriteHistoryToDiskWhenGameEnded: boolean = false;
 
-  public readonly history: GameStateHistory;
+  private readonly history: GameStateHistory;
 
   private readonly startPositions: IHasPos[] = [];
 
