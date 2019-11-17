@@ -2,18 +2,17 @@ import * as tf from '@tensorflow/tfjs';
 
 import { ActionCode, AllActions, BonusCode, ISimpleGameState } from '../src/types';
 
-import { GameSimulator } from '../src/client/gameSimulator';
 import { IBot } from '../src/client/bot';
 import { NeuralNetwork } from './neuralNetwork';
 
-export class MyBot {
+export default class EvoBot {
   private readonly allActions = Object.values(AllActions);
   private brain: NeuralNetwork;
   readonly id: string;
 
-  constructor(brain: NeuralNetwork) {
+  constructor(brain: NeuralNetwork, id: string = 'evoBot') {
     this.brain = brain;
-    this.id = 'evoBot';
+    this.id = id;
   }
 
   botFunc(state: ISimpleGameState): ActionCode {
@@ -77,18 +76,3 @@ export class RandomBot implements IBot {
     return this.allActions[Math.floor(Math.random() * this.allActions.length)] as ActionCode;
   }
 }
-
-// Setup
-const maxIterations = 1050;
-
-const brain = new NeuralNetwork(143, 8, 6);
-
-const cpu1 = new RandomBot('cpu1');
-const cpu2 = new RandomBot('cpu2');
-const cpu3 = new RandomBot('cpu3');
-const evoBot = new MyBot(brain);
-
-const gameSimulator = new GameSimulator(maxIterations, [cpu1, cpu2, cpu3, evoBot]);
-const result = gameSimulator.run();
-
-console.log('simulation finish');
