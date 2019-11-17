@@ -6,18 +6,20 @@ export default class HttpSimulator {
   private readonly allActionCodes: Set<string> = new Set<string>(Object.values(AllActions));
   private readonly deleteExistingGameStateAfterMs: number = 5 * 60 * 1000;
   private readonly hardcodedPlayerIdAndNames: { [playerId: string]: string } = {
-    a: 'a',
-    b: 'b',
-    c: 'c',
-    d: 'd'
+    p1: 'p1',
+    p2: 'p2',
+    p3: 'p3',
+    p4: 'p4'
   };
 
   private readonly expressApp: Express;
   private readonly runningGames: { [gameId: string]: GameState };
+  private readonly runningGamesTimeouts: { [gameId: string]: NodeJS.Timeout };
 
   private constructor(expressApp: Express) {
     this.expressApp = expressApp;
     this.runningGames = {};
+    this.runningGamesTimeouts = {};
 
     this.expressApp.use(express.json());
     this.expressApp.post('/simulator/:id', this.handleRequest.bind(this));
@@ -49,17 +51,23 @@ export default class HttpSimulator {
     if (!gameState) {
       // do nothing else with this new game state and return it immediately
       // so the simulator program can now let the bots take decisions
-      this.setupDelayedAutomaticDeletionOfGameState(gameId);
       return (this.runningGames[gameId] = this.createNewGameState(gameId));
     }
 
     const clientMessages = this.extractClientMessagesFromRequestPayload(gameState, payload);
     gameState.applyClientMessages(clientMessages);
+    this.renewDelayedGameStateRemovalOnInactivity(gameId);
     return gameState;
   }
 
-  private setupDelayedAutomaticDeletionOfGameState(gameId: string): void {
-    global.setTimeout(() => {
+  private renewDelayedGameStateRemovalOnInactivity(gameId: string): void {
+    const existingTimeout = this.runningGamesTimeouts[gameId];
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+
+    this.runningGamesTimeouts[gameId] = setTimeout(() => {
+      delete this.runningGamesTimeouts[gameId];
       delete this.runningGames[gameId];
     }, this.deleteExistingGameStateAfterMs);
   }
