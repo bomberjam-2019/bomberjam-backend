@@ -74,10 +74,6 @@ export default class GameState extends Schema implements IGameState {
   @type({ map: Bonus })
   bonuses: { [id: string]: Bonus } = new MapSchema<Bonus>();
 
-  // TODO unused, to remove and update C# client (bomberjam-client-csharp on github)
-  @type('string')
-  explosions: string = '';
-
   @type('int8')
   width: number = 0;
 
