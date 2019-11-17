@@ -1,4 +1,6 @@
+import fs from 'fs';
 import http from 'http';
+import path from 'path';
 import express from 'express';
 
 import { APP_NAME, DEFAULT_SERVER_PORT } from '../constants';
@@ -6,8 +8,7 @@ import { Server } from 'colyseus';
 import { BomberjamRoom } from './bomberjamRoom';
 import { monitor } from '@colyseus/monitor';
 import history from 'connect-history-api-fallback';
-import path from 'path';
-import fs from 'fs';
+import HttpSimulator from './httpSimulator';
 
 const argv: any = require('minimist')(process.argv.slice(2));
 const frontendPath = path.resolve(__dirname, argv['frontend'] || 'frontend');
@@ -21,6 +22,8 @@ const config = {
 const expressApp = express();
 const httpServer = http.createServer(expressApp);
 const gameServer = new Server({ server: httpServer });
+
+HttpSimulator.setup(expressApp);
 
 // Register your room handlers
 gameServer.register(APP_NAME, BomberjamRoom);
