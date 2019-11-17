@@ -2,8 +2,8 @@ import { GameActionCode, AllGameActions, IClientMessage, IJoinRoomOpts, IPlayer,
 import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../constants';
 
 import { Client } from 'colyseus';
-import { GameState } from './state';
-import { TickBasedRoom } from './tickBasedRoom';
+import GameState from './gameState';
+import TickBasedRoom from './tickBasedRoom';
 import _ from 'lodash';
 
 const allGameActions = new Set<string>(Object.values(AllGameActions));
@@ -30,6 +30,7 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
     }
 
     state.roomId = this.roomId;
+    state.shouldWriteHistoryToDiskWhenGameEnded = true;
     if (options.training) state.isSimulationPaused = false;
     this.setState(state);
     this.computeState([]);
@@ -176,7 +177,7 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
 
   protected computeState(queuedMessages: IClientMessage[]) {
     this.state.tickDuration = this.tickDurationMs;
-    this.state.applyClientMessages(queuedMessages);
+    this.state.executeNextTick(queuedMessages);
     this.populateMetadata();
     this.log(JSON.stringify(this.state));
   }

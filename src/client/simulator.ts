@@ -1,6 +1,6 @@
 import { ActionCode, IClientMessage } from '../types';
 import { createSanitizedStateCopyForBot, getFourBots, shuffle } from './utils';
-import { GameState } from '../server/state';
+import GameState from '../server/gameState';
 
 import path from 'path';
 import fs from 'fs';
@@ -48,7 +48,7 @@ async function main() {
       }
 
       const shuffledPlayerMessages = shuffle(playerMessages);
-      state.applyClientMessages(shuffledPlayerMessages);
+      state.executeNextTick(shuffledPlayerMessages);
 
       appendStateToFile();
       iter++;

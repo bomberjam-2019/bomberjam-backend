@@ -1,6 +1,6 @@
 import { AllActions } from '../src/types';
 import { POINTS_KILLED_PLAYER } from '../src/constants';
-import { GameState } from '../src/server/state';
+import GameState from '../src/server/gameState';
 import { addPlayers, simulateTick } from './gameStateUtils';
 import _ from 'lodash';
 

@@ -1,36 +1,26 @@
 import _ from 'lodash';
 import { MapSchema, Schema, type } from '@colyseus/schema';
 
-import {
-  ActionCode,
-  AllActions,
-  BonusCode,
-  IBomb,
-  IBonus,
-  IClientMessage,
-  IGameState,
-  IHasPos,
-  IPlayer,
-  MoveCode,
-  TileCode,
-  AllTiles
-} from '../types';
+import { ActionCode, AllActions, AllTiles, BonusCode, IClientMessage, IGameState, IHasPos, MoveCode, TileCode } from '../types';
 import {
   BOMB_BONUS_COUNT,
   DEFAULT_BOMB_COUNTDOWN,
-  DEFAULT_BOMB_RANGE,
   FIRE_BONUS_COUNT,
   LOSE_BONUSES_ON_DEATH,
-  RESPAWN_TIME,
   PLAYER_COLORS,
   POINTS_BLOCK_DESTROYED,
   POINTS_DEATH,
   POINTS_KILLED_PLAYER,
   POINTS_LAST_SURVIVOR,
   POINTS_PER_ALIVE_TICK,
+  RESPAWN_TIME,
   SUDDEN_DEATH_COUNTDOWN
 } from '../constants';
 import { EquatableSet } from '../utils';
+import Player from './player';
+import Bomb from './bomb';
+import Bonus from './bonus';
+import GameStateHistory from './gameStateHistory';
 
 // prettier-ignore
 const defaultAsciiMap: string[] = [
@@ -47,86 +37,6 @@ const defaultAsciiMap: string[] = [
   '..+++++++++..'
 ];
 
-export class Player extends Schema implements IPlayer {
-  @type('string')
-  id: string = '';
-
-  @type('string')
-  name: string = '';
-
-  @type('boolean')
-  connected: boolean = true;
-
-  @type('int8')
-  x: number = 0;
-
-  @type('int8')
-  y: number = 0;
-
-  @type('int8')
-  bombsLeft: number = 1;
-
-  @type('int8')
-  maxBombs: number = 1;
-
-  @type('int8')
-  bombRange: number = DEFAULT_BOMB_RANGE;
-
-  @type('boolean')
-  alive: boolean = true;
-
-  @type('int8')
-  respawning: number = 0;
-
-  @type('int16')
-  score: number = 0;
-
-  @type('int32')
-  color: number = 0xffffff;
-
-  @type('boolean')
-  hasWon: boolean = false;
-
-  mustRespawn: boolean = false;
-
-  public addScore(deltaScore: number): void {
-    this.score += deltaScore;
-    if (this.score < 0) this.score = 0;
-  }
-}
-
-export class Bomb extends Schema implements IBomb {
-  id: string = '';
-
-  @type('string')
-  playerId: string = '';
-
-  @type('int8')
-  countdown: number = 0;
-
-  @type('int8')
-  range: number = 1;
-
-  @type('int8')
-  x: number = 0;
-
-  @type('int8')
-  y: number = 0;
-}
-
-export class Bonus extends Schema implements IBonus {
-  id: string = '';
-
-  @type('int8')
-  x: number = 0;
-
-  @type('int8')
-  y: number = 0;
-
-  @type('string')
-  type: BonusCode = 'bomb';
-}
-
 type PosIncrementer = (pos: IHasPos) => void;
 
 const positionIncrementers: { [mov: string]: PosIncrementer } = {
@@ -139,7 +49,7 @@ const positionIncrementers: { [mov: string]: PosIncrementer } = {
 
 let objectCounter = 0;
 
-export class GameState extends Schema implements IGameState {
+export default class GameState extends Schema implements IGameState {
   @type('string')
   roomId: string = '';
 
@@ -164,10 +74,6 @@ export class GameState extends Schema implements IGameState {
   @type({ map: Bonus })
   bonuses: { [id: string]: Bonus } = new MapSchema<Bonus>();
 
-  // TODO unused, to remove and update C# client (bomberjam-client-csharp on github)
-  @type('string')
-  explosions: string = '';
-
   @type('int8')
   width: number = 0;
 
@@ -186,11 +92,26 @@ export class GameState extends Schema implements IGameState {
   @type('boolean')
   isSimulationPaused: boolean = true;
 
-  private startPositions: IHasPos[] = [];
+  public shouldWriteHistoryToDiskWhenGameEnded: boolean = false;
 
-  private plannedBonuses: { [tileIndex: number]: BonusCode } = {};
+  private readonly history: GameStateHistory;
 
-  private playerColors: number[] = [];
+  private readonly startPositions: IHasPos[] = [];
+
+  private readonly plannedBonuses: { [tileIndex: number]: BonusCode } = {};
+
+  private readonly playerColors: number[] = [];
+
+  private firstPlayingTickExecuted: boolean = false;
+
+  private endGameCleanupExecuted: boolean = false;
+
+  private suddenDeathPos: IHasPos & { dir: MoveCode; iter: number } = {
+    x: 0,
+    y: 0,
+    iter: 0,
+    dir: 'right'
+  };
 
   constructor(asciiMap?: string[]) {
     super();
@@ -211,6 +132,8 @@ export class GameState extends Schema implements IGameState {
 
     this.planBonusPositions();
     this.planPlayerColors();
+
+    this.history = new GameStateHistory(this);
   }
 
   private static isValidAsciiMap(asciiMap: string[]) {
@@ -220,8 +143,6 @@ export class GameState extends Schema implements IGameState {
   }
 
   private planBonusPositions() {
-    // TODO assign random tiles here, instead of hardcoded map
-
     const potentialBonusPositions = new Set<number>();
 
     for (let i = 0; i < this.tiles.length; i++) {
@@ -275,7 +196,9 @@ export class GameState extends Schema implements IGameState {
   }
 
   public shuffleStartPositions() {
-    this.startPositions = _.shuffle(this.startPositions);
+    const shuffledStartPositions = _.shuffle(this.startPositions);
+    this.startPositions.length = 0;
+    this.startPositions.push(...shuffledStartPositions);
   }
 
   private isOutOfBound(x: number, y: number): boolean {
@@ -311,40 +234,86 @@ export class GameState extends Schema implements IGameState {
     }
   }
 
-  public applyClientMessages(messages: IClientMessage[]) {
-    this.tick++;
-
+  public executeNextTick(messages: IClientMessage[]) {
     if (this.isPlaying()) {
-      if (this.isSimulationPaused) return;
-
-      this.respawnPlayers();
-      this.unleashSuddenDeath();
-      this.runBombs();
-
-      for (const message of messages) {
-        const player = this.players[message.playerId];
-        if (player && player.connected && player.alive) {
-          if (message.action === AllActions.Bomb) {
-            this.dropBomb(player);
-          } else {
-            this.movePlayer(player, message.action);
-          }
+      if (!this.isSimulationPaused) {
+        if (this.firstPlayingTickExecuted) {
+          this.history.append(messages);
+        } else {
+          this.firstPlayingTickExecuted = true;
         }
+
+        this.respawnPlayers();
+        this.unleashSuddenDeath();
+        this.runBombs();
+        this.applyClientMessages(messages);
+        this.changeStateIfGameEnded();
+        this.addScorePerTick();
       }
-      this.changeStateIfGameEnded();
-      this.addScorePerTick();
     } else if (this.isGameEnded()) {
-      // end game cleanup
-      for (const bombId in this.bombs) delete this.bombs[bombId];
+      this.executeEndGameCleanup(messages);
+    }
+
+    this.tick++;
+  }
+
+  private respawnPlayers() {
+    for (const playerId in this.players) {
+      const player = this.players[playerId];
+
+      if (player.mustRespawn) {
+        this.respawnPlayer(player);
+      }
+
+      if (player.respawning > 0) player.respawning--;
     }
   }
 
-  private suddenDeathPos: IHasPos & { dir: MoveCode; iter: number } = {
-    x: 0,
-    y: 0,
-    iter: 0,
-    dir: 'right'
-  };
+  private respawnPlayer(player: Player) {
+    player.respawning = RESPAWN_TIME;
+    player.mustRespawn = false;
+    this.movePlayerToItsSpawnLocation(player);
+  }
+
+  private movePlayerToItsSpawnLocation(player: Player) {
+    const position = Object.keys(this.players).indexOf(player.id);
+    const startPosition = this.startPositions[position];
+
+    this.movePlayerToAvailableLocationAround(player, startPosition.x, startPosition.y);
+  }
+
+  private movePlayerToAvailableLocationAround(player: Player, x: number, y: number) {
+    const maxRadius = Math.max(this.width, this.height);
+
+    for (let radius = 0; radius < maxRadius; radius++) {
+      const minX = x - radius;
+      const maxX = x + radius;
+      const minY = y - radius;
+      const maxY = y + radius;
+
+      for (let oy = minY; oy <= maxY; oy++) {
+        for (let ox = minX; ox <= maxX; ox++) {
+          const tile = this.getTileAt(ox, oy);
+
+          // cannot set a player location to an non-empty tile
+          if (!(tile === AllTiles.Empty || tile === AllTiles.Explosion)) continue;
+
+          // cannot set a player location to another alive player location
+          const otherPlayer = this.findAlivePlayerAt(ox, oy);
+          if (otherPlayer && otherPlayer.id !== player.id) continue;
+
+          // cannot set a player location to an active bomb
+          const bomb = this.findActiveBombAt(ox, oy);
+          if (bomb) continue;
+
+          // found a safe spot!
+          player.x = ox;
+          player.y = oy;
+          return;
+        }
+      }
+    }
+  }
 
   private unleashSuddenDeath() {
     if (this.suddenDeathCountdown > 0) {
@@ -390,6 +359,19 @@ export class GameState extends Schema implements IGameState {
     }
   }
 
+  private applyClientMessages(messages: IClientMessage[]) {
+    for (const message of messages) {
+      const player = this.players[message.playerId];
+      if (player && player.connected && player.alive) {
+        if (message.action === AllActions.Bomb) {
+          this.dropBomb(player);
+        } else {
+          this.movePlayer(player, message.action);
+        }
+      }
+    }
+  }
+
   private computeBombCountdownAndPlayerBombsLeft() {
     const playerBombCounts: { [playerId: string]: number } = {};
 
@@ -407,18 +389,6 @@ export class GameState extends Schema implements IGameState {
       player.bombsLeft = player.maxBombs - playerBombCounts[playerId];
 
       if (player.bombsLeft < 0) player.bombsLeft = 0;
-    }
-  }
-
-  private respawnPlayers() {
-    for (const playerId in this.players) {
-      const player = this.players[playerId];
-
-      if (player.mustRespawn) {
-        this.respawnPlayer(player);
-      }
-
-      if (player.respawning > 0) player.respawning--;
     }
   }
 
@@ -501,52 +471,6 @@ export class GameState extends Schema implements IGameState {
       }
 
       victim.alive = false;
-    }
-  }
-
-  private respawnPlayer(player: Player) {
-    player.respawning = RESPAWN_TIME;
-    player.mustRespawn = false;
-    this.movePlayerToItsSpawnLocation(player);
-  }
-
-  private movePlayerToItsSpawnLocation(player: Player) {
-    const position = Object.keys(this.players).indexOf(player.id);
-    const startPosition = this.startPositions[position];
-
-    this.movePlayerToAvailableLocationAround(player, startPosition.x, startPosition.y);
-  }
-
-  private movePlayerToAvailableLocationAround(player: Player, x: number, y: number) {
-    const maxRadius = Math.max(this.width, this.height);
-
-    for (let radius = 0; radius < maxRadius; radius++) {
-      const minX = x - radius;
-      const maxX = x + radius;
-      const minY = y - radius;
-      const maxY = y + radius;
-
-      for (let oy = minY; oy <= maxY; oy++) {
-        for (let ox = minX; ox <= maxX; ox++) {
-          const tile = this.getTileAt(ox, oy);
-
-          // cannot set a player location to an non-empty tile
-          if (!(tile === AllTiles.Empty || tile === AllTiles.Explosion)) continue;
-
-          // cannot set a player location to another alive player location
-          const otherPlayer = this.findAlivePlayerAt(ox, oy);
-          if (otherPlayer && otherPlayer.id !== player.id) continue;
-
-          // cannot set a player location to an active bomb
-          const bomb = this.findActiveBombAt(ox, oy);
-          if (bomb) continue;
-
-          // found a safe spot!
-          player.x = ox;
-          player.y = oy;
-          return;
-        }
-      }
     }
   }
 
@@ -794,6 +718,20 @@ export class GameState extends Schema implements IGameState {
 
     for (const deletedBombId of deletedBombIds) {
       delete this.bombs[deletedBombId];
+    }
+  }
+
+  private executeEndGameCleanup(messages: IClientMessage[]): void {
+    if (!this.endGameCleanupExecuted) {
+      for (const bombId in this.bombs) delete this.bombs[bombId];
+
+      this.history.append(messages);
+
+      if (this.shouldWriteHistoryToDiskWhenGameEnded) {
+        this.history.write().then(_.noop, console.log);
+      }
+
+      this.endGameCleanupExecuted = true;
     }
   }
 
