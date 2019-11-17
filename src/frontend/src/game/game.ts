@@ -104,8 +104,14 @@ export async function replayGame(
   }
 
   return {
-    increaseSpeed: () => (tickDuration = tickDuration > 110 ? tickDuration - 100 : 10),
-    decreaseSpeed: () => (tickDuration += 100),
+    increaseSpeed: () => {
+      gameRenderer.resetPlayerPositions();
+      tickDuration = tickDuration > 110 ? tickDuration - 100 : 10;
+    },
+    decreaseSpeed: () => {
+      gameRenderer.resetPlayerPositions();
+      tickDuration += 100;
+    },
     pauseGame: () => {
       gameRenderer.resetPlayerPositions();
       paused = true;
@@ -224,9 +230,11 @@ export async function showGame(
     },
     increaseSpeed: () => {
       if (room && room.hasJoined) room.send(AllGameActions.IncreaseSpeed);
+      if (gameRenderer) gameRenderer.resetPlayerPositions();
     },
     decreaseSpeed: () => {
       if (room && room.hasJoined) room.send(AllGameActions.DecreaseSpeed);
+      if (gameRenderer) gameRenderer.resetPlayerPositions();
     }
   };
 }

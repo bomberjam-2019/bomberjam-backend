@@ -1,6 +1,6 @@
 import express, { Express, Request, Response } from 'express';
 import { ActionCode, AllActions, IClientMessage } from '../types';
-import { GameState } from './state';
+import GameState from './gameState';
 
 export default class HttpSimulator {
   private readonly allActionCodes: Set<string> = new Set<string>(Object.values(AllActions));
@@ -55,7 +55,7 @@ export default class HttpSimulator {
     }
 
     const clientMessages = this.extractClientMessagesFromRequestPayload(gameState, payload);
-    gameState.applyClientMessages(clientMessages);
+    gameState.executeNextTick(clientMessages);
     this.renewDelayedGameStateRemovalOnInactivity(gameId);
     return gameState;
   }
