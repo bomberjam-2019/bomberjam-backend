@@ -1,5 +1,5 @@
 import { ActionCode, IClientMessage } from '../types';
-import { createSanitizedStateCopyForBot, getFourBots } from './utils';
+import { createSanitizedStateCopyForBot, getFourBots, shuffle } from './utils';
 import GameState from '../server/gameState';
 
 import path from 'path';
@@ -80,14 +80,6 @@ async function main() {
   } finally {
     writeStream.end();
   }
-}
-
-function shuffle<T>(a: T[]): T[] {
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
 
 async function createWriteStream(): Promise<fs.WriteStream> {
