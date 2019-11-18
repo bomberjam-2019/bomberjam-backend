@@ -56,15 +56,25 @@ export default class HttpSimulator {
 
     const clientMessages = this.extractClientMessagesFromRequestPayload(gameState, payload);
     gameState.executeNextTick(clientMessages);
-    this.renewDelayedGameStateRemovalOnInactivity(gameId);
+
+    // game has ended, remove any reference in running games & timeouts
+    if (gameState.state === 1) {
+      this.deleteGame(gameId);
+    } else {
+      this.renewDelayedGameStateRemovalOnInactivity(gameId);
+    }
+
     return gameState;
   }
 
+  private deleteGame(gameId: string) {
+    clearTimeout(this.runningGamesTimeouts[gameId]);
+    delete this.runningGamesTimeouts[gameId];
+    delete this.runningGames[gameId];
+  }
+
   private renewDelayedGameStateRemovalOnInactivity(gameId: string): void {
-    const existingTimeout = this.runningGamesTimeouts[gameId];
-    if (existingTimeout) {
-      clearTimeout(existingTimeout);
-    }
+    clearTimeout(this.runningGamesTimeouts[gameId]);
 
     this.runningGamesTimeouts[gameId] = setTimeout(() => {
       delete this.runningGamesTimeouts[gameId];
@@ -82,6 +92,7 @@ export default class HttpSimulator {
     gameState.roomId = gameId;
     gameState.isSimulationPaused = false;
     gameState.tickDuration = 0;
+    gameState.shouldWriteHistoryToDiskWhenGameEnded = false;
 
     return gameState;
   }
