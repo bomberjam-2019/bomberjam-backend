@@ -26,6 +26,10 @@ export default class EvoBot {
     return this.allActions[resultIndex] as ActionCode;
   }
 
+  makeChild(id: string): EvoBot {
+    return new EvoBot(this.brain, id);
+  }
+
   mutate() {
     this.brain.mutate(0.1);
   }

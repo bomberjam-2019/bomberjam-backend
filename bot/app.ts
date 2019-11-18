@@ -1,9 +1,14 @@
-import { GenerationManager } from './generationManager';
+import GenerationManager from './generationManager';
 
-// Setup
-const maxIterations = 1050;
+(async () => {
+  try {
+    const generationManager = new GenerationManager(2);
 
-const generationManager = new GenerationManager(2);
-generationManager.nextGeneration();
-
-console.log('simulation finish');
+    while (true) {
+      await generationManager.runGeneration();
+      generationManager.nextGeneration();
+    }
+  } catch (e) {
+    console.log(e);
+  }
+})();

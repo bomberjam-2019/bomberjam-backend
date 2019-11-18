@@ -14,6 +14,7 @@
     "build-frontend-production": "cd src/frontend/ && npm run build-production",
     "build-types": "tsc -p tsconfig.types.json",
     "training-export": "ts-node src/client/simulator.ts --bot=bot/bot.js",
+    "training-bot": "ts-node bot/app.ts",
     "training-browser": "ts-node src/client/index.ts --bot=bot/bot.js --config=config.json --mode=training",
     "join-match": "ts-node src/client/index.ts --bot=bot/bot.js --config=config.json --mode=match",
     "frontend": "cd src/frontend/ && npm run serve",
