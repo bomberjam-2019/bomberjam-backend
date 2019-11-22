@@ -1,6 +1,6 @@
 {
   "name": "bomberjam-backend",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "license": "ISC",
   "main": "dist/server.js",
   "scripts": {
