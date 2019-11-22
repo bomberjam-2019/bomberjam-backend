@@ -4,7 +4,7 @@ import GameState from './gameState';
 
 export default class HttpSimulator {
   private readonly allActionCodes: Set<string> = new Set<string>(Object.values(AllActions));
-  private readonly deleteExistingGameStateAfterMs: number = 5 * 60 * 1000;
+  private readonly deleteExistingGameStateAfterMs: number = 30 * 1000;
   private readonly hardcodedPlayerIdAndNames: { [playerId: string]: string } = {
     p1: 'p1',
     p2: 'p2',
