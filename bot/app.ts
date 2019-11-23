@@ -2,11 +2,11 @@ import GenerationManager from './generationManager';
 
 (async () => {
   try {
-    const generationManager = new GenerationManager(2);
+    const generationManager = new GenerationManager(4);
 
     while (true) {
       await generationManager.runGeneration();
-      generationManager.nextGeneration();
+      await generationManager.nextGeneration();
     }
   } catch (e) {
     console.log(e);

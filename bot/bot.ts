@@ -1,13 +1,15 @@
-import * as tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs-node';
 
 import { ActionCode, AllActions, BonusCode, ISimpleGameState } from '../src/types';
 
 import { IBot } from '../src/client/bot';
 import { NeuralNetwork } from './neuralNetwork';
 
+type tilesType = '*' | '#' | '+' | '*' | 'm' | 'e' | 'b' | 'f' | 'x';
+
 export default class EvoBot {
   private readonly allActions = Object.values(AllActions);
-  private brain: NeuralNetwork;
+  brain: NeuralNetwork;
   readonly id: string;
 
   constructor(brain: NeuralNetwork, id: string = 'evoBot') {
@@ -27,7 +29,8 @@ export default class EvoBot {
   }
 
   makeChild(id: string): EvoBot {
-    return new EvoBot(this.brain, id);
+    const childBrain = this.brain.copy();
+    return new EvoBot(childBrain, id);
   }
 
   mutate() {
@@ -52,11 +55,21 @@ export default class EvoBot {
       tiles = this.replaceCharAt(tiles, bonusPosition, state.bonuses[bonusId].type === ('bomb' as BonusCode) ? 'b' : 'f');
     }
 
-    let charsAscii = tiles.split('').map(a => {
+    let inputs = tiles.split('').map(a => {
       return a.charCodeAt(0);
     });
 
-    return tf.tensor2d([charsAscii]);
+    inputs.push(state.tick);
+    inputs.push(state.suddenDeathCountdown);
+    inputs.push(state.players[this.id].score);
+
+    for (const playerId in state.players) {
+      if (this.id != playerId) {
+        inputs.push(state.players[playerId].score);
+      }
+    }
+
+    return tf.tensor2d([inputs]);
   }
 
   private coordToTileIndex(x: number, y: number, width: number): number {

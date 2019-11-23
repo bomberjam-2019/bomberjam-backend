@@ -1,23 +1,32 @@
 import * as tf from '@tensorflow/tfjs-node';
 
 export class NeuralNetwork {
+  private inputNodes: number;
+  private hiddenNodes: number;
+  private outputNodes: number;
   model: tf.Sequential;
 
-  constructor(inputNodes: number, hiddenNodes: number, outputNodes: number) {
-    this.model = tf.sequential();
+  constructor(inputNodes: number, hiddenNodes: number, outputNodes: number, model?: tf.Sequential) {
+    this.inputNodes = inputNodes;
+    this.hiddenNodes = hiddenNodes;
+    this.outputNodes = outputNodes;
 
-    const hidden = tf.layers.dense({
-      inputShape: [inputNodes],
-      units: hiddenNodes,
-      activation: 'sigmoid'
-    });
-    this.model.add(hidden);
+    if (model) {
+      this.model = model;
+    } else {
+      this.model = this.createModel();
+    }
+  }
 
-    const output = tf.layers.dense({
-      units: outputNodes,
-      activation: 'softmax'
-    });
-    this.model.add(output);
+  copy(): NeuralNetwork {
+    const modelCopy = this.createModel();
+    const weights = this.model.getWeights();
+    const weightCopies = [];
+    for (let i = 0; i < weights.length; i++) {
+      weightCopies[i] = weights[i].clone();
+    }
+    modelCopy.setWeights(weightCopies);
+    return new NeuralNetwork(this.inputNodes, this.hiddenNodes, this.outputNodes, modelCopy);
   }
 
   mutate(rate: number) {
@@ -29,9 +38,8 @@ export class NeuralNetwork {
         let shape = weights[i].shape;
         let values = tensor.dataSync().slice();
         for (let j = 0; j < values.length; j++) {
-          if (Math.round(Math.random()) < rate) {
+          if (Math.random() < rate) {
             let w = values[j];
-
             values[j] = w + this.gaussianRand();
           }
         }
@@ -42,11 +50,30 @@ export class NeuralNetwork {
     });
   }
 
+  createModel(): tf.Sequential {
+    const model = tf.sequential();
+
+    const hidden = tf.layers.dense({
+      inputShape: [this.inputNodes],
+      units: this.hiddenNodes,
+      activation: 'sigmoid'
+    });
+    model.add(hidden);
+
+    const output = tf.layers.dense({
+      units: this.outputNodes,
+      activation: 'softmax'
+    });
+    model.add(output);
+
+    return model;
+  }
+
   private gaussianRand() {
     var rand = 0;
 
     for (var i = 0; i < 6; i += 1) {
-      rand += Math.random();
+      rand += Math.random() - 0.5;
     }
 
     return rand / 6;

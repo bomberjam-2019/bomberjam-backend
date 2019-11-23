@@ -19,14 +19,13 @@ export class GameSimulator {
     this.saveLog = saveLog;
   }
 
-  async run(): Promise<GameState> {
+  async run(gameName: string = 'simulation'): Promise<GameState> {
     if (this.saveLog) {
-      this.writeStream = await this.createWriteStream();
+      this.writeStream = await this.createWriteStream(gameName);
     }
 
     const state = new GameState();
     state.isSimulationPaused = false;
-    state.suddenDeathCountdown = 1000;
 
     try {
       for (const bot of this.bots) {
@@ -91,9 +90,9 @@ export class GameSimulator {
     }
   }
 
-  private async createWriteStream(): Promise<fs.WriteStream> {
+  private async createWriteStream(gameName: string): Promise<fs.WriteStream> {
     return new Promise<fs.WriteStream>(resolve => {
-      const filename = path.resolve(process.cwd(), `${Date.now()}.gamelog`);
+      const filename = path.resolve(process.cwd(), `${gameName}-${Date.now()}.gamelog`);
 
       const stream = fs.createWriteStream(filename);
       stream.once('open', () => {

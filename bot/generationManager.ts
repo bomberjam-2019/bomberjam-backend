@@ -14,6 +14,7 @@ export default class GenerationManager {
   private polulationSize: number;
   private bots: botDictionnary;
   private currentGeneration: number;
+  private bestScore: number = 0;
 
   constructor(numberOfGames: number) {
     this.numberOfGames = numberOfGames;
@@ -30,7 +31,7 @@ export default class GenerationManager {
     let bots: botDictionnary = {};
 
     for (var i = 0; i < this.polulationSize; i++) {
-      const brain = new NeuralNetwork(143, 8, 6);
+      const brain = new NeuralNetwork(149, 8, 6);
       const bot = new EvoBot(brain, this.generateBotName(i));
       bots[bot.id] = bot;
     }
@@ -52,20 +53,24 @@ export default class GenerationManager {
     let botsId = Object.keys(this.bots);
     this.shuffleArray(botsId);
     for (var _i = 0; _i < this.numberOfGames; _i++) {
-      const game = new GameSimulator(1000, [
-        this.bots[botsId.pop() as string],
-        this.bots[botsId.pop() as string],
-        this.bots[botsId.pop() as string],
-        this.bots[botsId.pop() as string]
-      ]);
-      games.push(game.run());
+      const game = new GameSimulator(
+        1000,
+        [
+          this.bots[botsId.pop() as string],
+          this.bots[botsId.pop() as string],
+          this.bots[botsId.pop() as string],
+          this.bots[botsId.pop() as string]
+        ],
+        false
+      );
+      games.push(game.run(`gen${this.currentGeneration}-game${_i}`));
     }
 
     const allGames = Promise.all(games);
     this.lastGenerationResults = await allGames;
   }
 
-  nextGeneration() {
+  async nextGeneration() {
     this.currentGeneration++;
     // Merge all bots results
     let allBots = this.lastGenerationResults.reduce(
@@ -89,12 +94,19 @@ export default class GenerationManager {
     const idsToRemove = sortedIds.slice(this.numberOfGames * 2);
     idsToRemove.forEach(id => delete this.bots[id]);
 
+    //Make babies and mutate
     var childIndex = 1;
     for (const botId in this.bots) {
       const childBot = this.bots[botId].makeChild(this.generateBotName(childIndex));
       childBot.mutate();
       this.bots[childBot.id] = childBot;
       childIndex++;
+    }
+
+    if (this.bestScore < allBots[sortedIds[0]].score) {
+      console.log(`Saving new best bot with score: ${allBots[sortedIds[0]].score}`);
+      this.bestScore = allBots[sortedIds[0]].score;
+      await this.bots[sortedIds[0]].brain.model.save('file://./best-bot');
     }
 
     console.log(`Generation ${this.currentGeneration - 1} score: ${totalScore}`);
