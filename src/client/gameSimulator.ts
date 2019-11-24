@@ -26,6 +26,7 @@ export class GameSimulator {
 
     const state = new GameState();
     state.isSimulationPaused = false;
+    state.suddenDeathCountdown = 2000;
 
     try {
       for (const bot of this.bots) {

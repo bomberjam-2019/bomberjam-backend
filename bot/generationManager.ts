@@ -1,8 +1,11 @@
+import * as tf from '@tensorflow/tfjs-node';
+
 import { GameState, Player } from '../src/server/state';
 
 import EvoBot from './bot';
 import { GameSimulator } from '../src/client/gameSimulator';
 import { IBot } from '../src/client/bot';
+import { ModelStoreManagerRegistry } from '@tensorflow/tfjs-core/dist/io/model_management';
 import { NeuralNetwork } from './neuralNetwork';
 import { threadId } from 'worker_threads';
 
@@ -15,11 +18,15 @@ export default class GenerationManager {
   private bots: botDictionnary;
   private currentGeneration: number;
   private bestScore: number = 0;
+  private gameScoreSum: number = 0;
+  private bestBotScoreSum: number = 0;
+  private model: tf.Sequential | undefined;
 
-  constructor(numberOfGames: number) {
+  constructor(numberOfGames: number, model?: tf.Sequential) {
     this.numberOfGames = numberOfGames;
     this.polulationSize = numberOfGames * 4;
     this.currentGeneration = 1;
+    this.model = model;
     this.bots = this.createBots();
   }
 
@@ -31,12 +38,14 @@ export default class GenerationManager {
     let bots: botDictionnary = {};
 
     for (var i = 0; i < this.polulationSize; i++) {
-      const brain = new NeuralNetwork(149, 8, 6);
-      const bot = new EvoBot(brain, this.generateBotName(i));
+      const brain = new NeuralNetwork(149, 8, 6, this.model);
+      const bot = new EvoBot(brain.copy(), this.generateBotName(i));
       bots[bot.id] = bot;
     }
     return bots;
   }
+
+  private CloneModel(model: tf.Sequential) {}
 
   // https://stackoverflow.com/a/12646864/5115252
   private shuffleArray(array: any[]) {
@@ -54,7 +63,7 @@ export default class GenerationManager {
     this.shuffleArray(botsId);
     for (var _i = 0; _i < this.numberOfGames; _i++) {
       const game = new GameSimulator(
-        1000,
+        250,
         [
           this.bots[botsId.pop() as string],
           this.bots[botsId.pop() as string],
@@ -92,7 +101,10 @@ export default class GenerationManager {
 
     //Remove suckiest bots
     const idsToRemove = sortedIds.slice(this.numberOfGames * 2);
-    idsToRemove.forEach(id => delete this.bots[id]);
+    idsToRemove.forEach(id => {
+      this.bots[id].dispose();
+      delete this.bots[id];
+    });
 
     //Make babies and mutate
     var childIndex = 1;
@@ -109,7 +121,23 @@ export default class GenerationManager {
       await this.bots[sortedIds[0]].brain.model.save('file://./best-bot');
     }
 
-    console.log(`Generation ${this.currentGeneration - 1} score: ${totalScore}`);
-    console.log(`Best bot: ${allBots[sortedIds[0]].id} score: ${allBots[sortedIds[0]].score}`);
+    await this.bots[sortedIds[0]].brain.model.save('file://./last-bot');
+
+    this.gameScoreSum += totalScore;
+    let gameScoreAverage = Math.round(this.gameScoreSum / (this.currentGeneration - 1));
+    let gameScoreDiff = (((totalScore - gameScoreAverage) / ((gameScoreAverage + totalScore) / 2)) * 100).toFixed(2);
+
+    this.bestBotScoreSum += allBots[sortedIds[0]].score;
+    let bestBotAverage = Math.round(this.bestBotScoreSum / (this.currentGeneration - 1));
+    let bestBotScoreDiff = (
+      ((allBots[sortedIds[0]].score - bestBotAverage) / ((bestBotAverage + allBots[sortedIds[0]].score) / 2)) *
+      100
+    ).toFixed(2);
+
+    console.log(
+      `${this.currentGeneration - 1} | ${totalScore} | ${gameScoreAverage} | ${gameScoreDiff}% | ${
+        allBots[sortedIds[0]].score
+      } | ${bestBotAverage} | ${bestBotScoreDiff}%`
+    );
   }
 }

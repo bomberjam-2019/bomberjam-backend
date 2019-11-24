@@ -17,14 +17,20 @@ export default class EvoBot {
     this.id = id;
   }
 
+  dispose() {
+    this.brain.dispose();
+  }
+
   botFunc(state: ISimpleGameState): ActionCode {
-    const inputs = this.createInput(state);
+    let resultIndex = 0;
+    tf.tidy(() => {
+      const inputs = this.createInput(state);
 
-    const outputs = this.brain.model.predict(inputs) as tf.Tensor;
+      const outputs = this.brain.model.predict(inputs) as tf.Tensor;
 
-    const resultArray = outputs.dataSync();
-    const resultIndex = resultArray.indexOf(Math.max(...resultArray));
-
+      const resultArray = outputs.dataSync();
+      resultIndex = resultArray.indexOf(Math.max(...resultArray));
+    });
     return this.allActions[resultIndex] as ActionCode;
   }
 

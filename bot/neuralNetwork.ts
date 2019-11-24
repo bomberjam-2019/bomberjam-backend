@@ -18,6 +18,10 @@ export class NeuralNetwork {
     }
   }
 
+  dispose() {
+    this.model.dispose();
+  }
+
   copy(): NeuralNetwork {
     const modelCopy = this.createModel();
     const weights = this.model.getWeights();

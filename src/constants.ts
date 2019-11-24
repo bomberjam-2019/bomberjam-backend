@@ -16,10 +16,12 @@ export const SUDDEN_DEATH_COUNTDOWN = 240;
 export const RESPAWN_TIME = 10;
 export const LOSE_BONUSES_ON_DEATH = false;
 
+export const POINTS_WHEN_MOVING = 1;
+export const POINTS_DROP_BOMB = 10;
 export const POINTS_PER_ALIVE_TICK = 0;
-export const POINTS_BLOCK_DESTROYED = 5;
-export const POINTS_KILLED_PLAYER = 20;
+export const POINTS_BLOCK_DESTROYED = 50;
+export const POINTS_KILLED_PLAYER = 200;
 export const POINTS_DEATH = 0;
-export const POINTS_LAST_SURVIVOR = 50;
+export const POINTS_LAST_SURVIVOR = 500;
 
 export const PLAYER_COLORS: number[] = [0xff8f8f, 0xffff8a, 0x7aff7a, 0x75c0ff, 0xff78fd];

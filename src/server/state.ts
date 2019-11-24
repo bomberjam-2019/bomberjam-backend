@@ -1,9 +1,7 @@
-import _ from 'lodash';
-import { MapSchema, Schema, type } from '@colyseus/schema';
-
 import {
   ActionCode,
   AllActions,
+  AllTiles,
   BonusCode,
   IBomb,
   IBonus,
@@ -12,8 +10,7 @@ import {
   IHasPos,
   IPlayer,
   MoveCode,
-  TileCode,
-  AllTiles
+  TileCode
 } from '../types';
 import {
   BOMB_BONUS_COUNT,
@@ -21,16 +18,21 @@ import {
   DEFAULT_BOMB_RANGE,
   FIRE_BONUS_COUNT,
   LOSE_BONUSES_ON_DEATH,
-  RESPAWN_TIME,
   PLAYER_COLORS,
   POINTS_BLOCK_DESTROYED,
   POINTS_DEATH,
+  POINTS_DROP_BOMB,
   POINTS_KILLED_PLAYER,
   POINTS_LAST_SURVIVOR,
   POINTS_PER_ALIVE_TICK,
+  POINTS_WHEN_MOVING,
+  RESPAWN_TIME,
   SUDDEN_DEATH_COUNTDOWN
 } from '../constants';
+import { MapSchema, Schema, type } from '@colyseus/schema';
+
 import { EquatableSet } from '../utils';
+import _ from 'lodash';
 
 // prettier-ignore
 const defaultAsciiMap: string[] = [
@@ -91,7 +93,7 @@ export class Player extends Schema implements IPlayer {
 
   public addScore(deltaScore: number): void {
     this.score += deltaScore;
-    if (this.score < 0) this.score = 0;
+    //if (this.score < 0) this.score = 0;
   }
 }
 
@@ -444,7 +446,7 @@ export class GameState extends Schema implements IGameState {
   private addScorePerTick() {
     for (const playerId in this.players) {
       const player = this.players[playerId];
-      if (player.alive) player.addScore(POINTS_PER_ALIVE_TICK);
+      if (player.alive && player.respawning === 0) player.addScore(POINTS_PER_ALIVE_TICK);
     }
   }
 
@@ -591,6 +593,8 @@ export class GameState extends Schema implements IGameState {
       player.x = nextPos.x;
       player.y = nextPos.y;
 
+      player.addScore(POINTS_WHEN_MOVING);
+
       // just entered in an explosion
       this.explosionPositions.forEach(exploPos => {
         if (exploPos.x === player.x && exploPos.y === player.y) {
@@ -619,6 +623,7 @@ export class GameState extends Schema implements IGameState {
 
       this.bombs[bombId] = newBomb;
       player.bombsLeft--;
+      player.addScore(POINTS_DROP_BOMB);
 
       if (player.bombsLeft < 0) player.bombsLeft = 0;
     }
