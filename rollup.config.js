@@ -5,7 +5,7 @@ import { terser } from 'rollup-plugin-terser';
 import path from 'path';
 
 const packageDependencies = Object.keys(require(path.resolve(__dirname, 'package.json')).dependencies);
-const nodeDependencies = ['http', 'path', 'os', 'fs'];
+const nodeDependencies = ['http', 'path', 'os', 'fs', 'process'];
 
 const appConfigs = {
   server: {

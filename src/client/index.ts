@@ -1,8 +1,13 @@
-import { getFourBots, getJoinOptions, sleepAsync, jsonClone } from './utils';
-import { GameClient } from './gameClient';
+import { ActionCode, IGameState } from '../types';
+import { getJoinOptions, jsonClone, sleepAsync } from './utils';
+import GameClient from './gameClient';
+import GameStateSimulation from './gameStateSimulation';
 
-async function main(): Promise<void> {
-  const bots = getFourBots();
+export async function playInBrowser(bot: (state: IGameState, myPlayerId: string) => ActionCode): Promise<void> {
+  const botType = typeof bot;
+  if (botType !== 'function') throw new Error(`Expecting a function, but received ${botType}`);
+
+  const bots = [bot, bot, bot, bot];
   const joinOpts = getJoinOptions();
   const clients: GameClient[] = [];
 
@@ -26,12 +31,6 @@ async function main(): Promise<void> {
   }
 }
 
-function onError(err: any) {
-  if (err && typeof err.message === 'string' && err.message.indexOf('ECONNREFUSED') >= 0) {
-    console.log(err.message);
-  } else {
-    console.log(err);
-  }
+export function startSimulation(): GameStateSimulation {
+  return new GameStateSimulation();
 }
-
-main().catch(onError);

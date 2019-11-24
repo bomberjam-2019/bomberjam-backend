@@ -1,6 +1,6 @@
 import { ActionCode, ISimpleGameState } from '../types';
 import { createSanitizedStateCopyForBot, shuffle } from './utils';
-import { GameState } from '../server/state';
+import GameState from '../server/gameState';
 
 interface Bot {
   id: string;
@@ -58,7 +58,7 @@ export class BomberjamEnv {
       }
     }
 
-    this.state.applyClientMessages(shuffle(playerMessages));
+    this.state.executeNextTick(shuffle(playerMessages));
 
     const state = createSanitizedStateCopyForBot(this.state);
     const rewards = [0, 0, 0, 0];

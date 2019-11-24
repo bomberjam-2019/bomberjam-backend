@@ -6,7 +6,7 @@ import { createSanitizedStateCopyForBot } from './utils';
 const open = require('open');
 const colyseus = require('colyseus.js');
 
-export class GameClient {
+export default class GameClient {
   private readonly bot: Function;
   private readonly joinOptions: IJoinRoomOpts;
   private readonly silent: boolean;
