@@ -1,9 +1,23 @@
-import { playInBrowser } from '../dist/client';
+import { playInBrowser, startSimulation, IGameState, ActionCode } from '../dist/client';
 
-const allActions = ['stay', 'left', 'right', 'up', 'down', 'bomb'];
+const allActions: ActionCode[] = ['stay', 'left', 'right', 'up', 'down', 'bomb'];
 
-function yourBot(state: any, myPlayerId: string) {
+function yourBot(state: IGameState, myPlayerId: string) {
   return allActions[Math.floor(Math.random() * allActions.length)];
 }
 
+// 1) play in browser using the colyseus server,
+// either in practice or tournament mode with a room ID
 playInBrowser(yourBot).catch(console.log);
+
+// 2) simulate a game without the browser, very fast
+let simulation = startSimulation();
+
+while (!simulation.isFinished) {
+  console.log(simulation.currentState.tiles);
+
+  const playerIds = Object.keys(simulation.currentState.players);
+  const playerActions = Object.assign({}, ...playerIds.map(pid => ({ [pid]: yourBot(simulation.currentState, pid) })));
+
+  simulation.executeNextTick(playerActions);
+}

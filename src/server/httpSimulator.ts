@@ -1,9 +1,8 @@
 import express, { Express, Request, Response } from 'express';
-import { ActionCode, AllActions, IClientMessage } from '../types';
+import { ActionCode } from '../types';
 import GameState from './gameState';
 
 export default class HttpSimulator {
-  private readonly allActionCodes: Set<string> = new Set<string>(Object.values(AllActions));
   private readonly deleteExistingGameStateAfterMs: number = 30 * 1000;
   private readonly hardcodedPlayerIdAndNames: { [playerId: string]: string } = {
     p1: 'p1',
@@ -46,7 +45,7 @@ export default class HttpSimulator {
     return typeof req.params.id === 'string' && typeof req.body === 'object';
   }
 
-  private simulateGame(gameId: string, payload: { [playerId: string]: ActionCode }): GameState {
+  private simulateGame(gameId: string, playerActions: { [playerId: string]: ActionCode }): GameState {
     const gameState: GameState = this.runningGames[gameId];
     if (!gameState) {
       // do nothing else with this new game state and return it immediately
@@ -54,8 +53,7 @@ export default class HttpSimulator {
       return (this.runningGames[gameId] = this.createNewGameState(gameId));
     }
 
-    const clientMessages = this.extractClientMessagesFromRequestPayload(gameState, payload);
-    gameState.executeNextTick(clientMessages);
+    gameState.executeNextTickWithActions(playerActions);
 
     // game has ended, remove any reference in running games & timeouts
     if (gameState.state === 1) {
@@ -92,33 +90,9 @@ export default class HttpSimulator {
     gameState.roomId = gameId;
     gameState.isSimulationPaused = false;
     gameState.tickDuration = 0;
-    gameState.shouldWriteHistoryToDiskWhenGameEnded = false;
+    gameState.shouldWriteHistoryToDiskWhenGameEnded = true;
 
     return gameState;
-  }
-
-  private extractClientMessagesFromRequestPayload(gameState: GameState, payload: { [playerId: string]: ActionCode }): IClientMessage[] {
-    const clientMessages: IClientMessage[] = [];
-
-    for (const playerId in payload) {
-      if (!gameState.players[playerId]) {
-        throw new Error(`Player ID ${playerId} is not part of valid player IDs: ${Object.keys(gameState.players).join(', ')}`);
-      }
-
-      const action = payload[playerId];
-      if (!this.allActionCodes.has(action)) {
-        throw new Error(`Action code ${action} is not part of valid action codes: ${[...this.allActionCodes].join(', ')}`);
-      }
-
-      clientMessages.push({
-        action: action,
-        playerId: playerId,
-        tick: gameState.tick,
-        elapsed: 0
-      });
-    }
-
-    return clientMessages;
   }
 
   private httpError(res: Response, errorCode: number, errorMessage: string): void {

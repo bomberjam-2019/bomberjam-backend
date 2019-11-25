@@ -33,7 +33,10 @@ export function getJoinOptions(): IJoinRoomOpts {
   if (typeof config.serverPort !== 'number' || config.serverPort <= 0)
     throw new Error(`Missing or invalid numeric serverPort property in ${configPath}`);
 
-  if (typeof config.roomId !== 'string') throw new Error(`Property roomId in ${configPath} must be a string`);
+  if (typeof config.roomId !== 'string') throw new Error(`Property roomId in ${configPath} must be a string, even if empty`);
+
+  if (config.roomId.length === 0 && config.serverName !== 'localhost' && config.serverName !== '127.0.0.1')
+    throw new Error(`Practicing in browser without specific room ID requires server to be set to localhost in ${configPath}`);
 
   console.log(`Found ${configJsonFileName} file: ${configPath}`);
 

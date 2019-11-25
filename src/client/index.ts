@@ -1,4 +1,4 @@
-import { ActionCode, IGameState } from '../types';
+import { ActionCode, IGameState, IGameStateSimulation } from '../types';
 import { getJoinOptions, jsonClone, sleepAsync } from './utils';
 import GameClient from './gameClient';
 import GameStateSimulation from './gameStateSimulation';
@@ -31,6 +31,6 @@ export async function playInBrowser(bot: (state: IGameState, myPlayerId: string)
   }
 }
 
-export function startSimulation(): GameStateSimulation {
+export function startSimulation(): IGameStateSimulation {
   return new GameStateSimulation();
 }

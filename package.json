@@ -6,10 +6,8 @@
   "scripts": {
     "clean": "rimraf .rpt2_cache/ dist/",
     "test": "jest",
-    "build": "npm run clean && npm run build-server && npm run build-client && npm run build-simulator && npm run build-frontend-production && npm run build-types",
-    "build-server": "rollup -c --environment APPNAME:server",
-    "build-client": "rollup -c --environment APPNAME:client",
-    "build-simulator": "rollup -c --environment APPNAME:simulator",
+    "build": "npm run clean && npm run build-types && npm run build-server-client && npm run build-frontend-production ",
+    "build-server-client": "node build.js",
     "build-frontend-development": "cd src/frontend/ && npm run build-development",
     "build-frontend-production": "cd src/frontend/ && npm run build-production",
     "build-types": "tsc -p tsconfig.types.json",

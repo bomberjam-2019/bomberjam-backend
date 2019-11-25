@@ -1,9 +1,8 @@
-import { ActionCode, AllActions, IClientMessage, IGameState } from '../types';
-import GameState from '../server/gameState';
+import { ActionCode, IGameState, IGameStateSimulation } from '../types';
 import { jsonClone } from './utils';
+import GameState from '../server/gameState';
 
-export default class GameStateSimulation {
-  private readonly allActionCodes: Set<string> = new Set<string>(Object.values(AllActions));
+export default class GameStateSimulation implements IGameStateSimulation {
   private readonly hardcodedPlayerIdAndNames: { [playerId: string]: string } = {
     p1: 'p1',
     p2: 'p2',
@@ -34,7 +33,7 @@ export default class GameStateSimulation {
     gameState.roomId = this.createGuid();
     gameState.isSimulationPaused = false;
     gameState.tickDuration = 0;
-    gameState.shouldWriteHistoryToDiskWhenGameEnded = false;
+    gameState.shouldWriteHistoryToDiskWhenGameEnded = true;
 
     return gameState;
   }
@@ -52,36 +51,11 @@ export default class GameStateSimulation {
 
     if (this.isFinished) throw new Error('Game is already finished');
 
-    const clientMessages = this.getClientMessagesFromPlayerActions(this.internalState, playerActions);
-    this.internalState.executeNextTick(clientMessages);
+    this.internalState.executeNextTickWithActions(playerActions);
 
     this.previousState = this.currentState;
     this.currentState = jsonClone(this.internalState);
 
     if (this.currentState.state === 1) this.isFinished = true;
-  }
-
-  private getClientMessagesFromPlayerActions(gameState: GameState, payload: { [playerId: string]: ActionCode }): IClientMessage[] {
-    const clientMessages: IClientMessage[] = [];
-
-    for (const playerId in payload) {
-      if (!gameState.players[playerId]) {
-        throw new Error(`Player ID ${playerId} is not part of valid player IDs: ${Object.keys(gameState.players).join(', ')}`);
-      }
-
-      const action = payload[playerId];
-      if (!this.allActionCodes.has(action)) {
-        throw new Error(`Action code ${action} is not part of valid action codes: ${[...this.allActionCodes].join(', ')}`);
-      }
-
-      clientMessages.push({
-        action: action,
-        playerId: playerId,
-        tick: gameState.tick,
-        elapsed: 0
-      });
-    }
-
-    return clientMessages;
   }
 }
