@@ -12,12 +12,12 @@ playInBrowser(yourBot).catch(console.log);
 
 // 2) simulate a game without the browser, very fast
 let simulation = startSimulation();
+console.log(simulation.currentState.tiles);
 
 while (!simulation.isFinished) {
-  console.log(simulation.currentState.tiles);
-
   const playerIds = Object.keys(simulation.currentState.players);
   const playerActions = Object.assign({}, ...playerIds.map(pid => ({ [pid]: yourBot(simulation.currentState, pid) })));
 
   simulation.executeNextTick(playerActions);
+  console.log(simulation.currentState.tiles);
 }

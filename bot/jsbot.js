@@ -8,7 +8,7 @@ function yourBot(state, myPlayerId) {
 
 // 1) play in browser using the colyseus server,
 // either in practice or tournament mode with a room ID
-// playInBrowser(yourBot).catch(console.log);
+playInBrowser(yourBot).catch(console.log);
 
 // 2) simulate a game without the browser, very fast
 let simulation = startSimulation();
