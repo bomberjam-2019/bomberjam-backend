@@ -30,7 +30,7 @@ export default class GameStateSimulation implements IGameStateSimulation {
       gameState.addPlayer(playerId, this.hardcodedPlayerIdAndNames[playerId]);
     }
 
-    gameState.roomId = this.createGuid();
+    gameState.roomId = this.createRoomId();
     gameState.isSimulationPaused = false;
     gameState.tickDuration = 0;
     gameState.shouldWriteHistoryToDiskWhenGameEnded = true;
@@ -38,12 +38,14 @@ export default class GameStateSimulation implements IGameStateSimulation {
     return gameState;
   }
 
-  private createGuid() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+  private createRoomId() {
+    const guid = 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => {
       const r = (Math.random() * 16) | 0,
         v = c == 'x' ? r : (r & 0x3) | 0x8;
       return v.toString(16);
     });
+
+    return guid.substring(0, 9);
   }
 
   public executeNextTick(playerActions: { [playerId: string]: ActionCode }): void {
