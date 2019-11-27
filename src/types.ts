@@ -154,3 +154,18 @@ export interface IRoomMetadata {
   state: -1 | 0 | 1;
   players: string[];
 }
+
+export interface IGameStateSimulation {
+  currentState: IGameState;
+  previousState: IGameState;
+  isFinished: boolean;
+  executeNextTick(): void;
+}
+
+export interface IBot {
+  getAction: (state: IGameState, myPlayerId: string) => ActionCode;
+}
+
+export declare function playInBrowser(bot: IBot): Promise<void>;
+
+export declare function startSimulation(bots: IBot[], saveGamelog: boolean): IGameStateSimulation;

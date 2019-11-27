@@ -1,83 +1,66 @@
+import process from 'process';
 import path from 'path';
 import fs from 'fs';
 
-import { DEFAULT_SERVER_PORT } from '../constants';
 import { IGameState, IJoinRoomOpts, ISimpleGameState } from '../types';
 
-const argv: any = require('minimist')(process.argv.slice(2));
-const execPath = process.cwd();
-
 export function getJoinOptions(): IJoinRoomOpts {
-  const configFileName = argv['config'] || '';
-  const configPath = path.resolve(execPath, configFileName);
-  if (configFileName.length === 0 || !fs.existsSync(configPath))
-    throw new Error('Could not find specified --config json file at ' + configPath);
+  const configJsonFileName = 'config.json';
+
+  let execDirPath = path.dirname(process.argv[1]);
+  let configPath = path.resolve(execDirPath, configJsonFileName);
+
+  while (!fs.existsSync(configPath)) {
+    const prevExecDirPath = execDirPath;
+    execDirPath = path.dirname(execDirPath);
+    if (prevExecDirPath === execDirPath) break;
+
+    configPath = path.resolve(execDirPath, configJsonFileName);
+  }
+
+  if (!fs.existsSync(configPath)) throw new Error(`Could not find ${configJsonFileName} in the executable directory or its parents.`);
+
   const config: any = require(configPath);
 
+  if (typeof config !== 'object') throw new Error(`${configPath} is not a valid JSON file`);
+
+  if (typeof config.playerName !== 'string' || config.playerName.length === 0)
+    throw new Error(`Missing playerName property in ${configPath}`);
+
+  if (typeof config.serverName !== 'string' || config.serverName.length === 0)
+    throw new Error(`Missing serverName property in ${configPath}`);
+
+  if (typeof config.serverPort !== 'number' || config.serverPort <= 0)
+    throw new Error(`Missing or invalid numeric serverPort property in ${configPath}`);
+
+  if (typeof config.roomId !== 'string') throw new Error(`Property roomId in ${configPath} must be a string, even if empty`);
+
+  if (config.roomId.length === 0 && config.serverName !== 'localhost' && config.serverName !== '127.0.0.1')
+    throw new Error(`Practicing in browser without specific room ID requires server to be set to localhost in ${configPath}`);
+
+  console.log(`Found ${configJsonFileName} file: ${configPath}`);
+
   const joinOpts: IJoinRoomOpts = {
-    name: config.playerName,
-    roomId: '',
+    name: config.playerName.trim(),
+    roomId: config.roomId.trim(),
+    serverName: config.serverName.trim(),
+    serverPort: config.serverPort,
     spectate: false,
-    serverName: 'localhost',
-    serverPort: DEFAULT_SERVER_PORT,
     shufflePlayers: false
   };
-
-  const clientMode = argv['mode'] || '';
-
-  // join a specific room when spectate or joining a match
-  if (clientMode === 'spectate' || clientMode === 'match') {
-    if (typeof config.roomId !== 'string' || config.roomId.length === 0) {
-      throw new Error('Missing roomId in config.json');
-    }
-
-    joinOpts.roomId = config.roomId;
-    joinOpts.serverName = config.serverName;
-    joinOpts.serverPort = config.serverPort;
-
-    // join a specific room for a match
-    if (clientMode === 'spectate') {
-      joinOpts.spectate = true;
-    }
-  } else if (clientMode === 'training') {
-    joinOpts.training = true;
-    joinOpts.createNewRoom = true;
-  } else {
-    throw new Error('Invalid option --mode, values are training, match or spectate');
-  }
 
   if (typeof config.shufflePlayers === 'boolean') {
     joinOpts.shufflePlayers = config.shufflePlayers;
   }
 
+  const clientMode = config.roomId.length === 0 ? 'training' : 'match';
+
+  if (clientMode === 'training') {
+    joinOpts.training = true;
+    joinOpts.createNewRoom = true;
+  }
+
   return joinOpts;
-}
-
-export function getFourBots(): Function[] {
-  const botsFileName = argv['bot'] || '';
-  const botsPath = path.resolve(execPath, botsFileName);
-  if (botsFileName.length === 0 || !fs.existsSync(botsPath)) throw new Error('Could not find specified --bot js file at ' + botsPath);
-  const bot = require(botsPath);
-  const botType = typeof bot;
-
-  if (botType === 'function') {
-    return [bot, bot, bot, bot];
-  }
-
-  if (botType === 'object' && Array.isArray(bot)) {
-    const bots = (<any[]>bot).filter(b => typeof b === 'function') as Function[];
-    const botCount = bots.length;
-
-    if (botCount > 0) {
-      for (let i = 0; i < 4 - botCount; i++) {
-        bots.push(bots[0]);
-      }
-
-      return bots.slice(0, 4);
-    }
-  }
-
-  throw new Error('Exported bots must be one or many functions');
 }
 
 export async function sleepAsync(milliseconds: number): Promise<void> {

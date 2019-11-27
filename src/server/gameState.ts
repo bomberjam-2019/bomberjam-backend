@@ -37,6 +37,8 @@ const defaultAsciiMap: string[] = [
   '..+++++++++..'
 ];
 
+const allActionCodes: Set<string> = new Set<string>(Object.values(AllActions));
+
 type PosIncrementer = (pos: IHasPos) => void;
 
 const positionIncrementers: { [mov: string]: PosIncrementer } = {
@@ -249,12 +251,38 @@ export default class GameState extends Schema implements IGameState {
         this.applyClientMessages(messages);
         this.changeStateIfGameEnded();
         this.addScorePerTick();
+
+        if (this.isGameEnded()) this.appendLastTickHistory();
       }
     } else if (this.isGameEnded()) {
       this.executeEndGameCleanup(messages);
     }
 
     this.tick++;
+  }
+
+  public executeNextTickWithActions(playerActions: { [playerId: string]: ActionCode }) {
+    const messages: IClientMessage[] = [];
+
+    for (const playerId in playerActions) {
+      if (!this.players[playerId]) {
+        throw new Error(`Player ID ${playerId} is not part of valid player IDs: ${Object.keys(this.players).join(', ')}`);
+      }
+
+      const action = playerActions[playerId];
+      if (!allActionCodes.has(action)) {
+        throw new Error(`Action code ${action} is not part of valid action codes: ${[...allActionCodes].join(', ')}`);
+      }
+
+      messages.push({
+        action: action,
+        playerId: playerId,
+        tick: this.tick,
+        elapsed: 0
+      });
+    }
+
+    this.executeNextTick(messages);
   }
 
   private respawnPlayers() {
@@ -721,16 +749,17 @@ export default class GameState extends Schema implements IGameState {
     }
   }
 
+  private appendLastTickHistory(): void {
+    this.history.append([]);
+
+    if (this.shouldWriteHistoryToDiskWhenGameEnded) {
+      this.history.write().then(_.noop, console.log);
+    }
+  }
+
   private executeEndGameCleanup(messages: IClientMessage[]): void {
     if (!this.endGameCleanupExecuted) {
       for (const bombId in this.bombs) delete this.bombs[bombId];
-
-      this.history.append(messages);
-
-      if (this.shouldWriteHistoryToDiskWhenGameEnded) {
-        this.history.write().then(_.noop, console.log);
-      }
-
       this.endGameCleanupExecuted = true;
     }
   }

@@ -10,7 +10,7 @@ build_script:
   - cmd: npm pack --dry-run
 test_script:
   - cmd: npm run test
-  - cmd: npm run training-export
+  - cmd: node bot/jsSimulationBot.js
 artifacts:
   - path: dist
     name: dist
