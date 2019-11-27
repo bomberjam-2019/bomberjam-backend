@@ -168,4 +168,4 @@ export interface IBot {
 
 export declare function playInBrowser(bot: IBot): Promise<void>;
 
-export declare function startSimulation(bots: IBot[]): IGameStateSimulation;
+export declare function startSimulation(bots: IBot[], saveGamelog: boolean): IGameStateSimulation;

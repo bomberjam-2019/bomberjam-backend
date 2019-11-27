@@ -45,7 +45,7 @@ export async function playInBrowser(bot: IBot): Promise<void> {
   }
 }
 
-export function startSimulation(bots: IBot[]): IGameStateSimulation {
+export function startSimulation(bots: IBot[], saveGamelog: boolean): IGameStateSimulation {
   ensureFourValidBots(bots);
-  return new GameStateSimulation(bots);
+  return new GameStateSimulation(bots, saveGamelog);
 }

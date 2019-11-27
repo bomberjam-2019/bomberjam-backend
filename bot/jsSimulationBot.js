@@ -11,7 +11,8 @@ class RandomBot {
 function simulateGame() {
   const bots = [new RandomBot(), new RandomBot(), new RandomBot(), new RandomBot()];
 
-  const simulation = startSimulation(bots);
+  const saveGamelog = true;
+  const simulation = startSimulation(bots, saveGamelog);
 
   while (!simulation.isFinished) {
     simulation.executeNextTick();

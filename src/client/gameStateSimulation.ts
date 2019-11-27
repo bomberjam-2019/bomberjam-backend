@@ -12,12 +12,13 @@ export default class GameStateSimulation implements IGameStateSimulation {
 
   private readonly bots: { [playerId: string]: IBot };
   private readonly internalState: GameState;
+  private readonly saveGamelog: boolean;
 
   public currentState: IGameState;
   public previousState: IGameState;
   public isFinished: boolean;
 
-  public constructor(bots: IBot[]) {
+  public constructor(bots: IBot[], saveGamelog: boolean) {
     this.bots = {};
 
     let i = 0;
@@ -25,6 +26,7 @@ export default class GameStateSimulation implements IGameStateSimulation {
       this.bots[playerId] = bots[i++];
     }
 
+    this.saveGamelog = saveGamelog;
     this.internalState = this.createGameState();
     this.currentState = jsonClone(this.internalState);
     this.previousState = this.currentState;
@@ -41,7 +43,7 @@ export default class GameStateSimulation implements IGameStateSimulation {
     gameState.roomId = this.createRoomId();
     gameState.isSimulationPaused = false;
     gameState.tickDuration = 0;
-    gameState.shouldWriteHistoryToDiskWhenGameEnded = true;
+    gameState.shouldWriteHistoryToDiskWhenGameEnded = this.saveGamelog;
 
     return gameState;
   }
