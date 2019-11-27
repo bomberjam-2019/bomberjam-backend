@@ -1,17 +1,31 @@
-import { ActionCode, IGameState, IGameStateSimulation } from '../types';
+import { IGameStateSimulation, IBot } from '../types';
 import { getJoinOptions, jsonClone, sleepAsync } from './utils';
 import GameClient from './gameClient';
 import GameStateSimulation from './gameStateSimulation';
 
-export async function playInBrowser(bot: (state: IGameState, myPlayerId: string) => ActionCode): Promise<void> {
-  const botType = typeof bot;
-  if (botType !== 'function') throw new Error(`Expecting a function, but received ${botType}`);
+function ensureValidBot(bot: IBot) {
+  if (typeof bot !== 'object') throw new Error(`Bot is not an object with a getAction method`);
 
-  const bots = [bot, bot, bot, bot];
+  if (typeof bot.getAction !== 'function') throw new Error(`getAction is not a function`);
+}
+
+function ensureFourValidBots(bots: IBot[]): void {
+  if (!Array.isArray(bots) || bots.length !== 4) throw new Error('Expected bots to be an array of four functions');
+
+  for (let i = 0; i < bots.length; i++) {
+    ensureValidBot(bots[i]);
+  }
+}
+
+export async function playInBrowser(bot: IBot): Promise<void> {
+  ensureValidBot(bot);
+
   const joinOpts = getJoinOptions();
   const clients: GameClient[] = [];
 
-  const mainClient = new GameClient(bots[0], jsonClone(joinOpts), false);
+  const bots = [bot, bot, bot, bot];
+
+  const mainClient = new GameClient(bots[0].getAction, jsonClone(joinOpts), false);
   const roomId = await mainClient.runAsync();
   await sleepAsync(500);
   clients.push(mainClient);
@@ -23,7 +37,7 @@ export async function playInBrowser(bot: (state: IGameState, myPlayerId: string)
       newJoinOpts.name = `${newJoinOpts.name} (${i + 1})`;
       newJoinOpts.createNewRoom = false;
 
-      const otherClient = new GameClient(bots[i + 1], newJoinOpts, true);
+      const otherClient = new GameClient(bots[i + 1].getAction, newJoinOpts, true);
       await otherClient.runAsync();
       await sleepAsync(500);
       clients.push(otherClient);
@@ -31,6 +45,7 @@ export async function playInBrowser(bot: (state: IGameState, myPlayerId: string)
   }
 }
 
-export function startSimulation(): IGameStateSimulation {
-  return new GameStateSimulation();
+export function startSimulation(bots: IBot[]): IGameStateSimulation {
+  ensureFourValidBots(bots);
+  return new GameStateSimulation(bots);
 }

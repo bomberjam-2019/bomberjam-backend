@@ -1,18 +1,23 @@
-import { startSimulation, IGameState, ActionCode } from '../dist/client';
+import { startSimulation, IGameState, ActionCode, IBot } from '../dist/client';
 
 const allActions: ActionCode[] = ['stay', 'left', 'right', 'up', 'down', 'bomb'];
 
-function yourBot(state: IGameState, myPlayerId: string) {
-  return allActions[Math.floor(Math.random() * allActions.length)];
+class RandomBot implements IBot {
+  getAction(state: IGameState, myPlayerId: string) {
+    return allActions[Math.floor(Math.random() * allActions.length)];
+  }
 }
 
-let simulation = startSimulation();
-console.log(simulation.currentState.tiles);
+function simulateGame(): void {
+  const bots = [new RandomBot(), new RandomBot(), new RandomBot(), new RandomBot()];
 
-while (!simulation.isFinished) {
-  const playerIds = Object.keys(simulation.currentState.players);
-  const playerActions = Object.assign({}, ...playerIds.map(pid => ({ [pid]: yourBot(simulation.currentState, pid) })));
+  const simulation = startSimulation(bots);
 
-  simulation.executeNextTick(playerActions);
-  console.log(simulation.currentState.tiles);
+  while (!simulation.isFinished) {
+    simulation.executeNextTick();
+  }
+
+  console.log(simulation.currentState);
 }
+
+simulateGame();

@@ -1,4 +1,4 @@
-import { ActionCode, IGameState, IGameStateSimulation } from '../types';
+import { ActionCode, IGameState, IGameStateSimulation, IBot } from '../types';
 import { jsonClone } from './utils';
 import GameState from '../server/gameState';
 
@@ -10,13 +10,21 @@ export default class GameStateSimulation implements IGameStateSimulation {
     p4: 'p4'
   };
 
+  private readonly bots: { [playerId: string]: IBot };
   private readonly internalState: GameState;
 
   public currentState: IGameState;
   public previousState: IGameState;
   public isFinished: boolean;
 
-  public constructor() {
+  public constructor(bots: IBot[]) {
+    this.bots = {};
+
+    let i = 0;
+    for (const playerId in this.hardcodedPlayerIdAndNames) {
+      this.bots[playerId] = bots[i++];
+    }
+
     this.internalState = this.createGameState();
     this.currentState = jsonClone(this.internalState);
     this.previousState = this.currentState;
@@ -48,12 +56,15 @@ export default class GameStateSimulation implements IGameStateSimulation {
     return guid.substring(0, 9);
   }
 
-  public executeNextTick(playerActions: { [playerId: string]: ActionCode }): void {
-    if (playerActions === null) throw new Error('Argument cannot be null');
-
+  public executeNextTick(): void {
     if (this.isFinished) throw new Error('Game is already finished');
 
-    this.internalState.executeNextTickWithActions(playerActions);
+    const botActions: { [botId: string]: ActionCode } = {};
+    for (const botId in this.bots) {
+      botActions[botId] = this.bots[botId].getAction(this.currentState, botId);
+    }
+
+    this.internalState.executeNextTickWithActions(botActions);
 
     this.previousState = this.currentState;
     this.currentState = jsonClone(this.internalState);

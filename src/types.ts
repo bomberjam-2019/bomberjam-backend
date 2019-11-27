@@ -159,9 +159,13 @@ export interface IGameStateSimulation {
   currentState: IGameState;
   previousState: IGameState;
   isFinished: boolean;
-  executeNextTick(playerActions: { [playerId: string]: ActionCode }): void;
+  executeNextTick(): void;
 }
 
-export declare function playInBrowser(bot: (state: IGameState, myPlayerId: string) => ActionCode): Promise<void>;
+export interface IBot {
+  getAction: (state: IGameState, myPlayerId: string) => ActionCode;
+}
 
-export declare function startSimulation(): IGameStateSimulation;
+export declare function playInBrowser(bot: IBot): Promise<void>;
+
+export declare function startSimulation(bots: IBot[]): IGameStateSimulation;
