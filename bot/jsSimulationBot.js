@@ -1,4 +1,4 @@
-const { startSimulation } = require('../dist/client');
+const { startSimulation } = require('../dist');
 
 const allActions = ['stay', 'left', 'right', 'up', 'down', 'bomb'];
 

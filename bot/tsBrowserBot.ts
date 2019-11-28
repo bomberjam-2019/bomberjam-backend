@@ -1,4 +1,4 @@
-import { playInBrowser, IGameState, ActionCode, IBot } from '../dist/client';
+import { playInBrowser, IGameState, ActionCode, IBot } from '../dist';
 
 const allActions: ActionCode[] = ['stay', 'left', 'right', 'up', 'down', 'bomb'];
 
@@ -8,6 +8,6 @@ class RandomBot implements IBot {
   }
 }
 
-const bot = new RandomBot();
+const bots = [new RandomBot(), new RandomBot(), new RandomBot(), new RandomBot()];
 
-playInBrowser(bot).catch(console.log);
+playInBrowser(bots).catch(console.log);

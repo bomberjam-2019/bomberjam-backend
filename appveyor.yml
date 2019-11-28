@@ -7,7 +7,7 @@ install:
   - cmd: npm ci && cd src && cd frontend && npm ci && cd .. && cd ..
 build_script:
   - cmd: npm run build
-  - cmd: npm pack --dry-run
+  - cmd: cd dist && npm pack --dry-run && cd ..
 test_script:
   - cmd: npm run test
   - cmd: node bot/jsSimulationBot.js

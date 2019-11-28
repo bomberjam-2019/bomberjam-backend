@@ -166,6 +166,6 @@ export interface IBot {
   getAction: (state: IGameState, myPlayerId: string) => ActionCode;
 }
 
-export declare function playInBrowser(bot: IBot): Promise<void>;
+export declare function playInBrowser(bots: IBot[]): Promise<void>;
 
 export declare function startSimulation(bots: IBot[], saveGamelog: boolean): IGameStateSimulation;

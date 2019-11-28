@@ -2,11 +2,10 @@
   "name": "bomberjam-backend",
   "version": "1.0.6",
   "license": "ISC",
-  "main": "dist/server.js",
   "scripts": {
     "clean": "rimraf .rpt2_cache/ dist/",
     "test": "jest",
-    "build": "npm run clean && npm run build-types && npm run build-server-client && npm run build-frontend-production ",
+    "build": "npm run clean && npm run build-frontend-production && npm run build-types && npm run build-server-client",
     "build-server-client": "node build.js",
     "build-frontend-development": "cd src/frontend/ && npm run build-development",
     "build-frontend-production": "cd src/frontend/ && npm run build-production",
@@ -14,7 +13,6 @@
     "frontend": "cd src/frontend/ && npm run serve",
     "server": "npm run build-frontend-development && ts-node src/server/index.ts --frontend=../../dist/frontend"
   },
-  "typings": "dist/types.d.ts",
   "files": [
     "dist/**/*"
   ],

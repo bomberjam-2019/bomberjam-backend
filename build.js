@@ -36,7 +36,7 @@ const appConfigs = {
   },
   client: {
     input: path.resolve(__dirname, 'src/client/index.ts'),
-    output: path.resolve(__dirname, 'dist/client.js')
+    output: path.resolve(__dirname, 'dist/index.js')
   }
 };
 
@@ -53,15 +53,32 @@ async function buildServerAndClient() {
 
 function moveClientDefinitions() {
   const inputFilePath = path.resolve(__dirname, 'dist/types.d.ts');
-  const outputFilePath = path.resolve(__dirname, 'dist/client.d.ts');
+  const outputFilePath = path.resolve(__dirname, 'dist/index.d.ts');
 
   if (fs.existsSync(inputFilePath)) {
     fs.renameSync(inputFilePath, outputFilePath);
   }
 }
+function createPackageJsonFile() {
+  const inputPackageJson = require(path.resolve(__dirname, 'package.json'));
+  const outputPackageJson = {
+    name: inputPackageJson.name,
+    version: inputPackageJson.version,
+    license: inputPackageJson.license,
+    main: 'index.js',
+    typings: 'index.d.ts',
+    files: ['**/*'],
+    dependencies: inputPackageJson.dependencies,
+    devDependencies: inputPackageJson.devDependencies
+  };
+
+  const outputPackageJsonPath = path.resolve(__dirname, 'dist/package.json');
+  fs.writeFileSync(outputPackageJsonPath, JSON.stringify(outputPackageJson, null, 2));
+}
 
 async function build() {
   moveClientDefinitions();
+  createPackageJsonFile();
   await buildServerAndClient();
 }
 

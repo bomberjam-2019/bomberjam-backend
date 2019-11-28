@@ -1,4 +1,4 @@
-const { playInBrowser } = require('../dist/client');
+const { playInBrowser } = require('../dist');
 
 const allActions = ['stay', 'left', 'right', 'up', 'down', 'bomb'];
 
@@ -8,6 +8,6 @@ class RandomBot {
   }
 }
 
-const bot = new RandomBot();
+const bots = [new RandomBot(), new RandomBot(), new RandomBot(), new RandomBot()];
 
-playInBrowser(bot).catch(console.log);
+playInBrowser(bots).catch(console.log);
