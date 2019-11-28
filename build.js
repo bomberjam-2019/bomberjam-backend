@@ -59,9 +59,26 @@ function moveClientDefinitions() {
     fs.renameSync(inputFilePath, outputFilePath);
   }
 }
+function createPackageJsonFile() {
+  const inputPackageJson = require(path.resolve(__dirname, 'package.json'));
+  const outputPackageJson = {
+    name: inputPackageJson.name,
+    version: inputPackageJson.version,
+    license: inputPackageJson.license,
+    main: 'index.js',
+    typings: 'index.d.ts',
+    files: ['**/*'],
+    dependencies: inputPackageJson.dependencies,
+    devDependencies: inputPackageJson.devDependencies
+  };
+
+  const outputPackageJsonPath = path.resolve(__dirname, 'dist/package.json');
+  fs.writeFileSync(outputPackageJsonPath, JSON.stringify(outputPackageJson, null, 2));
+}
 
 async function build() {
   moveClientDefinitions();
+  createPackageJsonFile();
   await buildServerAndClient();
 }
 
