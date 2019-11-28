@@ -8,6 +8,6 @@ class RandomBot {
   }
 }
 
-const bot = new RandomBot();
+const bots = [new RandomBot(), new RandomBot(), new RandomBot(), new RandomBot()];
 
-playInBrowser(bot).catch(console.log);
+playInBrowser(bots).catch(console.log);

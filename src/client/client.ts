@@ -17,13 +17,16 @@ function ensureFourValidBots(bots: IBot[]): void {
   }
 }
 
-export async function playInBrowser(bot: IBot): Promise<void> {
-  ensureValidBot(bot);
+export function startSimulation(bots: IBot[], saveGamelog: boolean): IGameStateSimulation {
+  ensureFourValidBots(bots);
+  return new GameStateSimulation(bots, saveGamelog);
+}
+
+export async function playInBrowser(bots: IBot[]): Promise<void> {
+  ensureFourValidBots(bots);
 
   const joinOpts = getJoinOptions();
   const clients: GameClient[] = [];
-
-  const bots = [bot, bot, bot, bot];
 
   const mainClient = new GameClient(bots[0], jsonClone(joinOpts), false);
   const roomId = await mainClient.runAsync();
@@ -43,9 +46,4 @@ export async function playInBrowser(bot: IBot): Promise<void> {
       clients.push(otherClient);
     }
   }
-}
-
-export function startSimulation(bots: IBot[], saveGamelog: boolean): IGameStateSimulation {
-  ensureFourValidBots(bots);
-  return new GameStateSimulation(bots, saveGamelog);
 }
