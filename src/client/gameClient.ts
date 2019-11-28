@@ -1,13 +1,13 @@
 import { Client, Room } from 'colyseus.js';
 import { APP_NAME } from '../constants';
-import { IGameState, IJoinRoomOpts } from '../types';
-import { createSanitizedStateCopyForBot } from './utils';
+import { IGameState, IJoinRoomOpts, IBot } from '../types';
+import { jsonClone } from './utils';
 
 const open = require('open');
 const colyseus = require('colyseus.js');
 
 export default class GameClient {
-  private readonly bot: Function;
+  private readonly bot: IBot;
   private readonly joinOptions: IJoinRoomOpts;
   private readonly silent: boolean;
   private readonly client: Client;
@@ -16,7 +16,7 @@ export default class GameClient {
 
   private room: Room<IGameState> = undefined as any;
 
-  public constructor(bot: Function, joinOptions: IJoinRoomOpts, silent: boolean) {
+  public constructor(bot: IBot, joinOptions: IJoinRoomOpts, silent: boolean) {
     this.bot = bot;
     this.joinOptions = joinOptions;
     this.silent = silent;
@@ -148,8 +148,8 @@ export default class GameClient {
     }
 
     if (this.room) {
-      const sanitizedState = createSanitizedStateCopyForBot(state);
-      const result = this.bot(sanitizedState, this.room.sessionId);
+      const sanitizedState = jsonClone(state);
+      const result = this.bot.getAction(sanitizedState, this.room.sessionId);
 
       if (typeof result === 'string') {
         this.room.send({

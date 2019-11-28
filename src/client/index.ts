@@ -25,7 +25,7 @@ export async function playInBrowser(bot: IBot): Promise<void> {
 
   const bots = [bot, bot, bot, bot];
 
-  const mainClient = new GameClient(bots[0].getAction, jsonClone(joinOpts), false);
+  const mainClient = new GameClient(bots[0], jsonClone(joinOpts), false);
   const roomId = await mainClient.runAsync();
   await sleepAsync(500);
   clients.push(mainClient);
@@ -37,7 +37,7 @@ export async function playInBrowser(bot: IBot): Promise<void> {
       newJoinOpts.name = `${newJoinOpts.name} (${i + 1})`;
       newJoinOpts.createNewRoom = false;
 
-      const otherClient = new GameClient(bots[i + 1].getAction, newJoinOpts, true);
+      const otherClient = new GameClient(bots[i + 1], newJoinOpts, true);
       await otherClient.runAsync();
       await sleepAsync(500);
       clients.push(otherClient);
