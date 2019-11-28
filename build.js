@@ -36,7 +36,7 @@ const appConfigs = {
   },
   client: {
     input: path.resolve(__dirname, 'src/client/index.ts'),
-    output: path.resolve(__dirname, 'dist/client.js')
+    output: path.resolve(__dirname, 'dist/index.js')
   }
 };
 
@@ -53,7 +53,7 @@ async function buildServerAndClient() {
 
 function moveClientDefinitions() {
   const inputFilePath = path.resolve(__dirname, 'dist/types.d.ts');
-  const outputFilePath = path.resolve(__dirname, 'dist/client.d.ts');
+  const outputFilePath = path.resolve(__dirname, 'dist/index.d.ts');
 
   if (fs.existsSync(inputFilePath)) {
     fs.renameSync(inputFilePath, outputFilePath);

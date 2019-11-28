@@ -1,4 +1,4 @@
-const { playInBrowser } = require('../dist/client');
+const { playInBrowser } = require('../dist');
 
 const allActions = ['stay', 'left', 'right', 'up', 'down', 'bomb'];
 

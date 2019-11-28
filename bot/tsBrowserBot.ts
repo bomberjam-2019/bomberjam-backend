@@ -1,4 +1,4 @@
-import { playInBrowser, IGameState, ActionCode, IBot } from '../dist/client';
+import { playInBrowser, IGameState, ActionCode, IBot } from '../dist';
 
 const allActions: ActionCode[] = ['stay', 'left', 'right', 'up', 'down', 'bomb'];
 
