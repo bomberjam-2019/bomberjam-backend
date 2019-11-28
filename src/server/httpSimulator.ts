@@ -31,7 +31,7 @@ export default class HttpSimulator {
   private handleRequest(req: Request, res: Response): void {
     try {
       if (this.isValidRequest(req)) {
-        const gameState = this.simulateGame(req.params.id, req.body);
+        const gameState = this.simulateGame(req);
         res.send(JSON.stringify(gameState));
       } else {
         this.httpError(res, 400, 'Invalid game id or JSON request body');
@@ -45,12 +45,16 @@ export default class HttpSimulator {
     return typeof req.params.id === 'string' && typeof req.body === 'object';
   }
 
-  private simulateGame(gameId: string, playerActions: { [playerId: string]: ActionCode }): GameState {
+  private simulateGame(req: Request): GameState {
+    const gameId: string = req.params.id;
+    const playerActions: { [playerId: string]: ActionCode } = req.body;
     const gameState: GameState = this.runningGames[gameId];
+
     if (!gameState) {
       // do nothing else with this new game state and return it immediately
       // so the simulator program can now let the bots take decisions
-      return (this.runningGames[gameId] = this.createNewGameState(gameId));
+      const saveGamelog: boolean = req.header('X-SaveGamelog') === 'true';
+      return (this.runningGames[gameId] = this.createNewGameState(gameId, saveGamelog));
     }
 
     gameState.executeNextTickWithActions(playerActions);
@@ -80,7 +84,7 @@ export default class HttpSimulator {
     }, this.deleteExistingGameStateAfterMs);
   }
 
-  private createNewGameState(gameId: string): GameState {
+  private createNewGameState(gameId: string, saveGamelog: boolean): GameState {
     const gameState = new GameState();
 
     for (const playerId in this.hardcodedPlayerIdAndNames) {
@@ -90,7 +94,7 @@ export default class HttpSimulator {
     gameState.roomId = gameId;
     gameState.isSimulationPaused = false;
     gameState.tickDuration = 0;
-    gameState.shouldWriteHistoryToDiskWhenGameEnded = true;
+    gameState.shouldWriteHistoryToDiskWhenGameEnded = saveGamelog;
 
     return gameState;
   }
