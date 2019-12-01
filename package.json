@@ -1,6 +1,6 @@
 {
   "name": "bomberjam-backend",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "license": "ISC",
   "scripts": {
     "clean": "rimraf .rpt2_cache/ dist/",
