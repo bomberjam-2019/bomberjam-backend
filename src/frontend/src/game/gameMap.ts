@@ -311,12 +311,22 @@ export default class GameMap extends GameContainer {
         let wallSprite: AnimatedSprite = this.wallSprites[idx];
 
         if (char === '+') {
+          if (wallSprite) {
+            this.unregisterSprite(wallSprite);
+            delete this.wallSprites[idx];
+          }
+
           if (!blockSprite) {
             blockSprite = this.makeAnimatedSprite(this.textures.block, { x: x, y: y }, false, 0.15, currentBlockFrame);
             this.blockSprites[idx] = blockSprite;
             this.mapContainer.addChild(blockSprite);
           }
         } else if (char === '#') {
+          if (blockSprite) {
+            this.unregisterSprite(blockSprite);
+            delete this.blockSprites[idx];
+          }
+
           if (!wallSprite) {
             wallSprite = this.makeAnimatedSprite(this.textures.wall, { x: x, y: y }, false, 0.15, currentWallFrame);
             this.wallSprites[idx] = wallSprite;
