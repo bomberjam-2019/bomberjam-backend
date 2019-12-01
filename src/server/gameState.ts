@@ -239,12 +239,7 @@ export default class GameState extends Schema implements IGameState {
   public executeNextTick(messages: IClientMessage[]) {
     if (this.isPlaying()) {
       if (!this.isSimulationPaused) {
-        if (this.firstPlayingTickExecuted) {
-          this.history.append(messages);
-        } else {
-          this.firstPlayingTickExecuted = true;
-        }
-
+        this.appendTickToHistory(messages);
         this.respawnPlayers();
         this.unleashSuddenDeath();
         this.runBombs();
@@ -252,7 +247,7 @@ export default class GameState extends Schema implements IGameState {
         this.changeStateIfGameEnded();
         this.addScorePerTick();
 
-        if (this.isGameEnded()) this.appendLastTickHistory();
+        if (this.isGameEnded()) this.appendLastTickToHistory();
       }
     } else if (this.isGameEnded()) {
       this.executeEndGameCleanup(messages);
@@ -283,6 +278,16 @@ export default class GameState extends Schema implements IGameState {
     }
 
     this.executeNextTick(messages);
+  }
+
+  private appendTickToHistory(messages: IClientMessage[]): void {
+    // the very first time we enter in this path in real playing mode, messages can be empty
+    // when the initial state is broadcasted to all clients so we don't want to
+    // add this tick to the history
+    if (this.firstPlayingTickExecuted || messages.length > 0) {
+      this.firstPlayingTickExecuted = true;
+      this.history.append(messages);
+    }
   }
 
   private respawnPlayers() {
@@ -749,7 +754,7 @@ export default class GameState extends Schema implements IGameState {
     }
   }
 
-  private appendLastTickHistory(): void {
+  private appendLastTickToHistory(): void {
     this.history.append([]);
 
     if (this.shouldWriteHistoryToDiskWhenGameEnded) {
