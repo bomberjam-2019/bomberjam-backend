@@ -1,3 +1,5 @@
+import { defaultAsciiMap } from './server/gameState';
+
 export interface IJoinRoomOpts {
   name?: string;
   roomId?: string;
@@ -179,3 +181,15 @@ export interface IBot {
 export declare function playInBrowser(bots: IBot[]): Promise<void>;
 
 export declare function startSimulation(bots: IBot[], saveGamelog: boolean): IGameStateSimulation;
+
+export interface IBoard {
+  width: number;
+  height: number;
+}
+
+export const Board: IBoard = {
+  width: defaultAsciiMap[0].length,
+  height: defaultAsciiMap.length
+};
+
+export declare const DEFAULT_BOMB_COUNTDOWN: number;

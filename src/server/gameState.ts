@@ -1,6 +1,3 @@
-import _ from 'lodash';
-import { MapSchema, Schema, type } from '@colyseus/schema';
-
 import { ActionCode, AllActions, AllTiles, BonusCode, IClientMessage, IGameState, IHasPos, MoveCode, TileCode } from '../types';
 import {
   BOMB_BONUS_COUNT,
@@ -16,14 +13,17 @@ import {
   RESPAWN_TIME,
   SUDDEN_DEATH_COUNTDOWN
 } from '../constants';
-import { EquatableSet } from '../utils';
-import Player from './player';
+import { MapSchema, Schema, type } from '@colyseus/schema';
+
 import Bomb from './bomb';
 import Bonus from './bonus';
+import { EquatableSet } from '../utils';
 import GameStateHistory from './gameStateHistory';
+import Player from './player';
+import _ from 'lodash';
 
 // prettier-ignore
-const defaultAsciiMap: string[] = [
+export const defaultAsciiMap: string[] = [
   '..+++++++++..',
   '.#+#+#+#+#.#.',
   '++.+.++++++++',
