@@ -86,6 +86,16 @@ export const AllGameActions: IAllGameActions = {
   DecreaseSpeed: 'decreaseSpeed'
 };
 
+interface IBonusCode {
+  Bomb: BonusCode;
+  Fire: BonusCode;
+}
+
+export const AllBonusCode: IBonusCode = {
+  Bomb: 'bomb',
+  Fire: 'fire'
+};
+
 export interface IClientMessage extends IHasTick {
   action: ActionCode;
   playerId: string;
