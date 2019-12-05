@@ -1,5 +1,4 @@
-import { AllActions, AllTiles, IBomb, IHasPos, IPlayer } from '../src/types';
-import { SUDDEN_DEATH_COUNTDOWN } from '../src/constants';
+import { SUDDEN_DEATH_COUNTDOWN, AllActions, AllTiles, IBomb, IHasPos, IPlayer } from '../src/types';
 import GameState from '../src/server/gameState';
 import { addPlayers, simulateTick } from './gameStateUtils';
 import _ from 'lodash';

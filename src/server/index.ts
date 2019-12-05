@@ -3,7 +3,7 @@ import http from 'http';
 import path from 'path';
 import express from 'express';
 
-import { APP_NAME, DEFAULT_SERVER_PORT } from '../constants';
+import { APP_NAME, DEFAULT_SERVER_PORT } from '../types';
 import { Server } from 'colyseus';
 import { BomberjamRoom } from './bomberjamRoom';
 import { monitor } from '@colyseus/monitor';
