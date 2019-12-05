@@ -1,7 +1,3 @@
-import _ from 'lodash';
-import { MapSchema, Schema, type } from '@colyseus/schema';
-
-import { ActionCode, AllActions, AllTiles, BonusCode, IClientMessage, IGameState, IHasPos, MoveCode, TileCode } from '../types';
 import {
   BOMB_BONUS_COUNT,
   DEFAULT_BOMB_COUNTDOWN,
@@ -14,28 +10,26 @@ import {
   POINTS_LAST_SURVIVOR,
   POINTS_PER_ALIVE_TICK,
   RESPAWN_TIME,
-  SUDDEN_DEATH_COUNTDOWN
-} from '../constants';
-import { EquatableSet } from '../utils';
-import Player from './player';
+  SUDDEN_DEATH_COUNTDOWN,
+  DEFAULT_ASCII_MAP,
+  ActionCode,
+  AllActions,
+  AllTiles,
+  BonusCode,
+  IClientMessage,
+  IGameState,
+  IHasPos,
+  MoveCode,
+  TileCode
+} from '../types';
+import { MapSchema, Schema, type } from '@colyseus/schema';
+
 import Bomb from './bomb';
 import Bonus from './bonus';
+import { EquatableSet } from '../utils';
 import GameStateHistory from './gameStateHistory';
-
-// prettier-ignore
-const defaultAsciiMap: string[] = [
-  '..+++++++++..',
-  '.#+#+#+#+#.#.',
-  '++.+.++++++++',
-  '+#+#+#+#+#.#.',
-  '.+++++++.++++',
-  '+#+#+#.#+#.#.',
-  '+.+..++..++++',
-  '+#+#+#+#+#.#+',
-  '.+.++++++..+.',
-  '.#+#+#+#+#+#.',
-  '..+++++++++..'
-];
+import Player from './player';
+import _ from 'lodash';
 
 const allActionCodes: Set<string> = new Set<string>(Object.values(AllActions));
 
@@ -119,7 +113,7 @@ export default class GameState extends Schema implements IGameState {
     super();
 
     if (!asciiMap || !GameState.isValidAsciiMap(asciiMap)) {
-      asciiMap = defaultAsciiMap;
+      asciiMap = DEFAULT_ASCII_MAP;
     }
 
     this.tiles = asciiMap.join('');

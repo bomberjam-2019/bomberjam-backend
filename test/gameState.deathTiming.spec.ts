@@ -1,7 +1,6 @@
-import { AllActions } from '../src/types';
-import GameState from '../src/server/gameState';
 import { addPlayers, simulateTick } from './gameStateUtils';
-import { RESPAWN_TIME } from '../src/constants';
+import { RESPAWN_TIME, AllActions } from '../src/types';
+import GameState from '../src/server/gameState';
 
 describe('GameState death timing', () => {
   // prettier-ignore

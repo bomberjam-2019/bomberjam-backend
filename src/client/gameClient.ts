@@ -1,6 +1,5 @@
 import { Client, Room } from 'colyseus.js';
-import { APP_NAME } from '../constants';
-import { IGameState, IJoinRoomOpts, IBot } from '../types';
+import { APP_NAME, IGameState, IJoinRoomOpts, IBot } from '../types';
 import { jsonClone } from './utils';
 
 const open = require('open');

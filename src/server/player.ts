@@ -1,6 +1,5 @@
 import { Schema, type } from '@colyseus/schema';
-import { IPlayer } from '../types';
-import { DEFAULT_BOMB_RANGE } from '../constants';
+import { DEFAULT_BOMB_RANGE, IPlayer } from '../types';
 
 export default class Player extends Schema implements IPlayer {
   @type('string')

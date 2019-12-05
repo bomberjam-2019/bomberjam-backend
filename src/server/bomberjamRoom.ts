@@ -1,5 +1,15 @@
-import { GameActionCode, AllGameActions, IClientMessage, IJoinRoomOpts, IPlayer, IRoomMetadata } from '../types';
-import { MAX_PLAYERS, MAX_RESPONSE_TIME_MS, MAX_SPECTATORS, TICK_DURATION_MS } from '../constants';
+import {
+  MAX_PLAYERS,
+  MAX_RESPONSE_TIME_MS,
+  MAX_SPECTATORS,
+  TICK_DURATION_MS,
+  GameActionCode,
+  AllGameActions,
+  IClientMessage,
+  IJoinRoomOpts,
+  IPlayer,
+  IRoomMetadata
+} from '../types';
 
 import { Client } from 'colyseus';
 import GameState from './gameState';
