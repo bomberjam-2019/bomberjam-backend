@@ -1,4 +1,4 @@
-import { AllActions, AllTiles } from '../types';
-import { startSimulation, playInBrowser } from './client';
+import { AllActions, AllBonusCode, AllTiles } from '../types';
+import { playInBrowser, startSimulation } from './client';
 
-export { AllActions, AllTiles, startSimulation, playInBrowser };
+export { AllActions, AllBonusCode, AllTiles, startSimulation, playInBrowser };
