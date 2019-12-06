@@ -22,7 +22,7 @@ export const POINTS_KILLED_PLAYER = 20;
 export const POINTS_DEATH = 0;
 export const POINTS_LAST_SURVIVOR = 50;
 
-export const PLAYER_COLORS: number[] = [0xff8f8f, 0xffff8a, 0x7aff7a, 0x75c0ff, 0xff78fd];
+export const PLAYER_COLORS: number[] = [0xd81b60, 0x1e88e5, 0xffc107, 0x00997f];
 
 // prettier-ignore
 export const DEFAULT_ASCII_MAP: string[] = [
