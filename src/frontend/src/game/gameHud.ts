@@ -16,7 +16,7 @@ interface IPlayerHudContainer extends Container {
 export default class GameHud extends GameContainer {
   private static readonly TextStyle = new TextStyle({
     fontFamily: 'Arial',
-    fontSize: 20
+    fontSize: 22
   });
 
   private readonly textures: TextureRegistry;
@@ -77,30 +77,30 @@ export default class GameHud extends GameContainer {
 
     const hud = this.playerHuds[playerId];
 
-    hud.playerSprite.x = 25;
+    hud.playerSprite.x = 20;
     hud.playerSprite.y = 25;
     hud.playerSprite.tint = player.color;
 
     hud.playerNameText.x = hud.playerSprite.x + hud.playerSprite.width + 10;
-    hud.playerNameText.y = hud.playerSprite.y + 10;
+    hud.playerNameText.y = hud.playerSprite.y + 26;
 
     hud.bombSprite.x = hud.playerNameText.x;
     hud.bombSprite.y = hud.playerNameText.y + hud.playerNameText.height + 5;
 
     hud.bombCountText.text = player.bombsLeft + '/' + player.maxBombs;
     hud.bombCountText.x = hud.bombSprite.x + hud.bombSprite.width + 5;
-    hud.bombCountText.y = hud.bombSprite.y;
+    hud.bombCountText.y = hud.bombSprite.y + 6;
 
     hud.flameSprite.x = hud.bombCountText.x + hud.bombCountText.width + 10;
     hud.flameSprite.y = hud.bombSprite.y;
 
     hud.bombRangeText.text = player.bombRange.toString();
     hud.bombRangeText.x = hud.flameSprite.x + hud.flameSprite.width + 5;
-    hud.bombRangeText.y = hud.bombSprite.y;
+    hud.bombRangeText.y = hud.bombSprite.y + 6;
 
     hud.scoreText.text = `- score: ${player.score.toString()}`;
     hud.scoreText.x = hud.bombRangeText.x + hud.bombRangeText.width + 5;
-    hud.scoreText.y = hud.bombSprite.y;
+    hud.scoreText.y = hud.bombSprite.y + 6;
 
     hud.y = playerPosition * (hud.height + 25);
     hud.alpha = player.alive ? 1 : 0.5;

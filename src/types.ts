@@ -19,7 +19,7 @@ export const LOSE_BONUSES_ON_DEATH = false;
 export const POINTS_PER_ALIVE_TICK = 0;
 export const POINTS_BLOCK_DESTROYED = 5;
 export const POINTS_KILLED_PLAYER = 20;
-export const POINTS_DEATH = 0;
+export const POINTS_DEATH = -10;
 export const POINTS_LAST_SURVIVOR = 50;
 
 export const PLAYER_COLORS: number[] = [0xd81b60, 0x1e88e5, 0xffc107, 0x00997f];

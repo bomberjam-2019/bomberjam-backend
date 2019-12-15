@@ -42,4 +42,4 @@ expressApp.use('/colyseus', monitor(gameServer));
 
 gameServer.listen(config.serverPort);
 
-console.log(`Listening on ws://${config.serverName}:${config.serverPort}`);
+console.log(`Server is up and running. Open http://${config.serverName}:${config.serverPort} in your browser.`);
