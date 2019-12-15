@@ -18,7 +18,7 @@ export default class TextureRegistry {
   public readonly flame: Texture[];
   public readonly fireBonus: Texture[];
   public readonly bombBonus: Texture[];
-  public readonly tileSize: number = 42;
+  public readonly tileSize: number = 48;
   public readonly spriteRatio: number;
 
   constructor(resources: IResourceDictionary) {
