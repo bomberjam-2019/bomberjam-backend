@@ -24,9 +24,9 @@
                       room.roomId
                     }}</router-link>
                   </td>
-                  <td>{{ room.playerNames }}</td>
-                  <td>{{ room.tick }}</td>
-                  <td>{{ room.state }}</td>
+                  <td class="align-middle">{{ room.playerNames }}</td>
+                  <td class="align-middle">{{ room.tick }}</td>
+                  <td class="align-middle">{{ room.state }}</td>
                 </tr>
                 <tr v-show="rooms.length === 0">
                   <td colspan="4">No games found</td>

@@ -19,9 +19,13 @@ import _ from 'lodash';
 const allGameActions = new Set<string>(Object.values(AllGameActions));
 
 export class BomberjamRoom extends TickBasedRoom<GameState> {
+  private readonly rejoinWaitTimeInSeconds: number = 20;
+  private readonly autoDisposalWaitInSeconds: number = 60;
   protected readonly maxPlayerCount: number = MAX_PLAYERS;
   protected tickDurationMs: number = TICK_DURATION_MS;
   protected maxResponseTimeMs: number = MAX_RESPONSE_TIME_MS;
+  private isGameEnded: boolean = false;
+  private isDisposed: boolean = false;
 
   protected onRoomInitializing(options: IJoinRoomOpts): void {
     this.autoDispose = true;
@@ -102,12 +106,10 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
       }
     } else {
       try {
-        const rejoinWaitTimeInSeconds = 30;
-
         this.log(`Player ${player.name} (${client.sessionId}) is disconnected`);
         player.connected = false;
 
-        await this.allowReconnection(client, rejoinWaitTimeInSeconds);
+        await this.allowReconnection(client, this.rejoinWaitTimeInSeconds);
 
         player.connected = true;
         this.log(`Player ${player.name} (${client.sessionId}) is reconnected`);
@@ -189,7 +191,7 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
     this.state.tickDuration = this.tickDurationMs;
     this.state.executeNextTick(queuedMessages);
     this.populateMetadata();
-    this.log(JSON.stringify(this.state));
+    this.handleEndGameDelayedDisposal();
   }
 
   private populateMetadata() {
@@ -203,7 +205,22 @@ export class BomberjamRoom extends TickBasedRoom<GameState> {
     this.setMetadata(metadata);
   }
 
+  private handleEndGameDelayedDisposal() {
+    if (!this.isGameEnded && this.state.state === 1) {
+      this.isGameEnded = true;
+      console.log(`room ${this.roomId} will be disposed in ${this.autoDisposalWaitInSeconds} seconds`);
+
+      setTimeout(() => {
+        if (!this.isDisposed) {
+          console.log(`automatically disposing room ${this.roomId}`);
+          this.disconnect().catch(console.log);
+        }
+      }, this.autoDisposalWaitInSeconds * 1000);
+    }
+  }
+
   public onDispose() {
-    this.log(`disposing room ${this.roomId}`);
+    this.isDisposed = true;
+    this.log(`room ${this.roomId} disposed`);
   }
 }

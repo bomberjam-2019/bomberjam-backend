@@ -68,7 +68,6 @@ export default abstract class TickBasedRoom<TState extends IHasTick> extends Roo
     if (alreadyReceivedMessage) return;
 
     if (this.isValidMessage(message)) {
-      this.log(` - from ${client.sessionId}: ${JSON.stringify(message)}`);
       this.queuedMessages.push(message);
     }
   }
