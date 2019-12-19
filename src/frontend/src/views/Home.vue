@@ -19,7 +19,7 @@
 
           <p>
             <a href="#" v-on:click.stop.prevent="showGamelogFilePicker" class="btn btn-link btn-adventure">
-              Load gamestate
+              Load gamelog file
             </a>
           </p>
 
