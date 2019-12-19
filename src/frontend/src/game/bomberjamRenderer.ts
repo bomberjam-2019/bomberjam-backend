@@ -43,7 +43,7 @@ export default class BomberjamRenderer {
     this.registerStateChangeHandlers();
 
     this.pixiApp.renderer.resize(this.pixiApp.stage.width, this.pixiApp.stage.height);
-    if (this.stateProvider.state.state === 0) {
+    if (this.stateProvider.state.state === 0 && !this.stateProvider.state.isSimulationPaused) {
       this.sounds.level.play();
     } else {
       this.sounds.waiting.play();

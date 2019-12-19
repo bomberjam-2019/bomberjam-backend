@@ -136,7 +136,15 @@ export default class GameMap extends GameContainer {
     }
 
     // Game started
-    if (prevState.state === -1 && this.state.state === 0) {
+    if (prevState.state === -1 && this.state.state === 0 && !this.stateProvider.state.isSimulationPaused) {
+      this.sounds.waiting.stop();
+      this.sounds.level.play();
+    } else if (
+      prevState.state === 0 &&
+      prevState.isSimulationPaused &&
+      this.state.state === 0 &&
+      !this.stateProvider.state.isSimulationPaused
+    ) {
       this.sounds.waiting.stop();
       this.sounds.level.play();
     }
