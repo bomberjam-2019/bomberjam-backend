@@ -28,7 +28,7 @@
     "colyseus.js": "^0.10.8",
     "connect-history-api-fallback": "^1.6.0",
     "express": "^4.16.4",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.21",
     "minimist": "^1.2.0",
     "open": "^6.3.0",
     "ws": "^7.0.0"
