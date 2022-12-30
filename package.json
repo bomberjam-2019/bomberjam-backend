@@ -24,7 +24,7 @@
   "dependencies": {
     "@colyseus/monitor": "^0.10.0",
     "@colyseus/schema": "^0.4.44",
-    "colyseus": "^0.10.7",
+    "colyseus": "^0.14.24",
     "colyseus.js": "^0.10.8",
     "connect-history-api-fallback": "^1.6.0",
     "express": "^4.16.4",
